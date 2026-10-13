@@ -32,6 +32,22 @@ namespace Overclock.Core
         }
 
         public int DrawsWithoutSuperRare => drawsWithoutSuperRare;
+        public int PityThreshold => pityThreshold;
+
+        public double GetProbability(Grade grade)
+        {
+            switch (grade)
+            {
+                case Grade.N:
+                    return probabilityN;
+                case Grade.R:
+                    return probabilityR;
+                case Grade.SR:
+                    return probabilitySR;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(grade));
+            }
+        }
 
         public void SetProbabilities(double n, double r, double sr)
         {

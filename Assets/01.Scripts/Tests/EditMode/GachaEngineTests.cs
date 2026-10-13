@@ -108,5 +108,27 @@ namespace Overclock.Tests
             var engine = CreateBaseEngine(NoPity);
             Assert.Throws<ArgumentException>(() => engine.SetProbabilities(n, r, sr));
         }
+
+        [Test]
+        public void GetProbability_ReflectsCurrentTable()
+        {
+            var engine = CreateBaseEngine(NoPity);
+            Assert.AreEqual(0.72, engine.GetProbability(Grade.N));
+            Assert.AreEqual(0.25, engine.GetProbability(Grade.R));
+            Assert.AreEqual(0.03, engine.GetProbability(Grade.SR));
+
+            engine.SetProbabilities(0.68, 0.24, 0.08);
+
+            Assert.AreEqual(0.68, engine.GetProbability(Grade.N));
+            Assert.AreEqual(0.24, engine.GetProbability(Grade.R));
+            Assert.AreEqual(0.08, engine.GetProbability(Grade.SR));
+        }
+
+        [TestCase(3)]
+        [TestCase(50)]
+        public void PityThreshold_ReturnsConstructorValue(int threshold)
+        {
+            Assert.AreEqual(threshold, CreateBaseEngine(threshold).PityThreshold);
+        }
     }
 }
