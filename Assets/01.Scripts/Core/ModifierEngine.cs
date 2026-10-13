@@ -21,6 +21,13 @@ namespace Overclock.Core
             this.baseSR = baseSR;
         }
 
+        public ModifierEngine Clone()
+        {
+            var clone = new ModifierEngine(baseN, baseR, baseSR);
+            clone.effects.AddRange(effects);
+            return clone;
+        }
+
         public void Equip(ModuleData module)
         {
             if (module == null)

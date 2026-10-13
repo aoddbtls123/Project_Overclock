@@ -112,6 +112,14 @@ namespace Overclock.Core
             gachaEngine.SetProbabilities(n, r, sr);
         }
 
+        public ModulePreview PreviewModule(ModuleData module)
+        {
+            // 실제 엔진은 건드리지 않는다. 전/후 모두 복제본으로 계산
+            ModifierEngine after = modifierEngine.Clone();
+            after.Equip(module);
+            return new ModulePreview(modifierEngine.Clone(), after, drawsPerRound);
+        }
+
         public void AdvanceRound()
         {
             if (state != RunState.RoundCleared)
