@@ -80,8 +80,9 @@ namespace Overclock.Presentation
 
         private void OnDrawClicked()
         {
-            PartData part = runManager.Draw();
-            lastPartText.text = part.DisplayName + " [" + part.Grade + "] +" + part.BaseOutput;
+            DrawResult result = runManager.Draw();
+            PartData part = result.Part;
+            lastPartText.text = part.DisplayName + " [" + part.Grade + "] +" + result.Output;
             Refresh();
         }
 

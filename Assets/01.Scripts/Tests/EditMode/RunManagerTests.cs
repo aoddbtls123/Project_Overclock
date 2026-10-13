@@ -15,6 +15,7 @@ namespace Overclock.Tests
         private const int StatisticsRunCount = 100000;
 
         private readonly List<PartData> createdParts = new List<PartData>();
+        private readonly List<ModuleData> createdModules = new List<ModuleData>();
 
         private PartData normal;
         private PartData normalDouble;
@@ -39,6 +40,13 @@ namespace Overclock.Tests
             }
 
             createdParts.Clear();
+
+            foreach (ModuleData module in createdModules)
+            {
+                UnityEngine.Object.DestroyImmediate(module);
+            }
+
+            createdModules.Clear();
         }
 
         private PartData CreatePart(string displayName, Grade grade, int baseOutput)
@@ -47,6 +55,14 @@ namespace Overclock.Tests
             part.InitializeForTests(displayName, grade, baseOutput);
             createdParts.Add(part);
             return part;
+        }
+
+        private ModuleData CreateModule(ModifierType type, float value)
+        {
+            var module = ScriptableObject.CreateInstance<ModuleData>();
+            module.InitializeForTests(type.ToString(), new ModifierEffect(type, GradeFilter.Any, value));
+            createdModules.Add(module);
+            return module;
         }
 
         private RunManager CreateFixedGradeRun(double n, double r, double sr, int roundCount, int drawsPerRound)
@@ -92,7 +108,7 @@ namespace Overclock.Tests
             DrawTimes(run, 7);
             Assert.AreEqual(RunState.Drawing, run.State);
 
-            Assert.AreSame(normal, run.Draw());
+            Assert.AreSame(normal, run.Draw().Part);
             Assert.AreEqual(RunState.RoundCleared, run.State);
             Assert.AreEqual(8, run.Production);
             Assert.AreEqual(2, run.DrawsRemaining);
@@ -158,8 +174,8 @@ namespace Overclock.Tests
             run.AdvanceRound();
             Assert.AreEqual(8, engine.DrawsWithoutSuperRare);
 
-            Assert.AreSame(normal, run.Draw());
-            Assert.AreSame(superRare, run.Draw());
+            Assert.AreSame(normal, run.Draw().Part);
+            Assert.AreSame(superRare, run.Draw().Part);
             Assert.AreEqual(0, engine.DrawsWithoutSuperRare);
         }
 
@@ -181,7 +197,7 @@ namespace Overclock.Tests
                 mirrorRandom.NextDouble();
                 PartData expected = catalog.Select(Grade.N, mirrorRandom.NextDouble());
 
-                Assert.AreSame(expected, run.Draw(), "draw " + (drawCount + 1));
+                Assert.AreSame(expected, run.Draw().Part, "draw " + (drawCount + 1));
                 expectedProduction += expected.BaseOutput;
                 Assert.AreEqual(expectedProduction, run.Production);
                 drawCount++;
@@ -189,6 +205,113 @@ namespace Overclock.Tests
 
             Assert.AreEqual(5, drawCount);
             Assert.AreEqual(mirrorRandom.State, runRandom.State);
+        }
+
+        [Test]
+        public void EquipModule_UpdatesProbabilitiesWithoutResettingPity()
+        {
+            var random = new RandomService(1);
+            var engine = new GachaEngine(random, NoPity, 1.0, 0.0, 0.0);
+            var catalog = new PartCatalog(new List<PartData> { normal, rare, superRare }, random);
+            var run = new RunManager(engine, catalog, BaseRoundCount, BaseDrawsPerRound);
+            DrawTimes(run, 3);
+
+            run.EquipModule(CreateModule(ModifierType.SuperRareChance, 0.05f));
+
+            Assert.AreEqual(0.95, engine.GetProbability(Grade.N), 1e-6);
+            Assert.AreEqual(0.0, engine.GetProbability(Grade.R), 1e-6);
+            Assert.AreEqual(0.05, engine.GetProbability(Grade.SR), 1e-6);
+            Assert.AreEqual(3, engine.DrawsWithoutSuperRare);
+        }
+
+        [Test]
+        public void Multiplier_ChangesDrawOutputAndProduction()
+        {
+            var run = CreateFixedGradeRun(0.0, 1.0, 0.0, BaseRoundCount, BaseDrawsPerRound);
+            run.EquipModule(CreateModule(ModifierType.OutputMultiplier, 0.3f));
+
+            DrawResult result = run.Draw();
+
+            Assert.AreSame(rare, result.Part);
+            Assert.AreEqual(4, result.Output);
+            Assert.AreEqual(4, run.Production);
+        }
+
+        [Test]
+        public void Multiplier_WorksOnAllSuperRareTable()
+        {
+            var run = CreateFixedGradeRun(0.0, 0.0, 1.0, BaseRoundCount, BaseDrawsPerRound);
+
+            run.EquipModule(CreateModule(ModifierType.OutputMultiplier, 0.3f));
+
+            Assert.AreEqual(13, run.Draw().Output);
+        }
+
+        [Test]
+        public void ExtraDraws_ApplyFromNextRound()
+        {
+            var run = CreateFixedGradeRun(1.0, 0.0, 0.0, BaseRoundCount, BaseDrawsPerRound);
+
+            run.EquipModule(CreateModule(ModifierType.ExtraDraws, 2f));
+            Assert.AreEqual(BaseDrawsPerRound, run.DrawsRemaining);
+
+            DrawTimes(run, 8);
+            run.AdvanceRound();
+
+            Assert.AreEqual(BaseDrawsPerRound + 2, run.DrawsRemaining);
+        }
+
+        [Test]
+        public void Streak_TriggersEveryThirdAndResetsEachRound()
+        {
+            var run = CreateFixedGradeRun(1.0, 0.0, 0.0, BaseRoundCount, BaseDrawsPerRound);
+            DrawTimes(run, 8);
+            run.EquipModule(CreateModule(ModifierType.StreakBonus, 1f));
+            run.AdvanceRound();
+            bool[] expected = { false, false, true, false, false, true, false, false, true };
+
+            for (int i = 0; i < expected.Length; i++)
+            {
+                DrawResult result = run.Draw();
+                Assert.AreEqual(expected[i], result.StreakTriggered, "draw " + (i + 1));
+                Assert.AreEqual(expected[i] ? 2 : 1, result.Output, "draw " + (i + 1));
+            }
+
+            Assert.AreEqual(RunState.RoundCleared, run.State);
+            Assert.AreEqual(12, run.Production);
+        }
+
+        [Test]
+        public void Streak_BreaksWhenGradeChanges()
+        {
+            var random = new RandomService(1);
+            var engine = new GachaEngine(random, NoPity, 1.0, 0.0, 0.0);
+            var catalog = new PartCatalog(new List<PartData> { normal, rare, superRare }, random);
+            var run = new RunManager(engine, catalog, BaseRoundCount, BaseDrawsPerRound);
+            run.EquipModule(CreateModule(ModifierType.StreakBonus, 1f));
+
+            Assert.IsFalse(run.Draw().StreakTriggered);
+            Assert.IsFalse(run.Draw().StreakTriggered);
+            engine.SetProbabilities(0.0, 1.0, 0.0);
+            Assert.IsFalse(run.Draw().StreakTriggered);
+            engine.SetProbabilities(1.0, 0.0, 0.0);
+            Assert.IsFalse(run.Draw().StreakTriggered);
+            Assert.IsFalse(run.Draw().StreakTriggered);
+            Assert.AreEqual(RunState.Drawing, run.State);
+
+            Assert.IsTrue(run.Draw().StreakTriggered);
+            Assert.AreEqual(9, run.Production);
+            Assert.AreEqual(RunState.RoundCleared, run.State);
+        }
+
+        [Test]
+        public void EquipModule_RejectsFinishedRun()
+        {
+            var run = CreateFixedGradeRun(1.0, 0.0, 0.0, BaseRoundCount, 1);
+            run.Draw();
+            Assert.AreEqual(RunState.RunFailed, run.State);
+
+            Assert.Throws<InvalidOperationException>(() => run.EquipModule(CreateModule(ModifierType.ExtraDraws, 2f)));
         }
 
         [Test]
