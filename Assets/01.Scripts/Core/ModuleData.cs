@@ -7,10 +7,12 @@ namespace Overclock.Core
     {
         [SerializeField] private string displayName;
         [SerializeField] private string description;
+        [SerializeField] private ModuleAxis axis;
         [SerializeField] private ModifierEffect[] effects = new ModifierEffect[0];
 
         public string DisplayName => displayName;
         public string Description => description;
+        public ModuleAxis Axis => axis;
         public int EffectCount => effects == null ? 0 : effects.Length;
 
         public ModifierEffect GetEffect(int index)
@@ -21,6 +23,13 @@ namespace Overclock.Core
         internal void InitializeForTests(string displayName, params ModifierEffect[] effects)
         {
             this.displayName = displayName;
+            this.effects = effects;
+        }
+
+        internal void InitializeForTests(string displayName, ModuleAxis axis, params ModifierEffect[] effects)
+        {
+            this.displayName = displayName;
+            this.axis = axis;
             this.effects = effects;
         }
     }
