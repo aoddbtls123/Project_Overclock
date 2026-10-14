@@ -2956,6 +2956,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7c649064d7c6b9444a116fb70b4c3aaa, type: 2}
   - {fileID: 11400000, guid: 95c603802aa87e041890ec2a39758451, type: 2}
   - {fileID: 11400000, guid: d0e2625a0f3b84c4085a587354340cec, type: 2}
+  revealTimings: {fileID: 11400000, guid: fd6968ca63cb4d24daff1ac366d92ced, type: 2}
   roundText: {fileID: 1393589452}
   quotaText: {fileID: 54879744}
   quotaGauge: {fileID: 398789213}

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Overclock.Core;
@@ -20,6 +21,7 @@ namespace Overclock.Presentation
         [SerializeField, Min(0)] private int seed;
         [SerializeField] private PartData[] parts;
         [SerializeField] private ModuleData[] modules;
+        [SerializeField] private RevealTimings revealTimings;
 
         [SerializeField] private TMP_Text roundText;
         [SerializeField] private TMP_Text quotaText;
@@ -38,10 +40,14 @@ namespace Overclock.Presentation
         private GachaEngine gachaEngine;
         private RunManager runManager;
         private ModuleOffer moduleOffer;
+        private bool isRevealing;
+        private bool skipRequested;
+        private int revealStartFrame;
+        private bool ignoreDrawButtonClick;
 
         private void Awake()
         {
-            drawButton.onClick.AddListener(OnDrawClicked);
+            drawButton.onClick.AddListener(OnDrawButtonClicked);
             restartButton.onClick.AddListener(StartNewRun);
         }
 
@@ -53,10 +59,51 @@ namespace Overclock.Presentation
         private void Update()
         {
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame && runManager.State == RunState.Drawing)
+            Mouse mouse = Mouse.current;
+            UpdateDrawButtonGuard(mouse);
+
+            if (isRevealing)
+            {
+                if (IsSkipPressed(keyboard, mouse))
+                {
+                    skipRequested = true;
+                }
+            }
+            else if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame && runManager.State == RunState.Drawing)
             {
                 OnDrawClicked();
             }
+        }
+
+        private void UpdateDrawButtonGuard(Mouse mouse)
+        {
+            if (mouse == null)
+            {
+                return;
+            }
+
+            // 버튼은 누른 대상을 기억했다가 뗄 때 그 순간 켜져 있으면 클릭으로 처리한다.
+            // 연출 중에 시작된 누름은 공개 뒤에 떼도 뽑기가 되지 않게 한다. 다음 누름이 시작되면 다시 판단한다
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                ignoreDrawButtonClick = isRevealing;
+            }
+        }
+
+        private bool IsSkipPressed(Keyboard keyboard, Mouse mouse)
+        {
+            // 연출을 시작한 입력(버튼을 뗀 순간·Space)이 같은 프레임에 스킵으로 잡히지 않게 한다
+            if (Time.frameCount <= revealStartFrame)
+            {
+                return false;
+            }
+
+            if (keyboard != null && (keyboard.spaceKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame))
+            {
+                return true;
+            }
+
+            return mouse != null && mouse.leftButton.wasReleasedThisFrame;
         }
 
         private void StartNewRun()
@@ -87,9 +134,51 @@ namespace Overclock.Presentation
             Refresh();
         }
 
+        private void OnDrawButtonClicked()
+        {
+            if (ignoreDrawButtonClick)
+            {
+                return;
+            }
+
+            OnDrawClicked();
+        }
+
         private void OnDrawClicked()
         {
+            // 연출 중에도 State 는 Drawing 이다. 막지 않으면 공개 전에 다음 뽑기가 실행된다
+            if (isRevealing || runManager.State != RunState.Drawing)
+            {
+                return;
+            }
+
+            // 결과는 여기서 확정된다. 연출은 표시만 늦추므로 스킵해도 최종 상태가 같다
             DrawResult result = runManager.Draw();
+            StartCoroutine(RevealDraw(result));
+        }
+
+        private IEnumerator RevealDraw(DrawResult result)
+        {
+            isRevealing = true;
+            skipRequested = false;
+            revealStartFrame = Time.frameCount;
+            lastPartText.text = "???";
+            drawButton.interactable = false;
+
+            float duration = revealTimings.GetSeconds(result.Part.Grade);
+            float elapsed = 0f;
+            while (elapsed < duration && !skipRequested)
+            {
+                yield return null;
+                elapsed += Time.deltaTime;
+            }
+
+            isRevealing = false;
+            ShowDrawResult(result);
+        }
+
+        private void ShowDrawResult(DrawResult result)
+        {
             PartData part = result.Part;
             lastPartText.text = part.DisplayName + " [" + part.Grade + "] +" + result.Output;
             Refresh();
