@@ -11,13 +11,6 @@ namespace Overclock.Presentation
 {
     public sealed class GrayBoxRunScreen : MonoBehaviour
     {
-        private const int PityThreshold = 50;
-        private const int RoundCount = 8;
-        private const int DrawsPerRound = 10;
-        private const double BaseN = 0.72;
-        private const double BaseR = 0.25;
-        private const double BaseSR = 0.03;
-
         [SerializeField, Min(0)] private int seed;
         [SerializeField] private PartData[] parts;
         [SerializeField] private ModuleData[] modules;
@@ -119,13 +112,10 @@ namespace Overclock.Presentation
                 }
             }
 
-            // 보증 카운터가 런 전체에서 이어져야 하므로 GachaEngine 은 런마다 한 번만 만든다
-            // 같은 시드로 같은 판을 재현하려면 모든 난수 소비가 이 RandomService 하나를 거쳐야 한다
-            var randomService = new RandomService(runSeed);
-            gachaEngine = new GachaEngine(randomService, PityThreshold, BaseN, BaseR, BaseSR);
-            var partCatalog = new PartCatalog(parts, randomService);
-            runManager = new RunManager(gachaEngine, partCatalog, RoundCount, DrawsPerRound);
-            moduleOffer = new ModuleOffer(modules, randomService);
+            RunSession session = RunSession.Create(runSeed, parts, modules);
+            gachaEngine = session.GachaEngine;
+            runManager = session.RunManager;
+            moduleOffer = session.ModuleOffer;
             equippedModules.Clear();
 
             Debug.Log("Run seed: " + runSeed);
