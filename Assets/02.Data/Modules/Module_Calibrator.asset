@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 504d71a0c4f4e254f919de6720b6e510, type: 3}
   m_Name: Module_Calibrator
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.ModuleData
+  id: calibrator
   displayName: "\uC815\uBC00 \uAD50\uC815\uAE30"
   description: "SR \uD655\uB960 +5%p"
   axis: 0
   effects:
   - type: 0
     target: 0
+    tagTarget: 0
     value: 0.05

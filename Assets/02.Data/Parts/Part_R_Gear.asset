@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27e97c37ad0c6c0488eeaf43939a8677, type: 3}
   m_Name: Part_R_Gear
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.PartData
+  id: gear
   displayName: "\uAE30\uC5B4"
   grade: 1
+  tag: 2
   baseOutput: 3

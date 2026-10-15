@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27e97c37ad0c6c0488eeaf43939a8677, type: 3}
   m_Name: Part_SR_Core
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.PartData
+  id: core
   displayName: "\uCF54\uC5B4"
   grade: 2
+  tag: 3
   baseOutput: 10
