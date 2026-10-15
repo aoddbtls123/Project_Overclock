@@ -58,8 +58,8 @@ namespace Overclock.Tests
             var engine = CreateBaseEngine();
 
             AssertTable(engine, 0.72, 0.25, 0.03);
-            Assert.AreEqual(1, engine.CalculateOutput(Grade.N, 1, true));
-            Assert.AreEqual(10, engine.CalculateOutput(Grade.SR, 10, false));
+            Assert.AreEqual(1, engine.CalculateOutput(Grade.N, PartTag.None, 1, true));
+            Assert.AreEqual(10, engine.CalculateOutput(Grade.SR, PartTag.None, 10, false));
             Assert.AreEqual(10, engine.DrawsPerRound(10));
         }
 
@@ -107,8 +107,8 @@ namespace Overclock.Tests
             engine.Equip(CreateModule(ModifierType.StreakBonus, GradeFilter.Any, 10f));
             engine.Equip(CreateModule(ModifierType.OutputMultiplier, GradeFilter.Any, 0.3f));
 
-            Assert.AreEqual(14, engine.CalculateOutput(Grade.N, 1, true));
-            Assert.AreEqual(1, engine.CalculateOutput(Grade.N, 1, false));
+            Assert.AreEqual(14, engine.CalculateOutput(Grade.N, PartTag.None, 1, true));
+            Assert.AreEqual(1, engine.CalculateOutput(Grade.N, PartTag.None, 1, false));
         }
 
         [Test]
@@ -118,12 +118,12 @@ namespace Overclock.Tests
             engine.Equip(CreateModule(ModifierType.OutputMultiplier, GradeFilter.SR, 1.0f));
             engine.Equip(CreateModule(ModifierType.OutputMultiplier, GradeFilter.Any, 0.3f));
 
-            Assert.AreEqual(23, engine.CalculateOutput(Grade.SR, 10, false));
-            Assert.AreEqual(4, engine.CalculateOutput(Grade.R, 3, false));
+            Assert.AreEqual(23, engine.CalculateOutput(Grade.SR, PartTag.None, 10, false));
+            Assert.AreEqual(4, engine.CalculateOutput(Grade.R, PartTag.None, 3, false));
 
             engine.Equip(CreateModule(ModifierType.OutputMultiplier, GradeFilter.Any, 0.3f));
 
-            Assert.AreEqual(26, engine.CalculateOutput(Grade.SR, 10, false));
+            Assert.AreEqual(26, engine.CalculateOutput(Grade.SR, PartTag.None, 10, false));
         }
 
         [Test]
@@ -133,7 +133,7 @@ namespace Overclock.Tests
 
             EquipTimes(engine, 10, ModifierType.OutputMultiplier, GradeFilter.Any, 1.0f);
 
-            Assert.AreEqual(80, engine.CalculateOutput(Grade.SR, 10, false));
+            Assert.AreEqual(80, engine.CalculateOutput(Grade.SR, PartTag.None, 10, false));
         }
 
         [Test]
@@ -143,7 +143,7 @@ namespace Overclock.Tests
 
             engine.Equip(CreateModule(ModifierType.OutputMultiplier, GradeFilter.Any, 0.5f));
 
-            Assert.AreEqual(5, engine.CalculateOutput(Grade.R, 3, false));
+            Assert.AreEqual(5, engine.CalculateOutput(Grade.R, PartTag.None, 3, false));
         }
 
         [Test]

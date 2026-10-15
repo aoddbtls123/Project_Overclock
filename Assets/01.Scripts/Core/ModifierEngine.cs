@@ -60,10 +60,20 @@ namespace Overclock.Core
             r = baseR * scale;
         }
 
-        public int CalculateOutput(Grade grade, int baseOutput, bool streakTriggered)
+        public int CalculateOutput(PartData part, bool streakTriggered)
         {
-            double bonus = streakTriggered ? SumValues(ModifierType.StreakBonus, grade) : 0.0;
-            double multiplier = Math.Min(1.0 + SumValues(ModifierType.OutputMultiplier, grade), MaxOutputMultiplier);
+            if (part == null)
+            {
+                throw new ArgumentNullException(nameof(part));
+            }
+
+            return CalculateOutput(part.Grade, part.Tag, part.BaseOutput, streakTriggered);
+        }
+
+        internal int CalculateOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered)
+        {
+            double bonus = streakTriggered ? SumValues(ModifierType.StreakBonus, grade, tag) : 0.0;
+            double multiplier = Math.Min(1.0 + SumValues(ModifierType.OutputMultiplier, grade, tag), MaxOutputMultiplier);
 
             // 가산 → 승산 순서 고정. 반올림은 부품 1개마다
             return (int)Math.Round((baseOutput + bonus) * multiplier, MidpointRounding.AwayFromZero);
@@ -89,12 +99,12 @@ namespace Overclock.Core
             return sum;
         }
 
-        private double SumValues(ModifierType type, Grade grade)
+        private double SumValues(ModifierType type, Grade grade, PartTag tag)
         {
             double sum = 0.0;
             foreach (ModifierEffect effect in effects)
             {
-                if (effect.Type == type && effect.AppliesTo(grade))
+                if (effect.Type == type && effect.AppliesTo(grade, tag))
                 {
                     sum += effect.Value;
                 }

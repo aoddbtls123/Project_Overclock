@@ -68,20 +68,20 @@ namespace Overclock.Presentation
             bool hasStreakBonus = false;
             foreach (Grade grade in Grades)
             {
-                int baseOutput = FindBaseOutput(parts, grade);
-                if (baseOutput < 0)
+                PartData part = FindRepresentativePart(parts, grade);
+                if (part == null)
                 {
                     continue;
                 }
 
-                int before = preview.OutputBefore(grade, baseOutput, false);
-                int after = preview.OutputAfter(grade, baseOutput, false);
+                int before = preview.OutputBefore(part, false);
+                int after = preview.OutputAfter(part, false);
                 if (before != after)
                 {
                     lines.Add(grade + " 생산량 " + before + " → " + after);
                 }
 
-                if (preview.OutputAfter(grade, baseOutput, true) != after)
+                if (preview.OutputAfter(part, true) != after)
                 {
                     hasStreakBonus = true;
                 }
@@ -95,14 +95,14 @@ namespace Overclock.Presentation
 
             foreach (Grade grade in Grades)
             {
-                int baseOutput = FindBaseOutput(parts, grade);
-                if (baseOutput < 0)
+                PartData part = FindRepresentativePart(parts, grade);
+                if (part == null)
                 {
                     continue;
                 }
 
-                int before = preview.OutputBefore(grade, baseOutput, true);
-                int after = preview.OutputAfter(grade, baseOutput, true);
+                int before = preview.OutputBefore(part, true);
+                int after = preview.OutputAfter(part, true);
                 if (before != after)
                 {
                     lines.Add("3연속 시 " + grade + " " + before + " → " + after);
@@ -118,22 +118,22 @@ namespace Overclock.Presentation
             }
         }
 
-        private static int FindBaseOutput(IReadOnlyList<PartData> parts, Grade grade)
+        private static PartData FindRepresentativePart(IReadOnlyList<PartData> parts, Grade grade)
         {
             if (parts == null)
             {
-                return -1;
+                return null;
             }
 
             foreach (PartData part in parts)
             {
                 if (part != null && part.Grade == grade)
                 {
-                    return part.BaseOutput;
+                    return part;
                 }
             }
 
-            return -1;
+            return null;
         }
 
         private static string FormatPercent(double probability)

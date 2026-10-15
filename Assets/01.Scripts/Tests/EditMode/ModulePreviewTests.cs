@@ -121,9 +121,9 @@ namespace Overclock.Tests
 
             ModulePreview preview = run.PreviewModule(coil);
 
-            Assert.AreEqual(3, preview.OutputBefore(Grade.R, 3, false));
-            Assert.AreEqual(4, preview.OutputAfter(Grade.R, 3, false));
-            Assert.AreEqual(13, preview.OutputAfter(Grade.SR, 10, false));
+            Assert.AreEqual(3, preview.OutputBefore(rare, false));
+            Assert.AreEqual(4, preview.OutputAfter(rare, false));
+            Assert.AreEqual(13, preview.OutputAfter(superRare, false));
 
             run.EquipModule(coil);
 
@@ -138,9 +138,9 @@ namespace Overclock.Tests
 
             ModulePreview preview = run.PreviewModule(CreateModule(ModifierType.StreakBonus, GradeFilter.Any, 10f));
 
-            Assert.AreEqual(1, preview.OutputBefore(Grade.N, 1, true));
-            Assert.AreEqual(11, preview.OutputAfter(Grade.N, 1, true));
-            Assert.AreEqual(1, preview.OutputAfter(Grade.N, 1, false));
+            Assert.AreEqual(1, preview.OutputBefore(normal, true));
+            Assert.AreEqual(11, preview.OutputAfter(normal, true));
+            Assert.AreEqual(1, preview.OutputAfter(normal, false));
         }
 
         [TestCase(10, 12)]
@@ -176,8 +176,8 @@ namespace Overclock.Tests
 
             ModulePreview preview = run.PreviewModule(CreateModule(ModifierType.OutputMultiplier, GradeFilter.Any, 0.3f));
 
-            Assert.AreEqual(4, preview.OutputBefore(Grade.R, 3, false));
-            Assert.AreEqual(5, preview.OutputAfter(Grade.R, 3, false));
+            Assert.AreEqual(4, preview.OutputBefore(rare, false));
+            Assert.AreEqual(5, preview.OutputAfter(rare, false));
         }
 
         [Test]
@@ -189,8 +189,8 @@ namespace Overclock.Tests
 
             run.EquipModule(CreateModule(ModifierType.OutputMultiplier, GradeFilter.Any, 1.0f));
 
-            Assert.AreEqual(3, preview.OutputBefore(Grade.R, 3, false));
-            Assert.AreEqual(4, preview.OutputAfter(Grade.R, 3, false));
+            Assert.AreEqual(3, preview.OutputBefore(rare, false));
+            Assert.AreEqual(4, preview.OutputAfter(rare, false));
         }
 
         [Test]

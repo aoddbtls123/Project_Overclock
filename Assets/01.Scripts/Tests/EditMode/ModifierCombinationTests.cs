@@ -96,11 +96,11 @@ namespace Overclock.Tests
                     int baseOutput = DesignBaseOutputs[(int)grade];
 
                     AssertOutput(grade + " 생산량", RoundHalfAway(baseOutput * multiplier),
-                        engine.CalculateOutput(grade, baseOutput, false), seed, combination);
+                        engine.CalculateOutput(grade, PartTag.None, baseOutput, false), seed, combination);
                     AssertOutput(grade + " 3연속 생산량", RoundHalfAway((baseOutput + streakBonus) * multiplier),
-                        engine.CalculateOutput(grade, baseOutput, true), seed, combination);
+                        engine.CalculateOutput(grade, PartTag.None, baseOutput, true), seed, combination);
 
-                    int largeOutput = engine.CalculateOutput(grade, 1000, false);
+                    int largeOutput = engine.CalculateOutput(grade, PartTag.None, 1000, false);
                     if (largeOutput > 8000)
                     {
                         Assert.Fail(grade + " 배수 상한 ×8 초과: 생산량 1000 → " + largeOutput + " | " + Describe(seed, combination));
@@ -177,7 +177,7 @@ namespace Overclock.Tests
             var engine = new ModifierEngine(0.72, 0.25, 0.03);
             engine.Equip(CreateModule(ModifierType.OutputMultiplier, GradeFilter.Any, increase));
 
-            Assert.AreEqual(expectedSuperRareOutput, engine.CalculateOutput(Grade.SR, 10, false));
+            Assert.AreEqual(expectedSuperRareOutput, engine.CalculateOutput(Grade.SR, PartTag.None, 10, false));
         }
 
         [TestCase(9f, 19)]

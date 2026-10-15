@@ -91,7 +91,7 @@ namespace Overclock.Core
             {
                 if (part.Grade == grade)
                 {
-                    sum += engine.CalculateOutput(grade, part.BaseOutput, streakTriggered);
+                    sum += engine.CalculateOutput(part, streakTriggered);
                     count++;
                 }
             }

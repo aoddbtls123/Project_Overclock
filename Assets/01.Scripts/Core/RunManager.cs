@@ -81,7 +81,7 @@ namespace Overclock.Core
             Grade grade = gachaEngine.Draw();
             PartData part = partCatalog.Pick(grade);
             bool streakTriggered = AdvanceStreak(grade);
-            int output = modifierEngine.CalculateOutput(grade, part.BaseOutput, streakTriggered);
+            int output = modifierEngine.CalculateOutput(part, streakTriggered);
             production += output;
             drawsRemaining--;
 

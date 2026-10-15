@@ -28,14 +28,14 @@ namespace Overclock.Core
             after.GetProbabilities(out n, out r, out sr);
         }
 
-        public int OutputBefore(Grade grade, int baseOutput, bool streakTriggered)
+        public int OutputBefore(PartData part, bool streakTriggered)
         {
-            return before.CalculateOutput(grade, baseOutput, streakTriggered);
+            return before.CalculateOutput(part, streakTriggered);
         }
 
-        public int OutputAfter(Grade grade, int baseOutput, bool streakTriggered)
+        public int OutputAfter(PartData part, bool streakTriggered)
         {
-            return after.CalculateOutput(grade, baseOutput, streakTriggered);
+            return after.CalculateOutput(part, streakTriggered);
         }
 
         public double ExpectedRoundOutputBefore(IReadOnlyList<PartData> parts)
