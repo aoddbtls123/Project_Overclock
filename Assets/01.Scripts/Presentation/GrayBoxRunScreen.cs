@@ -183,6 +183,7 @@ namespace Overclock.Presentation
         {
             // 돌파 1회당 한 번만 부른다. 다시 부르면 공유 난수를 더 소비해 같은 시드의 판이 달라진다
             List<ModuleData> offer = moduleOffer.CreateOffer();
+            int nextQuota = RunManager.QuotaFor(runManager.CurrentRound + 1);
 
             moduleSelectPanel.SetActive(true);
             for (int i = 0; i < moduleCards.Length; i++)
@@ -190,7 +191,7 @@ namespace Overclock.Presentation
                 if (i < offer.Count)
                 {
                     ModulePreview preview = runManager.PreviewModule(offer[i]);
-                    moduleCards[i].Show(offer[i], ModulePreviewFormatter.Format(preview, parts), OnModuleSelected);
+                    moduleCards[i].Show(offer[i], ModulePreviewFormatter.Format(preview, parts, nextQuota), OnModuleSelected);
                 }
                 else
                 {

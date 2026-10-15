@@ -1,4 +1,6 @@
-﻿namespace Overclock.Core
+﻿using System.Collections.Generic;
+
+namespace Overclock.Core
 {
     public sealed class ModulePreview
     {
@@ -34,6 +36,16 @@
         public int OutputAfter(Grade grade, int baseOutput, bool streakTriggered)
         {
             return after.CalculateOutput(grade, baseOutput, streakTriggered);
+        }
+
+        public double ExpectedRoundOutputBefore(IReadOnlyList<PartData> parts)
+        {
+            return RoundOutputEstimator.Estimate(before, parts, DrawsPerRoundBefore);
+        }
+
+        public double ExpectedRoundOutputAfter(IReadOnlyList<PartData> parts)
+        {
+            return RoundOutputEstimator.Estimate(after, parts, DrawsPerRoundAfter);
         }
     }
 }

@@ -7,19 +7,33 @@ namespace Overclock.Presentation
     {
         private static readonly Grade[] Grades = { Grade.N, Grade.R, Grade.SR };
 
-        public static string Format(ModulePreview preview, IReadOnlyList<PartData> parts)
+        public static string Format(ModulePreview preview, IReadOnlyList<PartData> parts, int nextQuota)
         {
             var lines = new List<string>();
+            AddExpectedOutputLines(preview, parts, nextQuota, lines);
+
+            int changeStart = lines.Count;
             AddProbabilityLines(preview, lines);
             AddOutputLines(preview, parts, lines);
             AddDrawsLine(preview, lines);
 
-            if (lines.Count == 0)
+            if (lines.Count == changeStart)
             {
-                return "변화 없음";
+                lines.Add("변화 없음");
             }
 
             return string.Join("\n", lines);
+        }
+
+        private static void AddExpectedOutputLines(ModulePreview preview, IReadOnlyList<PartData> parts, int nextQuota, List<string> lines)
+        {
+            string beforeText = preview.ExpectedRoundOutputBefore(parts).ToString("0.0");
+            string afterText = preview.ExpectedRoundOutputAfter(parts).ToString("0.0");
+            string valueText = beforeText == afterText ? afterText : beforeText + " → " + afterText;
+
+            lines.Add("다음 라운드 예상 생산량 " + valueText + " (할당량 " + nextQuota + ")");
+            // 할당량에 도달해도 멈추지 않고 다 뽑았을 때의 평균이다. 실제 판정과 다르게 읽히지 않게 한다
+            lines.Add("(전체 횟수 기준 · 보증 제외)");
         }
 
         private static void AddProbabilityLines(ModulePreview preview, List<string> lines)
