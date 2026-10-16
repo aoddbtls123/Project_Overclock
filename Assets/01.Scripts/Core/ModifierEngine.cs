@@ -115,8 +115,21 @@ namespace Overclock.Core
 
         public int DrawsPerRound(int baseDraws)
         {
+            return DrawsForNextRound(baseDraws, 0);
+        }
+
+        // 다음 라운드 뽑기 = 기본 + 추가 + min(남은 뽑기, 이월 상한 합). 20회 상한은 마지막에 한 번만 건다
+        public int DrawsForNextRound(int baseDraws, int remainingDraws)
+        {
+            if (remainingDraws < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(remainingDraws));
+            }
+
             int extra = (int)Math.Round(SumValues(ModifierType.ExtraDraws), MidpointRounding.AwayFromZero);
-            return Math.Min(baseDraws + extra, MaxDrawsPerRound);
+            int carryCap = (int)Math.Round(SumValues(ModifierType.CarryOverDraws), MidpointRounding.AwayFromZero);
+            int carried = Math.Min(remainingDraws, carryCap);
+            return Math.Min(baseDraws + extra + carried, MaxDrawsPerRound);
         }
 
         private double SumValues(ModifierType type)

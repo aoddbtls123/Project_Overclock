@@ -51,7 +51,7 @@ namespace Overclock.Core
                 gachaEngine.GetProbability(Grade.N),
                 gachaEngine.GetProbability(Grade.R),
                 gachaEngine.GetProbability(Grade.SR));
-            StartRound(1);
+            StartRound(1, 0);
         }
 
         public int RoundCount => roundCount;
@@ -117,7 +117,7 @@ namespace Overclock.Core
             // 실제 엔진은 건드리지 않는다. 전/후 모두 복제본으로 계산
             ModifierEngine after = modifierEngine.Clone();
             after.Equip(module);
-            return new ModulePreview(modifierEngine.Clone(), after, drawsPerRound);
+            return new ModulePreview(modifierEngine.Clone(), after, drawsPerRound, drawsRemaining);
         }
 
         public void AdvanceRound()
@@ -127,14 +127,15 @@ namespace Overclock.Core
                 throw new InvalidOperationException("돌파 상태가 아닙니다: " + state);
             }
 
-            StartRound(currentRound + 1);
+            // 남은 뽑기는 새 라운드 횟수로 덮어쓰기 전에 읽어야 이월된다
+            StartRound(currentRound + 1, drawsRemaining);
         }
 
-        private void StartRound(int round)
+        private void StartRound(int round, int carriedOverDraws)
         {
             currentRound = round;
             production = 0;
-            drawsRemaining = modifierEngine.DrawsPerRound(drawsPerRound);
+            drawsRemaining = modifierEngine.DrawsForNextRound(drawsPerRound, carriedOverDraws);
             streakCount = 0;
             state = RunState.Drawing;
         }

@@ -7,6 +7,7 @@
         StreakBonus,
         ExtraDraws,
         FlatBonus,
-        RareChance
+        RareChance,
+        CarryOverDraws
     }
 }

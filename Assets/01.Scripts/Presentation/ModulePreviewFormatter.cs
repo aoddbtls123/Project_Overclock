@@ -223,7 +223,15 @@ namespace Overclock.Presentation
         {
             if (preview.DrawsPerRoundBefore != preview.DrawsPerRoundAfter)
             {
-                lines.Add("다음 라운드부터 뽑기 " + preview.DrawsPerRoundBefore + " → " + preview.DrawsPerRoundAfter + "회");
+                // 이월분은 이번 잔여에 따라 달라지므로 '부터' 를 쓰지 않는다
+                if (preview.CarriedDrawsAfter > 0)
+                {
+                    lines.Add("다음 라운드 뽑기 " + preview.DrawsPerRoundBefore + " → " + preview.DrawsPerRoundAfter + "회 (이월 " + preview.CarriedDrawsAfter + "회 포함)");
+                }
+                else
+                {
+                    lines.Add("다음 라운드부터 뽑기 " + preview.DrawsPerRoundBefore + " → " + preview.DrawsPerRoundAfter + "회");
+                }
             }
         }
 

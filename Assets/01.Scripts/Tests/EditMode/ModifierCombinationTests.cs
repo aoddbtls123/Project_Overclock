@@ -55,6 +55,7 @@ namespace Overclock.Tests
             int rareUntouched = 0;
             int rareRaised = 0;
             int rareCapped = 0;
+            int carryApplied = 0;
 
             for (uint seed = 1; seed <= CombinationCount; seed++)
             {
@@ -198,6 +199,17 @@ namespace Overclock.Tests
 
                 AssertOutput("뽑기 횟수", Math.Min(10 + extraDraws, 20), draws, seed, combination);
 
+                // 남은 뽑기는 시드에서 정한다 (0 ~ 10). 생성기 난수를 더 쓰지 않아 기존 조합이 그대로다
+                int remaining = (int)(seed % 11);
+                int carryCap = RoundHalfAway(SumValues(combination, ModifierType.CarryOverDraws, null, null));
+                int carried = Math.Min(remaining, carryCap);
+                AssertOutput("다음 라운드 뽑기 (남은 " + remaining + ")", Math.Min(10 + extraDraws + carried, 20),
+                    engine.DrawsForNextRound(10, remaining), seed, combination);
+                if (carried > 0)
+                {
+                    carryApplied++;
+                }
+
                 if (10 + extraDraws >= 20)
                 {
                     drawsCapped++;
@@ -211,12 +223,14 @@ namespace Overclock.Tests
             string coverage = "SR 그대로 " + superRareUntouched + " · SR 상승 " + superRareRaised + " · SR 상한 " + superRareCapped
                 + " · 배수 상승 " + multiplierRaised + " · 배수 상한 " + multiplierCapped
                 + " · 뽑기 상승 " + drawsRaised + " · 뽑기 상한 " + drawsCapped + " · 고정 보너스 " + flatApplied
-                + " · R 그대로 " + rareUntouched + " · R 상승 " + rareRaised + " · R 상한 " + rareCapped;
+                + " · R 그대로 " + rareUntouched + " · R 상승 " + rareRaised + " · R 상한 " + rareCapped
+                + " · 이월 " + carryApplied;
             Assert.IsTrue(superRareUntouched >= MinCasesPerBranch && superRareRaised >= MinCasesPerBranch
                 && superRareCapped >= MinCasesPerBranch && multiplierRaised >= MinCasesPerBranch
                 && multiplierCapped >= MinCasesPerBranch && drawsRaised >= MinCasesPerBranch
                 && drawsCapped >= MinCasesPerBranch && flatApplied >= MinCasesPerBranch
-                && rareUntouched >= MinCasesPerBranch && rareRaised >= MinCasesPerBranch && rareCapped >= MinCasesPerBranch,
+                && rareUntouched >= MinCasesPerBranch && rareRaised >= MinCasesPerBranch && rareCapped >= MinCasesPerBranch
+                && carryApplied >= MinCasesPerBranch,
                 "조합이 상한 안/밖을 고루 지나지 않음: " + coverage);
         }
 
@@ -278,7 +292,7 @@ namespace Overclock.Tests
                 var effects = new ModifierEffect[effectCount];
                 for (int j = 0; j < effectCount; j++)
                 {
-                    var type = (ModifierType)(int)(random.NextDouble() * 6);
+                    var type = (ModifierType)(int)(random.NextDouble() * 7);
                     var target = (GradeFilter)(int)(random.NextDouble() * 4);
                     var tagTarget = (PartTagFilter)(int)(random.NextDouble() * 4);
                     effects[j] = new ModifierEffect(type, target, tagTarget, CreateValue(type, random));
@@ -295,7 +309,7 @@ namespace Overclock.Tests
             switch (type)
             {
                 case ModifierType.SuperRareChance:
-                    return (float)(random.NextDouble() * 0.2);
+                    return (float)(random.NextDouble() * 0.25);
                 case ModifierType.OutputMultiplier:
                     return (float)(random.NextDouble() * 8.0);
                 case ModifierType.StreakBonus:
