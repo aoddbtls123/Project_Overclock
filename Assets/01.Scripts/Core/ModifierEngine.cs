@@ -6,6 +6,7 @@ namespace Overclock.Core
     public sealed class ModifierEngine
     {
         public const double MaxSuperRareChance = 0.25;
+        public const double MaxRareChance = 0.5;
         public const double MaxOutputMultiplier = 8.0;
         public const int MaxDrawsPerRound = 20;
 
@@ -43,21 +44,49 @@ namespace Overclock.Core
 
         public void GetProbabilities(out double n, out double r, out double sr)
         {
-            double bonus = SumValues(ModifierType.SuperRareChance);
+            // 효과를 전부 더한 뒤 한 번만 계산한다. 그래야 장착 순서가 결과를 바꾸지 않는다
+            double superRareBonus = SumValues(ModifierType.SuperRareChance);
+            double rareBonus = SumValues(ModifierType.RareChance);
 
-            // 상한은 모듈이 올리는 양에만 건다. 기본표의 SR 을 깎지 않는다
-            sr = Math.Min(baseSR + bonus, Math.Max(MaxSuperRareChance, baseSR));
-            if (sr == baseSR)
+            // 상한은 모듈이 올리는 양에만 건다. 기본표의 값을 깎지 않는다
+            sr = Math.Min(baseSR + superRareBonus, Math.Max(MaxSuperRareChance, baseSR));
+            r = Math.Min(baseR + rareBonus, Math.Max(MaxRareChance, baseR));
+            bool superRareRaised = sr != baseSR;
+            bool rareRaised = r != baseR;
+            if (!superRareRaised && !rareRaised)
             {
                 n = baseN;
                 r = baseR;
+                sr = baseSR;
                 return;
             }
 
-            // 비례 축소: N 과 R 의 비율을 유지한 채 (1 - SR) 을 나눠 갖는다
-            double scale = (1.0 - sr) / (1.0 - baseSR);
+            // 올린 등급은 올린 값으로 두고, 올리지 않은 등급이 남은 몫을 원래 비율대로 나눠 갖는다
+            double raisedSum = 0.0;
+            double raisedBaseSum = 0.0;
+            if (superRareRaised)
+            {
+                raisedSum += sr;
+                raisedBaseSum += baseSR;
+            }
+
+            if (rareRaised)
+            {
+                raisedSum += r;
+                raisedBaseSum += baseR;
+            }
+
+            double scale = (1.0 - raisedSum) / (1.0 - raisedBaseSum);
             n = baseN * scale;
-            r = baseR * scale;
+            if (!rareRaised)
+            {
+                r = baseR * scale;
+            }
+
+            if (!superRareRaised)
+            {
+                sr = baseSR * scale;
+            }
         }
 
         public int CalculateOutput(PartData part, bool streakTriggered)

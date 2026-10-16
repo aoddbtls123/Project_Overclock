@@ -44,7 +44,7 @@ namespace Overclock.Presentation
             double[] before = { beforeN, beforeR, beforeSR };
             double[] after = { afterN, afterR, afterSR };
 
-            // SR 부터 보여준다. 확률 모듈이 직접 바꾸는 값이고 N·R 은 비례 축소의 결과다
+            // 희귀한 등급부터 SR → R → N 순서로 고정한다. 어떤 모듈이든 같은 자리에서 비교할 수 있게
             bool changed = false;
             for (int i = Grades.Length - 1; i >= 0; i--)
             {

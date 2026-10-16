@@ -52,6 +52,9 @@ namespace Overclock.Tests
             int drawsRaised = 0;
             int drawsCapped = 0;
             int flatApplied = 0;
+            int rareUntouched = 0;
+            int rareRaised = 0;
+            int rareCapped = 0;
 
             for (uint seed = 1; seed <= CombinationCount; seed++)
             {
@@ -66,14 +69,57 @@ namespace Overclock.Tests
                 engine.GetProbabilities(out double n, out double r, out double sr);
                 AssertValidTable(n, r, sr, seed, combination);
 
-                // 기대값은 기획 규칙(SR 상한 25% · 나머지 비례 축소)으로 따로 계산한다. 엔진 상수를 쓰지 않는다
+                // 기대값은 기획 규칙으로 따로 계산한다. 엔진 상수를 쓰지 않는다
+                // 올린 등급(SR 상한 25%, R 상한 50%)은 그 값, 올리지 않은 등급은 기본표 72 : 25 : 3 비율로 남은 몫을 나눈다
                 double superRareBonus = SumValues(combination, ModifierType.SuperRareChance, null, null);
-                double expectedSR = Math.Min(0.03 + superRareBonus, 0.25);
-                double scale = (1.0 - expectedSR) / 0.97;
+                double rareBonus = SumValues(combination, ModifierType.RareChance, null, null);
+                double raisedSR = Math.Min(0.03 + superRareBonus, 0.25);
+                double raisedR = Math.Min(0.25 + rareBonus, 0.5);
+                double expectedN;
+                double expectedR;
+                double expectedSR;
+                if (superRareBonus > 0.0 && rareBonus > 0.0)
+                {
+                    expectedSR = raisedSR;
+                    expectedR = raisedR;
+                    expectedN = 1.0 - raisedSR - raisedR;
+                }
+                else if (superRareBonus > 0.0)
+                {
+                    expectedSR = raisedSR;
+                    expectedR = 0.25 * (1.0 - raisedSR) / 0.97;
+                    expectedN = 0.72 * (1.0 - raisedSR) / 0.97;
+                }
+                else if (rareBonus > 0.0)
+                {
+                    expectedR = raisedR;
+                    expectedSR = 0.03 * (1.0 - raisedR) / 0.75;
+                    expectedN = 0.72 * (1.0 - raisedR) / 0.75;
+                }
+                else
+                {
+                    expectedN = 0.72;
+                    expectedR = 0.25;
+                    expectedSR = 0.03;
+                }
+
                 AssertClose("SR", expectedSR, sr, seed, combination);
-                AssertClose("N", 0.72 * scale, n, seed, combination);
-                AssertClose("R", 0.25 * scale, r, seed, combination);
+                AssertClose("N", expectedN, n, seed, combination);
+                AssertClose("R", expectedR, r, seed, combination);
                 AssertGachaAccepts(n, r, sr, seed, combination);
+
+                if (rareBonus == 0.0)
+                {
+                    rareUntouched++;
+                }
+                else if (0.25 + rareBonus < 0.5)
+                {
+                    rareRaised++;
+                }
+                else
+                {
+                    rareCapped++;
+                }
 
                 if (superRareBonus == 0.0)
                 {
@@ -164,11 +210,13 @@ namespace Overclock.Tests
 
             string coverage = "SR 그대로 " + superRareUntouched + " · SR 상승 " + superRareRaised + " · SR 상한 " + superRareCapped
                 + " · 배수 상승 " + multiplierRaised + " · 배수 상한 " + multiplierCapped
-                + " · 뽑기 상승 " + drawsRaised + " · 뽑기 상한 " + drawsCapped + " · 고정 보너스 " + flatApplied;
+                + " · 뽑기 상승 " + drawsRaised + " · 뽑기 상한 " + drawsCapped + " · 고정 보너스 " + flatApplied
+                + " · R 그대로 " + rareUntouched + " · R 상승 " + rareRaised + " · R 상한 " + rareCapped;
             Assert.IsTrue(superRareUntouched >= MinCasesPerBranch && superRareRaised >= MinCasesPerBranch
                 && superRareCapped >= MinCasesPerBranch && multiplierRaised >= MinCasesPerBranch
                 && multiplierCapped >= MinCasesPerBranch && drawsRaised >= MinCasesPerBranch
-                && drawsCapped >= MinCasesPerBranch && flatApplied >= MinCasesPerBranch,
+                && drawsCapped >= MinCasesPerBranch && flatApplied >= MinCasesPerBranch
+                && rareUntouched >= MinCasesPerBranch && rareRaised >= MinCasesPerBranch && rareCapped >= MinCasesPerBranch,
                 "조합이 상한 안/밖을 고루 지나지 않음: " + coverage);
         }
 
@@ -230,7 +278,7 @@ namespace Overclock.Tests
                 var effects = new ModifierEffect[effectCount];
                 for (int j = 0; j < effectCount; j++)
                 {
-                    var type = (ModifierType)(int)(random.NextDouble() * 5);
+                    var type = (ModifierType)(int)(random.NextDouble() * 6);
                     var target = (GradeFilter)(int)(random.NextDouble() * 4);
                     var tagTarget = (PartTagFilter)(int)(random.NextDouble() * 4);
                     effects[j] = new ModifierEffect(type, target, tagTarget, CreateValue(type, random));
@@ -254,8 +302,10 @@ namespace Overclock.Tests
                     return (float)(random.NextDouble() * 20.0);
                 case ModifierType.FlatBonus:
                     return (float)(random.NextDouble() * 5.0);
+                case ModifierType.RareChance:
+                    return (float)(random.NextDouble() * 0.3);
                 default:
-                    return 1 + (int)(random.NextDouble() * 6);
+                    return 1 + (int)(random.NextDouble() * 8);
             }
         }
 

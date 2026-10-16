@@ -6,6 +6,7 @@
         OutputMultiplier,
         StreakBonus,
         ExtraDraws,
-        FlatBonus
+        FlatBonus,
+        RareChance
     }
 }

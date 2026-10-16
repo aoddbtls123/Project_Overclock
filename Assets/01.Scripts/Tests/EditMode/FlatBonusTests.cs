@@ -31,6 +31,7 @@ namespace Overclock.Tests
             Assert.AreEqual(2, (int)ModifierType.StreakBonus);
             Assert.AreEqual(3, (int)ModifierType.ExtraDraws);
             Assert.AreEqual(4, (int)ModifierType.FlatBonus);
+            Assert.AreEqual(5, (int)ModifierType.RareChance);
         }
 
         [Test]
