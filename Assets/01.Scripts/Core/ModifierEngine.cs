@@ -72,10 +72,15 @@ namespace Overclock.Core
 
         internal int CalculateOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered)
         {
-            double bonus = streakTriggered ? SumValues(ModifierType.StreakBonus, grade, tag) : 0.0;
+            double bonus = SumValues(ModifierType.FlatBonus, grade, tag);
+            if (streakTriggered)
+            {
+                bonus += SumValues(ModifierType.StreakBonus, grade, tag);
+            }
+
             double multiplier = Math.Min(1.0 + SumValues(ModifierType.OutputMultiplier, grade, tag), MaxOutputMultiplier);
 
-            // 가산 → 승산 순서 고정. 반올림은 부품 1개마다
+            // 가산(고정 보너스, 연속 보너스) → 승산 순서 고정. 반올림은 부품 1개마다
             return (int)Math.Round((baseOutput + bonus) * multiplier, MidpointRounding.AwayFromZero);
         }
 

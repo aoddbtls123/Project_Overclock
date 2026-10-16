@@ -6,6 +6,7 @@ namespace Overclock.Presentation
     public static class ModulePreviewFormatter
     {
         private static readonly Grade[] Grades = { Grade.N, Grade.R, Grade.SR };
+        private static readonly PartTag[] Tags = { PartTag.Electronic, PartTag.Mechanical, PartTag.Power, PartTag.None };
 
         public static string Format(ModulePreview preview, IReadOnlyList<PartData> parts, int nextQuota)
         {
@@ -65,48 +66,156 @@ namespace Overclock.Presentation
 
         private static void AddOutputLines(ModulePreview preview, IReadOnlyList<PartData> parts, List<string> lines)
         {
-            bool hasStreakBonus = false;
+            List<PartData> validParts = CollectParts(parts);
+
+            AddOutputChangeLines(preview, validParts, false, lines);
+
+            // 장착은 효과를 더하기만 하므로 '후'에 연속 보너스가 없으면 '전'에도 없다. 그때 연속 시 값은 평상시와 같아 생략한다
+            if (HasStreakBonus(preview, validParts))
+            {
+                AddOutputChangeLines(preview, validParts, true, lines);
+            }
+        }
+
+        // 바뀌는 묶음을 가장 크게 묶어 보여준다: 등급 전체가 같게 바뀌면 등급 한 줄, 아니면 태그별, 그래도 다르면 부품별.
+        // 대표 부품 하나만 보면 태그 효과가 등급 전체에 걸린 것처럼 보이거나 줄이 빠진다
+        private static void AddOutputChangeLines(ModulePreview preview, List<PartData> parts, bool streakTriggered, List<string> lines)
+        {
             foreach (Grade grade in Grades)
             {
-                PartData part = FindRepresentativePart(parts, grade);
-                if (part == null)
+                List<PartData> gradeParts = FilterParts(parts, grade, null);
+                if (gradeParts.Count == 0)
                 {
                     continue;
                 }
 
-                int before = preview.OutputBefore(part, false);
-                int after = preview.OutputAfter(part, false);
-                if (before != after)
+                if (HasSameChange(preview, gradeParts, streakTriggered))
                 {
-                    lines.Add(grade + " 생산량 " + before + " → " + after);
+                    AddChangeLine(preview, gradeParts, grade.ToString(), streakTriggered, lines);
+                    continue;
                 }
 
-                if (preview.OutputAfter(part, true) != after)
+                foreach (PartTag tag in Tags)
                 {
-                    hasStreakBonus = true;
+                    List<PartData> tagParts = FilterParts(gradeParts, grade, tag);
+                    if (tagParts.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (HasSameChange(preview, tagParts, streakTriggered))
+                    {
+                        AddChangeLine(preview, tagParts, grade + " " + TagLabel(tag), streakTriggered, lines);
+                        continue;
+                    }
+
+                    foreach (PartData part in tagParts)
+                    {
+                        AddChangeLine(preview, new List<PartData> { part }, grade + " " + part.DisplayName, streakTriggered, lines);
+                    }
                 }
             }
+        }
 
-            // 장착은 효과를 더하기만 하므로 '후'에 연속 보너스가 없으면 '전'에도 없다. 그때 연속 시 값은 평상시와 같아 생략한다
-            if (!hasStreakBonus)
+        // group 은 같은 값으로 바뀌는 부품 묶음이다 (HasSameChange 를 통과한 것)
+        private static void AddChangeLine(ModulePreview preview, List<PartData> group, string label, bool streakTriggered, List<string> lines)
+        {
+            int before = preview.OutputBefore(group[0], streakTriggered);
+            int after = preview.OutputAfter(group[0], streakTriggered);
+            if (before == after)
             {
                 return;
             }
 
-            foreach (Grade grade in Grades)
+            // 연속 보너스가 없는 묶음의 '3연속 시' 값은 평상시 줄과 같다. 같은 내용을 두 번 쓰면 카드가 길어져 잘린다
+            if (streakTriggered && !HasStreakBonus(preview, group))
             {
-                PartData part = FindRepresentativePart(parts, grade);
-                if (part == null)
-                {
-                    continue;
-                }
+                return;
+            }
 
-                int before = preview.OutputBefore(part, true);
-                int after = preview.OutputAfter(part, true);
-                if (before != after)
+            if (streakTriggered)
+            {
+                lines.Add("3연속 시 " + label + " " + before + " → " + after);
+            }
+            else
+            {
+                lines.Add(label + " 생산량 " + before + " → " + after);
+            }
+        }
+
+        private static bool HasStreakBonus(ModulePreview preview, List<PartData> parts)
+        {
+            foreach (PartData part in parts)
+            {
+                if (preview.OutputAfter(part, true) != preview.OutputAfter(part, false))
                 {
-                    lines.Add("3연속 시 " + grade + " " + before + " → " + after);
+                    return true;
                 }
+            }
+
+            return false;
+        }
+
+        private static bool HasSameChange(ModulePreview preview, List<PartData> parts, bool streakTriggered)
+        {
+            int before = preview.OutputBefore(parts[0], streakTriggered);
+            int after = preview.OutputAfter(parts[0], streakTriggered);
+            for (int i = 1; i < parts.Count; i++)
+            {
+                if (preview.OutputBefore(parts[i], streakTriggered) != before || preview.OutputAfter(parts[i], streakTriggered) != after)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static List<PartData> CollectParts(IReadOnlyList<PartData> parts)
+        {
+            var result = new List<PartData>();
+            if (parts == null)
+            {
+                return result;
+            }
+
+            foreach (PartData part in parts)
+            {
+                if (part != null)
+                {
+                    result.Add(part);
+                }
+            }
+
+            return result;
+        }
+
+        private static List<PartData> FilterParts(List<PartData> parts, Grade grade, PartTag? tag)
+        {
+            var result = new List<PartData>();
+            foreach (PartData part in parts)
+            {
+                if (part.Grade == grade && (tag == null || part.Tag == tag.Value))
+                {
+                    result.Add(part);
+                }
+            }
+
+            return result;
+        }
+
+        private static string TagLabel(PartTag tag)
+        {
+            switch (tag)
+            {
+                case PartTag.Electronic:
+                    return "전자";
+                case PartTag.Mechanical:
+                    return "기계";
+                case PartTag.Power:
+                    return "동력";
+                default:
+                    return "태그 없음";
             }
         }
 
@@ -116,24 +225,6 @@ namespace Overclock.Presentation
             {
                 lines.Add("다음 라운드부터 뽑기 " + preview.DrawsPerRoundBefore + " → " + preview.DrawsPerRoundAfter + "회");
             }
-        }
-
-        private static PartData FindRepresentativePart(IReadOnlyList<PartData> parts, Grade grade)
-        {
-            if (parts == null)
-            {
-                return null;
-            }
-
-            foreach (PartData part in parts)
-            {
-                if (part != null && part.Grade == grade)
-                {
-                    return part;
-                }
-            }
-
-            return null;
         }
 
         private static string FormatPercent(double probability)

@@ -18,6 +18,7 @@ namespace Overclock.Tests
         private const double FloatInputTolerance = 1e-6;
 
         private static readonly Grade[] Grades = { Grade.N, Grade.R, Grade.SR };
+        private static readonly PartTag[] Tags = { PartTag.None, PartTag.Electronic, PartTag.Mechanical, PartTag.Power };
         private static readonly int[] DesignBaseOutputs = { 1, 3, 10 };
 
         private readonly List<ModuleData> createdModules = new List<ModuleData>();
@@ -50,6 +51,7 @@ namespace Overclock.Tests
             int multiplierCapped = 0;
             int drawsRaised = 0;
             int drawsCapped = 0;
+            int flatApplied = 0;
 
             for (uint seed = 1; seed <= CombinationCount; seed++)
             {
@@ -65,7 +67,7 @@ namespace Overclock.Tests
                 AssertValidTable(n, r, sr, seed, combination);
 
                 // 기대값은 기획 규칙(SR 상한 25% · 나머지 비례 축소)으로 따로 계산한다. 엔진 상수를 쓰지 않는다
-                double superRareBonus = SumValues(combination, ModifierType.SuperRareChance, null);
+                double superRareBonus = SumValues(combination, ModifierType.SuperRareChance, null, null);
                 double expectedSR = Math.Min(0.03 + superRareBonus, 0.25);
                 double scale = (1.0 - expectedSR) / 0.97;
                 AssertClose("SR", expectedSR, sr, seed, combination);
@@ -88,32 +90,48 @@ namespace Overclock.Tests
 
                 bool anyMultiplierCapped = false;
                 bool anyMultiplierRaised = false;
+                bool anyFlatApplied = false;
                 foreach (Grade grade in Grades)
                 {
-                    double increase = SumValues(combination, ModifierType.OutputMultiplier, grade);
-                    double multiplier = Math.Min(1.0 + increase, 8.0);
-                    double streakBonus = SumValues(combination, ModifierType.StreakBonus, grade);
-                    int baseOutput = DesignBaseOutputs[(int)grade];
-
-                    AssertOutput(grade + " 생산량", RoundHalfAway(baseOutput * multiplier),
-                        engine.CalculateOutput(grade, PartTag.None, baseOutput, false), seed, combination);
-                    AssertOutput(grade + " 3연속 생산량", RoundHalfAway((baseOutput + streakBonus) * multiplier),
-                        engine.CalculateOutput(grade, PartTag.None, baseOutput, true), seed, combination);
-
-                    int largeOutput = engine.CalculateOutput(grade, PartTag.None, 1000, false);
-                    if (largeOutput > 8000)
+                    foreach (PartTag tag in Tags)
                     {
-                        Assert.Fail(grade + " 배수 상한 ×8 초과: 생산량 1000 → " + largeOutput + " | " + Describe(seed, combination));
-                    }
+                        double increase = SumValues(combination, ModifierType.OutputMultiplier, grade, tag);
+                        double multiplier = Math.Min(1.0 + increase, 8.0);
+                        double flatBonus = SumValues(combination, ModifierType.FlatBonus, grade, tag);
+                        double streakBonus = SumValues(combination, ModifierType.StreakBonus, grade, tag);
+                        int baseOutput = DesignBaseOutputs[(int)grade];
+                        string label = grade + "/" + tag;
 
-                    if (1.0 + increase >= 8.0)
-                    {
-                        anyMultiplierCapped = true;
+                        AssertOutput(label + " 생산량", RoundHalfAway((baseOutput + flatBonus) * multiplier),
+                            engine.CalculateOutput(grade, tag, baseOutput, false), seed, combination);
+                        AssertOutput(label + " 3연속 생산량", RoundHalfAway((baseOutput + flatBonus + streakBonus) * multiplier),
+                            engine.CalculateOutput(grade, tag, baseOutput, true), seed, combination);
+
+                        int largeOutput = engine.CalculateOutput(grade, tag, 1000, false);
+                        if (largeOutput > RoundHalfAway((1000 + flatBonus) * 8.0))
+                        {
+                            Assert.Fail(label + " 배수 상한 ×8 초과: 생산량 1000 → " + largeOutput + " | " + Describe(seed, combination));
+                        }
+
+                        if (1.0 + increase >= 8.0)
+                        {
+                            anyMultiplierCapped = true;
+                        }
+                        else if (increase > 0.0)
+                        {
+                            anyMultiplierRaised = true;
+                        }
+
+                        if (flatBonus > 0.0)
+                        {
+                            anyFlatApplied = true;
+                        }
                     }
-                    else if (increase > 0.0)
-                    {
-                        anyMultiplierRaised = true;
-                    }
+                }
+
+                if (anyFlatApplied)
+                {
+                    flatApplied++;
                 }
 
                 if (anyMultiplierCapped)
@@ -125,7 +143,7 @@ namespace Overclock.Tests
                     multiplierRaised++;
                 }
 
-                int extraDraws = RoundHalfAway(SumValues(combination, ModifierType.ExtraDraws, null));
+                int extraDraws = RoundHalfAway(SumValues(combination, ModifierType.ExtraDraws, null, null));
                 int draws = engine.DrawsPerRound(10);
                 if (draws > 20)
                 {
@@ -146,11 +164,11 @@ namespace Overclock.Tests
 
             string coverage = "SR 그대로 " + superRareUntouched + " · SR 상승 " + superRareRaised + " · SR 상한 " + superRareCapped
                 + " · 배수 상승 " + multiplierRaised + " · 배수 상한 " + multiplierCapped
-                + " · 뽑기 상승 " + drawsRaised + " · 뽑기 상한 " + drawsCapped;
+                + " · 뽑기 상승 " + drawsRaised + " · 뽑기 상한 " + drawsCapped + " · 고정 보너스 " + flatApplied;
             Assert.IsTrue(superRareUntouched >= MinCasesPerBranch && superRareRaised >= MinCasesPerBranch
                 && superRareCapped >= MinCasesPerBranch && multiplierRaised >= MinCasesPerBranch
                 && multiplierCapped >= MinCasesPerBranch && drawsRaised >= MinCasesPerBranch
-                && drawsCapped >= MinCasesPerBranch,
+                && drawsCapped >= MinCasesPerBranch && flatApplied >= MinCasesPerBranch,
                 "조합이 상한 안/밖을 고루 지나지 않음: " + coverage);
         }
 
@@ -212,9 +230,10 @@ namespace Overclock.Tests
                 var effects = new ModifierEffect[effectCount];
                 for (int j = 0; j < effectCount; j++)
                 {
-                    var type = (ModifierType)(int)(random.NextDouble() * 4);
+                    var type = (ModifierType)(int)(random.NextDouble() * 5);
                     var target = (GradeFilter)(int)(random.NextDouble() * 4);
-                    effects[j] = new ModifierEffect(type, target, CreateValue(type, random));
+                    var tagTarget = (PartTagFilter)(int)(random.NextDouble() * 4);
+                    effects[j] = new ModifierEffect(type, target, tagTarget, CreateValue(type, random));
                 }
 
                 combination.Add(effects);
@@ -228,17 +247,20 @@ namespace Overclock.Tests
             switch (type)
             {
                 case ModifierType.SuperRareChance:
-                    return (float)(random.NextDouble() * 0.15);
+                    return (float)(random.NextDouble() * 0.2);
                 case ModifierType.OutputMultiplier:
-                    return (float)(random.NextDouble() * 6.0);
+                    return (float)(random.NextDouble() * 8.0);
                 case ModifierType.StreakBonus:
                     return (float)(random.NextDouble() * 20.0);
+                case ModifierType.FlatBonus:
+                    return (float)(random.NextDouble() * 5.0);
                 default:
                     return 1 + (int)(random.NextDouble() * 6);
             }
         }
 
-        private static double SumValues(List<ModifierEffect[]> combination, ModifierType type, Grade? grade)
+        // 엔진과 따로 쓴 필터 판정. 등급 필터 값은 Any 다음이 N, R, SR 순서이고 태그 필터 값은 Any 다음이 전자, 기계, 동력 순서다 (PartTag 는 None 다음)
+        private static double SumValues(List<ModifierEffect[]> combination, ModifierType type, Grade? grade, PartTag? tag)
         {
             double sum = 0.0;
             foreach (ModifierEffect[] effects in combination)
@@ -250,7 +272,9 @@ namespace Overclock.Tests
                         continue;
                     }
 
-                    if (grade == null || effect.Target == GradeFilter.Any || (int)effect.Target == (int)grade.Value + 1)
+                    bool gradeMatches = grade == null || effect.Target == GradeFilter.Any || (int)effect.Target == (int)grade.Value + 1;
+                    bool tagMatches = tag == null || effect.TagTarget == PartTagFilter.Any || (int)effect.TagTarget == (int)tag.Value;
+                    if (gradeMatches && tagMatches)
                     {
                         sum += effect.Value;
                     }
@@ -328,7 +352,7 @@ namespace Overclock.Tests
                         builder.Append(", ");
                     }
 
-                    builder.Append(effect.Type).Append('/').Append(effect.Target).Append('/')
+                    builder.Append(effect.Type).Append('/').Append(effect.Target).Append('/').Append(effect.TagTarget).Append('/')
                         .Append(effect.Value.ToString("R", CultureInfo.InvariantCulture));
                 }
 
