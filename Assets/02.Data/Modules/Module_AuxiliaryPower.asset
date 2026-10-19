@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 504d71a0c4f4e254f919de6720b6e510, type: 3}
+  m_Name: Module_AuxiliaryPower
+  m_EditorClassIdentifier: Overclock.Core::Overclock.Core.ModuleData
+  id: auxiliary_power
+  displayName: "\uBCF4\uC870 \uC804\uC6D0"
+  description: "\uB2E4\uC74C \uB77C\uC6B4\uB4DC\uBD80\uD130 \uBF51\uAE30 +1\uD68C, \uBAA8\uB4E0 \uBD80\uD488 \uC0DD\uC0B0\uB7C9 +10%"
+  axis: 3
+  effects:
+  - type: 3
+    target: 0
+    tagTarget: 0
+    value: 1
+  - type: 1
+    target: 0
+    tagTarget: 0
+    value: 0.1
