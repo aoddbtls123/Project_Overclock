@@ -64,34 +64,24 @@ namespace Overclock.Presentation
             }
         }
 
+        // 바뀌는 묶음을 가장 크게 묶어 보여준다: 등급 전체가 같게 바뀌면 등급 한 줄, 아니면 태그별, 그래도 다르면 부품별.
+        // 대표 부품 하나만 보면 태그 효과가 등급 전체에 걸린 것처럼 보이거나 줄이 빠진다.
+        // 평상시와 3연속 값을 한 줄에 쓴다. 따로 쓰면 묶음 8개가 두 번씩 나와 카드(19줄)가 잘린다
         private static void AddOutputLines(ModulePreview preview, IReadOnlyList<PartData> parts, List<string> lines)
         {
             List<PartData> validParts = CollectParts(parts);
 
-            AddOutputChangeLines(preview, validParts, false, lines);
-
-            // 장착은 효과를 더하기만 하므로 '후'에 연속 보너스가 없으면 '전'에도 없다. 그때 연속 시 값은 평상시와 같아 생략한다
-            if (HasStreakBonus(preview, validParts))
-            {
-                AddOutputChangeLines(preview, validParts, true, lines);
-            }
-        }
-
-        // 바뀌는 묶음을 가장 크게 묶어 보여준다: 등급 전체가 같게 바뀌면 등급 한 줄, 아니면 태그별, 그래도 다르면 부품별.
-        // 대표 부품 하나만 보면 태그 효과가 등급 전체에 걸린 것처럼 보이거나 줄이 빠진다
-        private static void AddOutputChangeLines(ModulePreview preview, List<PartData> parts, bool streakTriggered, List<string> lines)
-        {
             foreach (Grade grade in Grades)
             {
-                List<PartData> gradeParts = FilterParts(parts, grade, null);
+                List<PartData> gradeParts = FilterParts(validParts, grade, null);
                 if (gradeParts.Count == 0)
                 {
                     continue;
                 }
 
-                if (HasSameChange(preview, gradeParts, streakTriggered))
+                if (HasSameChange(preview, gradeParts))
                 {
-                    AddChangeLine(preview, gradeParts, grade.ToString(), streakTriggered, lines);
+                    AddChangeLine(preview, gradeParts, grade.ToString(), lines);
                     continue;
                 }
 
@@ -103,72 +93,64 @@ namespace Overclock.Presentation
                         continue;
                     }
 
-                    if (HasSameChange(preview, tagParts, streakTriggered))
+                    if (HasSameChange(preview, tagParts))
                     {
-                        AddChangeLine(preview, tagParts, grade + " " + TagLabel(tag), streakTriggered, lines);
+                        AddChangeLine(preview, tagParts, grade + " " + TagLabel(tag), lines);
                         continue;
                     }
 
                     foreach (PartData part in tagParts)
                     {
-                        AddChangeLine(preview, new List<PartData> { part }, grade + " " + part.DisplayName, streakTriggered, lines);
+                        AddChangeLine(preview, new List<PartData> { part }, grade + " " + part.DisplayName, lines);
                     }
                 }
             }
         }
 
-        // group 은 같은 값으로 바뀌는 부품 묶음이다 (HasSameChange 를 통과한 것)
-        private static void AddChangeLine(ModulePreview preview, List<PartData> group, string label, bool streakTriggered, List<string> lines)
+        // group 은 평상시와 3연속 값이 모두 같게 바뀌는 부품 묶음이다 (HasSameChange 를 통과한 것)
+        private static void AddChangeLine(ModulePreview preview, List<PartData> group, string label, List<string> lines)
         {
-            int before = preview.OutputBefore(group[0], streakTriggered);
-            int after = preview.OutputAfter(group[0], streakTriggered);
-            if (before == after)
-            {
-                return;
-            }
+            int before = preview.OutputBefore(group[0], false);
+            int after = preview.OutputAfter(group[0], false);
+            int streakBefore = preview.OutputBefore(group[0], true);
+            int streakAfter = preview.OutputAfter(group[0], true);
 
-            // 연속 보너스가 없는 묶음의 '3연속 시' 값은 평상시 줄과 같다. 같은 내용을 두 번 쓰면 카드가 길어져 잘린다
-            if (streakTriggered && !HasStreakBonus(preview, group))
-            {
-                return;
-            }
+            bool normalChanged = before != after;
+            // 장착은 효과를 더하기만 하므로 '후'에 연속 보너스가 없으면(3연속 값 = 평상시 값) '전'에도 없다. 그때는 생략한다
+            bool streakChanged = streakBefore != streakAfter && streakAfter != after;
 
-            if (streakTriggered)
+            string streakText = "3연속 " + streakBefore + " → " + streakAfter;
+            if (normalChanged && streakChanged)
             {
-                lines.Add("3연속 시 " + label + " " + before + " → " + after);
+                lines.Add(label + " 생산량 " + before + " → " + after + " (" + streakText + ")");
             }
-            else
+            else if (normalChanged)
             {
                 lines.Add(label + " 생산량 " + before + " → " + after);
             }
-        }
-
-        private static bool HasStreakBonus(ModulePreview preview, List<PartData> parts)
-        {
-            foreach (PartData part in parts)
+            else if (streakChanged)
             {
-                if (preview.OutputAfter(part, true) != preview.OutputAfter(part, false))
-                {
-                    return true;
-                }
+                lines.Add(label + " " + streakText);
             }
-
-            return false;
         }
 
-        private static bool HasSameChange(ModulePreview preview, List<PartData> parts, bool streakTriggered)
+        private static bool HasSameChange(ModulePreview preview, List<PartData> parts)
         {
-            int before = preview.OutputBefore(parts[0], streakTriggered);
-            int after = preview.OutputAfter(parts[0], streakTriggered);
             for (int i = 1; i < parts.Count; i++)
             {
-                if (preview.OutputBefore(parts[i], streakTriggered) != before || preview.OutputAfter(parts[i], streakTriggered) != after)
+                if (!HasSameOutputs(preview, parts[0], parts[i], false) || !HasSameOutputs(preview, parts[0], parts[i], true))
                 {
                     return false;
                 }
             }
 
             return true;
+        }
+
+        private static bool HasSameOutputs(ModulePreview preview, PartData first, PartData other, bool streakTriggered)
+        {
+            return preview.OutputBefore(first, streakTriggered) == preview.OutputBefore(other, streakTriggered)
+                && preview.OutputAfter(first, streakTriggered) == preview.OutputAfter(other, streakTriggered);
         }
 
         private static List<PartData> CollectParts(IReadOnlyList<PartData> parts)
