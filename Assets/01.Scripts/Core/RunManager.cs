@@ -68,7 +68,10 @@ namespace Overclock.Core
                 throw new ArgumentOutOfRangeException(nameof(round));
             }
 
-            return (int)Math.Round(BaseQuota * Math.Pow(QuotaGrowth, round - 1), MidpointRounding.AwayFromZero);
+            double quota = Math.Round(BaseQuota * Math.Pow(QuotaGrowth, round - 1), MidpointRounding.AwayFromZero);
+
+            // 무한모드에서 int 를 넘는 라운드(R54~)는 int 최댓값으로 둔다. 넘긴 채 변환하면 음수가 되어 바로 돌파한다
+            return quota >= int.MaxValue ? int.MaxValue : (int)quota;
         }
 
         public DrawResult Draw()

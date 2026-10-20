@@ -28,11 +28,15 @@ namespace Overclock.Presentation
         [SerializeField] private Button restartButton;
         [SerializeField] private GameObject moduleSelectPanel;
         [SerializeField] private ModuleCardView[] moduleCards;
+        [SerializeField] private GameObject modeSelectPanel;
+        [SerializeField] private Button normalModeButton;
+        [SerializeField] private Button endlessModeButton;
 
         private readonly List<ModuleData> equippedModules = new List<ModuleData>();
         private GachaEngine gachaEngine;
         private RunManager runManager;
         private ModuleOffer moduleOffer;
+        private RunMode runMode;
         private bool isRevealing;
         private bool skipRequested;
         private int revealStartFrame;
@@ -41,12 +45,14 @@ namespace Overclock.Presentation
         private void Awake()
         {
             drawButton.onClick.AddListener(OnDrawButtonClicked);
-            restartButton.onClick.AddListener(StartNewRun);
+            restartButton.onClick.AddListener(ShowModeSelect);
+            normalModeButton.onClick.AddListener(() => StartNewRun(RunMode.Normal));
+            endlessModeButton.onClick.AddListener(() => StartNewRun(RunMode.Endless));
         }
 
         private void Start()
         {
-            StartNewRun();
+            ShowModeSelect();
         }
 
         private void Update()
@@ -54,6 +60,12 @@ namespace Overclock.Presentation
             Keyboard keyboard = Keyboard.current;
             Mouse mouse = Mouse.current;
             UpdateDrawButtonGuard(mouse);
+
+            // 모드를 고르기 전에는 런이 없다
+            if (runManager == null)
+            {
+                return;
+            }
 
             if (isRevealing)
             {
@@ -99,7 +111,14 @@ namespace Overclock.Presentation
             return mouse != null && mouse.leftButton.wasReleasedThisFrame;
         }
 
-        private void StartNewRun()
+        private void ShowModeSelect()
+        {
+            moduleSelectPanel.SetActive(false);
+            equippedModuleList.SetInteractable(false);
+            modeSelectPanel.SetActive(true);
+        }
+
+        private void StartNewRun(RunMode mode)
         {
             // 자동 시드는 Inspector 의 int 칸에 다시 넣을 수 있는 1 ~ int.MaxValue 로 제한한다
             uint runSeed = (uint)seed;
@@ -112,14 +131,16 @@ namespace Overclock.Presentation
                 }
             }
 
-            RunSession session = RunSession.Create(runSeed, parts, modules);
+            RunSession session = RunSession.Create(runSeed, parts, modules, mode);
+            runMode = mode;
             gachaEngine = session.GachaEngine;
             runManager = session.RunManager;
             moduleOffer = session.ModuleOffer;
             equippedModules.Clear();
 
-            Debug.Log("Run seed: " + runSeed);
+            Debug.Log("Run seed: " + runSeed + " mode: " + mode);
             lastPartText.text = "-";
+            modeSelectPanel.SetActive(false);
             moduleSelectPanel.SetActive(false);
             equippedModuleList.Show(equippedModules);
             equippedModuleList.SetInteractable(true);
@@ -139,7 +160,7 @@ namespace Overclock.Presentation
         private void OnDrawClicked()
         {
             // 연출 중에도 State 는 Drawing 이다. 막지 않으면 공개 전에 다음 뽑기가 실행된다
-            if (isRevealing || runManager.State != RunState.Drawing)
+            if (runManager == null || isRevealing || runManager.State != RunState.Drawing)
             {
                 return;
             }
@@ -227,7 +248,9 @@ namespace Overclock.Presentation
         {
             RunState state = runManager.State;
 
-            roundText.text = "R" + runManager.CurrentRound + " / " + runManager.RoundCount;
+            roundText.text = runMode == RunMode.Endless
+                ? "R" + runManager.CurrentRound + " (무한)"
+                : "R" + runManager.CurrentRound + " / " + runManager.RoundCount;
             quotaText.text = runManager.Production + " / " + runManager.Quota;
             quotaGauge.maxValue = runManager.Quota;
             quotaGauge.value = Mathf.Min(runManager.Production, runManager.Quota);
