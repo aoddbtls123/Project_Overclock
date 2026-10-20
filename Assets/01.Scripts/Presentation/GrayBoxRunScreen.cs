@@ -23,7 +23,7 @@ namespace Overclock.Presentation
         [SerializeField] private TMP_Text gaugePanelText;
         [SerializeField] private TMP_Text lastPartText;
         [SerializeField] private TMP_Text resultText;
-        [SerializeField] private TMP_Text equippedText;
+        [SerializeField] private EquippedModuleListView equippedModuleList;
         [SerializeField] private Button drawButton;
         [SerializeField] private Button restartButton;
         [SerializeField] private GameObject moduleSelectPanel;
@@ -121,6 +121,8 @@ namespace Overclock.Presentation
             Debug.Log("Run seed: " + runSeed);
             lastPartText.text = "-";
             moduleSelectPanel.SetActive(false);
+            equippedModuleList.Show(equippedModules);
+            equippedModuleList.SetInteractable(true);
             Refresh();
         }
 
@@ -186,6 +188,8 @@ namespace Overclock.Presentation
             int nextQuota = RunManager.QuotaFor(runManager.CurrentRound + 1);
 
             moduleSelectPanel.SetActive(true);
+            // 장착 목록이 카드 뒤에 깔리므로 선택 중에는 팝업을 띄우지 않는다
+            equippedModuleList.SetInteractable(false);
             for (int i = 0; i < moduleCards.Length; i++)
             {
                 if (i < offer.Count)
@@ -213,6 +217,8 @@ namespace Overclock.Presentation
             runManager.AdvanceRound();
 
             moduleSelectPanel.SetActive(false);
+            equippedModuleList.Show(equippedModules);
+            equippedModuleList.SetInteractable(true);
             lastPartText.text = "-";
             Refresh();
         }
@@ -231,7 +237,6 @@ namespace Overclock.Presentation
                 "R  " + FormatPercent(gachaEngine.GetProbability(Grade.R)) + "\n" +
                 "SR " + FormatPercent(gachaEngine.GetProbability(Grade.SR)) + "\n" +
                 "보증 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
-            equippedText.text = FormatEquippedModules();
 
             drawButton.interactable = state == RunState.Drawing;
             restartButton.gameObject.SetActive(state == RunState.RunFailed || state == RunState.RunCleared);
@@ -252,17 +257,6 @@ namespace Overclock.Presentation
             {
                 resultText.text = "";
             }
-        }
-
-        private string FormatEquippedModules()
-        {
-            string text = "장착 모듈 " + equippedModules.Count;
-            foreach (ModuleData module in equippedModules)
-            {
-                text += "\n- " + module.DisplayName;
-            }
-
-            return text;
         }
 
         private static string FormatPercent(double probability)
