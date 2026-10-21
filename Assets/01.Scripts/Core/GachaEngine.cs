@@ -67,6 +67,17 @@ namespace Overclock.Core
             probabilitySR = sr;
         }
 
+        internal void RestorePityCounter(int drawsWithoutSuperRare)
+        {
+            // 보증 횟수와 같은 값은 가능하다. 다음 뽑기가 SR 확정인 상태다
+            if (drawsWithoutSuperRare < 0 || drawsWithoutSuperRare > pityThreshold)
+            {
+                throw new ArgumentOutOfRangeException(nameof(drawsWithoutSuperRare));
+            }
+
+            this.drawsWithoutSuperRare = drawsWithoutSuperRare;
+        }
+
         public Grade Draw()
         {
             Grade grade = drawsWithoutSuperRare >= pityThreshold

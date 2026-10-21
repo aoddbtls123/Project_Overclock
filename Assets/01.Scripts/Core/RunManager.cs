@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Overclock.Core
 {
@@ -13,6 +14,7 @@ namespace Overclock.Core
         private readonly int roundCount;
         private readonly int drawsPerRound;
         private readonly ModifierEngine modifierEngine;
+        private readonly List<ModuleData> equippedModules = new List<ModuleData>();
 
         private int currentRound;
         private int production;
@@ -60,6 +62,9 @@ namespace Overclock.Core
         public int Production => production;
         public int DrawsRemaining => drawsRemaining;
         public RunState State => state;
+        public IReadOnlyList<ModuleData> EquippedModules => equippedModules;
+        internal Grade StreakGrade => streakGrade;
+        internal int StreakCount => streakCount;
 
         public static int QuotaFor(int round)
         {
@@ -109,6 +114,7 @@ namespace Overclock.Core
             }
 
             modifierEngine.Equip(module);
+            equippedModules.Add(module);
 
             // GachaEngine 은 새로 만들지 않는다. 보증 카운터가 런 전체에서 이어져야 한다
             modifierEngine.GetProbabilities(out double n, out double r, out double sr);
@@ -132,6 +138,71 @@ namespace Overclock.Core
 
             // 남은 뽑기는 새 라운드 횟수로 덮어쓰기 전에 읽어야 이월된다
             StartRound(currentRound + 1, drawsRemaining);
+        }
+
+        // 세이브 복원 전용. 장착 모듈은 EquipModule 로 먼저 다시 단 뒤에 부른다.
+        // Draw 가 만들 수 있는 상태만 받는다. 고친 세이브로 끝나지 않는 라운드를 만들지 못하게 한다
+        internal void RestoreProgress(int round, int production, int drawsRemaining, RunState state, Grade streakGrade, int streakCount)
+        {
+            if (round < 1 || round > roundCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(round));
+            }
+
+            if (production < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(production));
+            }
+
+            if (drawsRemaining < 0 || drawsRemaining > ModifierEngine.MaxDrawsPerRound)
+            {
+                throw new ArgumentOutOfRangeException(nameof(drawsRemaining));
+            }
+
+            if (!Enum.IsDefined(typeof(RunState), state))
+            {
+                throw new ArgumentOutOfRangeException(nameof(state));
+            }
+
+            if (!Enum.IsDefined(typeof(Grade), streakGrade))
+            {
+                throw new ArgumentOutOfRangeException(nameof(streakGrade));
+            }
+
+            if (streakCount < 0 || streakCount >= StreakLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(streakCount));
+            }
+
+            bool reachedQuota = production >= QuotaFor(round);
+            bool valid;
+            switch (state)
+            {
+                case RunState.Drawing:
+                    valid = !reachedQuota && drawsRemaining > 0;
+                    break;
+                case RunState.RoundCleared:
+                    valid = reachedQuota && round < roundCount;
+                    break;
+                case RunState.RunCleared:
+                    valid = reachedQuota && round == roundCount;
+                    break;
+                default:
+                    valid = !reachedQuota && drawsRemaining == 0;
+                    break;
+            }
+
+            if (!valid)
+            {
+                throw new ArgumentException("진행 상태가 서로 맞지 않습니다: R" + round + " " + state + " 생산량 " + production + " 남은 뽑기 " + drawsRemaining);
+            }
+
+            currentRound = round;
+            this.production = production;
+            this.drawsRemaining = drawsRemaining;
+            this.state = state;
+            this.streakGrade = streakGrade;
+            this.streakCount = streakCount;
         }
 
         private void StartRound(int round, int carriedOverDraws)

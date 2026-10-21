@@ -72,5 +72,37 @@ namespace Overclock.Core
 
             return offer;
         }
+
+        // 세이브에서 읽은 카드가 CreateOffer 가 만들 수 있는 조합인지. 카드 수 = min(3, 모듈이 있는 축 수), 축은 서로 다르다
+        internal bool IsPossibleOffer(IReadOnlyList<ModuleData> offer)
+        {
+            int axesWithModules = 0;
+            foreach (List<ModuleData> candidates in modulesByAxis)
+            {
+                if (candidates.Count > 0)
+                {
+                    axesWithModules++;
+                }
+            }
+
+            if (offer.Count != Math.Min(OfferSize, axesWithModules))
+            {
+                return false;
+            }
+
+            var usedAxes = new bool[modulesByAxis.Length];
+            foreach (ModuleData module in offer)
+            {
+                int axis = (int)module.Axis;
+                if (usedAxes[axis])
+                {
+                    return false;
+                }
+
+                usedAxes[axis] = true;
+            }
+
+            return true;
+        }
     }
 }

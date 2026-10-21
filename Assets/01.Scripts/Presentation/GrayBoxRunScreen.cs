@@ -32,10 +32,9 @@ namespace Overclock.Presentation
         [SerializeField] private Button normalModeButton;
         [SerializeField] private Button endlessModeButton;
 
-        private readonly List<ModuleData> equippedModules = new List<ModuleData>();
+        private RunSession session;
         private GachaEngine gachaEngine;
         private RunManager runManager;
-        private ModuleOffer moduleOffer;
         private RunMode runMode;
         private bool isRevealing;
         private bool skipRequested;
@@ -131,18 +130,16 @@ namespace Overclock.Presentation
                 }
             }
 
-            RunSession session = RunSession.Create(runSeed, parts, modules, mode);
+            session = RunSession.Create(runSeed, parts, modules, mode);
             runMode = mode;
             gachaEngine = session.GachaEngine;
             runManager = session.RunManager;
-            moduleOffer = session.ModuleOffer;
-            equippedModules.Clear();
 
             Debug.Log("Run seed: " + runSeed + " mode: " + mode);
             lastPartText.text = "-";
             modeSelectPanel.SetActive(false);
             moduleSelectPanel.SetActive(false);
-            equippedModuleList.Show(equippedModules);
+            equippedModuleList.Show(runManager.EquippedModules);
             equippedModuleList.SetInteractable(true);
             Refresh();
         }
@@ -204,8 +201,7 @@ namespace Overclock.Presentation
 
         private void ShowModuleOffer()
         {
-            // 돌파 1회당 한 번만 부른다. 다시 부르면 공유 난수를 더 소비해 같은 시드의 판이 달라진다
-            List<ModuleData> offer = moduleOffer.CreateOffer();
+            IReadOnlyList<ModuleData> offer = session.OpenOffer();
             int nextQuota = RunManager.QuotaFor(runManager.CurrentRound + 1);
 
             moduleSelectPanel.SetActive(true);
@@ -232,13 +228,10 @@ namespace Overclock.Presentation
                 return;
             }
 
-            // 장착이 라운드 진행보다 먼저. 새 라운드의 뽑기 횟수는 시작할 때 장착된 모듈로 정해진다
-            runManager.EquipModule(module);
-            equippedModules.Add(module);
-            runManager.AdvanceRound();
+            session.SelectModule(module);
 
             moduleSelectPanel.SetActive(false);
-            equippedModuleList.Show(equippedModules);
+            equippedModuleList.Show(runManager.EquippedModules);
             equippedModuleList.SetInteractable(true);
             lastPartText.text = "-";
             Refresh();

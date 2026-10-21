@@ -14,18 +14,27 @@ namespace Overclock.Core
         private const double BaseR = 0.25;
         private const double BaseSR = 0.03;
 
-        private RunSession(RunMode mode, GachaEngine gachaEngine, RunManager runManager, ModuleOffer moduleOffer)
+        private readonly RandomService randomService;
+        private List<ModuleData> openOffer;
+
+        private RunSession(uint seed, RunMode mode, RandomService randomService, GachaEngine gachaEngine, RunManager runManager, ModuleOffer moduleOffer)
         {
+            Seed = seed;
             Mode = mode;
+            this.randomService = randomService;
             GachaEngine = gachaEngine;
             RunManager = runManager;
             ModuleOffer = moduleOffer;
         }
 
+        public uint Seed { get; }
         public RunMode Mode { get; }
         public GachaEngine GachaEngine { get; }
         public RunManager RunManager { get; }
         public ModuleOffer ModuleOffer { get; }
+
+        /// <summary>열려 있는 제안 카드. 없으면 빈 목록.</summary>
+        public IReadOnlyList<ModuleData> CurrentOffer => openOffer ?? (IReadOnlyList<ModuleData>)Array.Empty<ModuleData>();
 
         public static RunSession Create(uint seed, IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules)
         {
@@ -48,7 +57,180 @@ namespace Overclock.Core
             var partCatalog = new PartCatalog(parts, randomService);
             var runManager = new RunManager(gachaEngine, partCatalog, roundCount, DrawsPerRound);
             var moduleOffer = new ModuleOffer(modules, randomService);
-            return new RunSession(mode, gachaEngine, runManager, moduleOffer);
+            return new RunSession(seed, mode, randomService, gachaEngine, runManager, moduleOffer);
+        }
+
+        /// <summary>
+        /// 돌파했을 때 제안 카드를 연다. 이미 열려 있으면 같은 카드를 돌려준다 (난수를 더 쓰지 않는다).
+        /// </summary>
+        public IReadOnlyList<ModuleData> OpenOffer()
+        {
+            if (RunManager.State != RunState.RoundCleared)
+            {
+                throw new InvalidOperationException("돌파 상태가 아닙니다: " + RunManager.State);
+            }
+
+            // 다시 뽑으면 공유 난수를 더 소비해 같은 시드의 판이 달라진다. 세이브 후 다시 열어도 카드가 바뀌면 안 된다
+            if (openOffer == null)
+            {
+                openOffer = ModuleOffer.CreateOffer();
+            }
+
+            return openOffer;
+        }
+
+        /// <summary>
+        /// 열린 제안에서 고른 모듈을 장착하고 다음 라운드로 넘어간다.
+        /// </summary>
+        public void SelectModule(ModuleData module)
+        {
+            if (openOffer == null)
+            {
+                throw new InvalidOperationException("열린 제안이 없습니다.");
+            }
+
+            if (!openOffer.Contains(module))
+            {
+                throw new ArgumentException("제안에 없는 모듈입니다.", nameof(module));
+            }
+
+            // 장착이 라운드 진행보다 먼저. 새 라운드의 뽑기 횟수는 시작할 때 장착된 모듈로 정해진다
+            RunManager.EquipModule(module);
+            RunManager.AdvanceRound();
+            openOffer = null;
+        }
+
+        public RunSaveData CaptureSaveData()
+        {
+            return new RunSaveData
+            {
+                version = RunSaveData.CurrentVersion,
+                mode = Mode,
+                seed = Seed,
+                randomState = randomService.State,
+                drawsWithoutSuperRare = GachaEngine.DrawsWithoutSuperRare,
+                round = RunManager.CurrentRound,
+                production = RunManager.Production,
+                drawsRemaining = RunManager.DrawsRemaining,
+                state = RunManager.State,
+                streakGrade = RunManager.StreakGrade,
+                streakCount = RunManager.StreakCount,
+                equippedModuleIds = ToIds(RunManager.EquippedModules),
+                offeredModuleIds = ToIds(CurrentOffer),
+            };
+        }
+
+        /// <summary>
+        /// 세이브 데이터로 런을 되살린다. 부품·모듈 목록은 저장할 때와 같은 에셋이어야 한다 (모듈은 id 로 찾는다).
+        /// </summary>
+        public static RunSession Restore(RunSaveData data, IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules)
+        {
+            if (data == null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            if (data.version != RunSaveData.CurrentVersion)
+            {
+                throw new ArgumentException("지원하지 않는 세이브 버전입니다: " + data.version, nameof(data));
+            }
+
+            Dictionary<string, ModuleData> modulesById = IndexById(modules);
+
+            // 새로 만들 때는 난수를 쓰지 않는다. 난수 상태는 맨 마지막에 덮어쓴다
+            RunSession session = Create(data.seed, parts, modules, data.mode);
+            RunManager runManager = session.RunManager;
+
+            // 확률표·뽑기 횟수는 저장하지 않고 장착 모듈로 다시 계산한다. 계산 규칙이 한 곳에만 있게 하기 위해서다
+            foreach (ModuleData module in FindAll(data.equippedModuleIds, modulesById))
+            {
+                runManager.EquipModule(module);
+            }
+
+            runManager.RestoreProgress(data.round, data.production, data.drawsRemaining, data.state, data.streakGrade, data.streakCount);
+            session.GachaEngine.RestorePityCounter(data.drawsWithoutSuperRare);
+            session.randomService.RestoreState(data.randomState);
+
+            List<ModuleData> offer = FindAll(data.offeredModuleIds, modulesById);
+            if (offer.Count > 0)
+            {
+                if (data.state != RunState.RoundCleared)
+                {
+                    throw new ArgumentException("돌파 상태가 아닌데 제안 카드가 저장되어 있습니다: " + data.state, nameof(data));
+                }
+
+                if (!session.ModuleOffer.IsPossibleOffer(offer))
+                {
+                    throw new ArgumentException("제안 카드 조합이 규칙에 맞지 않습니다: " + string.Join(",", data.offeredModuleIds), nameof(data));
+                }
+
+                session.openOffer = offer;
+            }
+
+            return session;
+        }
+
+        private static string[] ToIds(IReadOnlyList<ModuleData> modules)
+        {
+            var ids = new string[modules.Count];
+            for (int i = 0; i < modules.Count; i++)
+            {
+                if (string.IsNullOrEmpty(modules[i].Id))
+                {
+                    throw new InvalidOperationException("id 가 비어 있는 모듈은 저장할 수 없습니다: " + modules[i].DisplayName);
+                }
+
+                ids[i] = modules[i].Id;
+            }
+
+            return ids;
+        }
+
+        private static Dictionary<string, ModuleData> IndexById(IReadOnlyList<ModuleData> modules)
+        {
+            if (modules == null)
+            {
+                throw new ArgumentNullException(nameof(modules));
+            }
+
+            var modulesById = new Dictionary<string, ModuleData>();
+            foreach (ModuleData module in modules)
+            {
+                if (module == null || string.IsNullOrEmpty(module.Id))
+                {
+                    continue;
+                }
+
+                if (modulesById.ContainsKey(module.Id))
+                {
+                    throw new ArgumentException("모듈 id 가 중복됩니다: " + module.Id, nameof(modules));
+                }
+
+                modulesById.Add(module.Id, module);
+            }
+
+            return modulesById;
+        }
+
+        private static List<ModuleData> FindAll(string[] ids, Dictionary<string, ModuleData> modulesById)
+        {
+            var found = new List<ModuleData>();
+            if (ids == null)
+            {
+                return found;
+            }
+
+            foreach (string id in ids)
+            {
+                if (id == null || !modulesById.TryGetValue(id, out ModuleData module))
+                {
+                    throw new ArgumentException("모듈을 찾을 수 없습니다: " + id);
+                }
+
+                found.Add(module);
+            }
+
+            return found;
         }
     }
 }

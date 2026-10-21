@@ -22,6 +22,11 @@ namespace Overclock.Core
             return effects[index];
         }
 
+        internal void SetIdForTests(string id)
+        {
+            this.id = id;
+        }
+
         internal void InitializeForTests(string displayName, params ModifierEffect[] effects)
         {
             this.displayName = displayName;
