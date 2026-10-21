@@ -34,8 +34,10 @@ namespace Overclock.Presentation
         [SerializeField] private Button endlessModeButton;
         [SerializeField] private Button continueButton;
         [SerializeField] private TMP_Text continueLabel;
+        [SerializeField] private TMP_Text qaSeedText;
 
         private RunSaveFile saveFile;
+        private uint qaSeed;
         private RunSession savedSession;
         private RunSession session;
         private GachaEngine gachaEngine;
@@ -54,6 +56,7 @@ namespace Overclock.Presentation
             endlessModeButton.onClick.AddListener(() => StartNewRun(RunMode.Endless));
             continueButton.onClick.AddListener(ContinueSavedRun);
             saveFile = new RunSaveFile(Application.persistentDataPath);
+            ReadQaSeed();
         }
 
         private void Start()
@@ -117,6 +120,22 @@ namespace Overclock.Presentation
             return mouse != null && mouse.leftButton.wasReleasedThisFrame;
         }
 
+        private void ReadQaSeed()
+        {
+            // 0 = 실행 인자 없음. 잘못된 값은 무시하고 평소대로 시작한다 (QA 가 로그로 알아챈다)
+            qaSeed = 0;
+            if (RunSeedOption.TryFind(Environment.GetCommandLineArgs(), out uint found, out string error))
+            {
+                qaSeed = found;
+            }
+            else if (error != null)
+            {
+                Debug.LogWarning("QA 시드 무시: " + error);
+            }
+
+            qaSeedText.text = qaSeed != 0 ? "QA 시드 " + qaSeed + " (새 판은 모두 이 시드)" : "";
+        }
+
         private void ShowModeSelect()
         {
             moduleSelectPanel.SetActive(false);
@@ -149,8 +168,9 @@ namespace Overclock.Presentation
 
         private void StartNewRun(RunMode mode)
         {
+            // 우선순위: 실행 인자(QA) → Inspector → 자동.
             // 자동 시드는 Inspector 의 int 칸에 다시 넣을 수 있는 1 ~ int.MaxValue 로 제한한다
-            uint runSeed = (uint)seed;
+            uint runSeed = qaSeed != 0 ? qaSeed : (uint)seed;
             if (runSeed == 0)
             {
                 runSeed = unchecked((uint)Environment.TickCount) & 0x7FFFFFFFu;
@@ -160,7 +180,7 @@ namespace Overclock.Presentation
                 }
             }
 
-            BeginRun(RunSession.Create(runSeed, parts, modules, mode), "");
+            BeginRun(RunSession.Create(runSeed, parts, modules, mode), qaSeed != 0 ? " (QA 시드)" : "");
             SaveRun();
         }
 
