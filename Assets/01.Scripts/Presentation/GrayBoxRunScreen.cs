@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using Overclock.Core;
 using TMPro;
@@ -31,7 +32,11 @@ namespace Overclock.Presentation
         [SerializeField] private GameObject modeSelectPanel;
         [SerializeField] private Button normalModeButton;
         [SerializeField] private Button endlessModeButton;
+        [SerializeField] private Button continueButton;
+        [SerializeField] private TMP_Text continueLabel;
 
+        private RunSaveFile saveFile;
+        private RunSession savedSession;
         private RunSession session;
         private GachaEngine gachaEngine;
         private RunManager runManager;
@@ -47,6 +52,8 @@ namespace Overclock.Presentation
             restartButton.onClick.AddListener(ShowModeSelect);
             normalModeButton.onClick.AddListener(() => StartNewRun(RunMode.Normal));
             endlessModeButton.onClick.AddListener(() => StartNewRun(RunMode.Endless));
+            continueButton.onClick.AddListener(ContinueSavedRun);
+            saveFile = new RunSaveFile(Application.persistentDataPath);
         }
 
         private void Start()
@@ -114,7 +121,30 @@ namespace Overclock.Presentation
         {
             moduleSelectPanel.SetActive(false);
             equippedModuleList.SetInteractable(false);
+            RefreshContinueButton();
             modeSelectPanel.SetActive(true);
+        }
+
+        private void RefreshContinueButton()
+        {
+            // 읽을 수 없는 세이브는 지우지 않는다. 이어하기만 끄고, 새 런을 시작할 때 덮어쓴다
+            savedSession = null;
+            if (!saveFile.Exists)
+            {
+                continueLabel.text = "이어하기 (저장된 판 없음)";
+            }
+            else if (saveFile.TryLoad(parts, modules, out RunSession loaded, out string error))
+            {
+                savedSession = loaded;
+                continueLabel.text = "이어하기";
+            }
+            else
+            {
+                Debug.LogWarning("세이브를 읽을 수 없습니다: " + error);
+                continueLabel.text = "이어하기 (세이브를 읽을 수 없음)";
+            }
+
+            continueButton.interactable = savedSession != null;
         }
 
         private void StartNewRun(RunMode mode)
@@ -130,12 +160,36 @@ namespace Overclock.Presentation
                 }
             }
 
-            session = RunSession.Create(runSeed, parts, modules, mode);
-            runMode = mode;
+            BeginRun(RunSession.Create(runSeed, parts, modules, mode), "");
+            SaveRun();
+        }
+
+        private void ContinueSavedRun()
+        {
+            if (savedSession == null)
+            {
+                return;
+            }
+
+            RunSession restored = savedSession;
+            savedSession = null;
+            BeginRun(restored, " (이어하기)");
+
+            // 돌파 직후에 꺼진 판. 저장된 난수 상태에서 카드를 열므로 끄기 전과 같은 카드가 나온다
+            if (runManager.State == RunState.RoundCleared)
+            {
+                ShowModuleOffer();
+            }
+        }
+
+        private void BeginRun(RunSession newSession, string logSuffix)
+        {
+            session = newSession;
+            runMode = session.Mode;
             gachaEngine = session.GachaEngine;
             runManager = session.RunManager;
 
-            Debug.Log("Run seed: " + runSeed + " mode: " + mode);
+            Debug.Log("Run seed: " + session.Seed + " mode: " + session.Mode + logSuffix);
             lastPartText.text = "-";
             modeSelectPanel.SetActive(false);
             moduleSelectPanel.SetActive(false);
@@ -164,6 +218,17 @@ namespace Overclock.Presentation
 
             // 결과는 여기서 확정된다. 연출은 표시만 늦추므로 스킵해도 최종 상태가 같다
             DrawResult result = runManager.Draw();
+
+            // 연출 전에 저장한다. 연출 중에 꺼도 이 뽑기는 되돌릴 수 없다
+            if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)
+            {
+                DeleteSave();
+            }
+            else
+            {
+                SaveRun();
+            }
+
             StartCoroutine(RevealDraw(result));
         }
 
@@ -201,6 +266,7 @@ namespace Overclock.Presentation
 
         private void ShowModuleOffer()
         {
+            // 여기서는 저장하지 않는다. 돌파 직후(카드를 열기 전) 저장된 난수 상태에서 다시 열면 같은 카드가 나온다
             IReadOnlyList<ModuleData> offer = session.OpenOffer();
             int nextQuota = RunManager.QuotaFor(runManager.CurrentRound + 1);
 
@@ -229,6 +295,7 @@ namespace Overclock.Presentation
             }
 
             session.SelectModule(module);
+            SaveRun();
 
             moduleSelectPanel.SetActive(false);
             equippedModuleList.Show(runManager.EquippedModules);
@@ -272,6 +339,38 @@ namespace Overclock.Presentation
             else
             {
                 resultText.text = "";
+            }
+        }
+
+        private void SaveRun()
+        {
+            try
+            {
+                saveFile.Save(session);
+            }
+            catch (IOException exception)
+            {
+                Debug.LogWarning("세이브를 쓰지 못했습니다: " + exception.Message);
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                Debug.LogWarning("세이브를 쓰지 못했습니다: " + exception.Message);
+            }
+        }
+
+        private void DeleteSave()
+        {
+            try
+            {
+                saveFile.Delete();
+            }
+            catch (IOException exception)
+            {
+                Debug.LogWarning("세이브를 지우지 못했습니다: " + exception.Message);
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                Debug.LogWarning("세이브를 지우지 못했습니다: " + exception.Message);
             }
         }
 
