@@ -112,7 +112,8 @@ namespace Overclock.Presentation
                 return false;
             }
 
-            if (keyboard != null && (keyboard.spaceKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame))
+            // 스킵은 Space 와 클릭(뗄 때)뿐이다. ESC 는 일시정지에 쓴다 (10/21 결정)
+            if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame)
             {
                 return true;
             }
