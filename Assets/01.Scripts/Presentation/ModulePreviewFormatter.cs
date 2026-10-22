@@ -34,7 +34,7 @@ namespace Overclock.Presentation
 
             lines.Add("다음 라운드 예상 생산량 " + valueText + " (할당량 " + nextQuota + ")");
             // 할당량에 도달해도 멈추지 않고 다 뽑았을 때의 평균이다. 실제 판정과 다르게 읽히지 않게 한다
-            lines.Add("(전체 횟수 기준 · 보증 제외)");
+            lines.Add("(전체 횟수 기준 · 천장 제외)");
         }
 
         private static void AddProbabilityLines(ModulePreview preview, List<string> lines)
@@ -57,10 +57,10 @@ namespace Overclock.Presentation
                 }
             }
 
-            // 보증이 차서 다음 뽑기가 SR 확정이어도 이 표는 그대로다. 다음 뽑기 확률로 읽히지 않게 한다
+            // 천장(보증)이 차서 다음 뽑기가 SR 확정이어도 이 표는 그대로다. 다음 뽑기 확률로 읽히지 않게 한다
             if (changed)
             {
-                lines.Add("(모듈 적용 확률표 · 보증 확정 별도)");
+                lines.Add("(모듈 적용 확률표 · 천장 확정 별도)");
             }
         }
 

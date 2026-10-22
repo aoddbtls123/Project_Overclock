@@ -11,6 +11,7 @@ namespace Overclock.Presentation
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text descriptionText;
         [SerializeField] private TMP_Text previewText;
+        [SerializeField] private Image iconImage;
         [SerializeField] private Button selectButton;
 
         private ModuleData module;
@@ -28,6 +29,8 @@ namespace Overclock.Presentation
             nameText.text = module.DisplayName;
             descriptionText.text = module.Description;
             previewText.text = preview;
+            iconImage.sprite = module.Icon;
+            iconImage.enabled = module.Icon != null;
             gameObject.SetActive(true);
         }
 

@@ -22,6 +22,7 @@ namespace Overclock.Presentation
         [SerializeField] private TMP_Text drawsText;
         [SerializeField] private TMP_Text gaugePanelText;
         [SerializeField] private TMP_Text lastPartText;
+        [SerializeField] private Image lastPartIcon;
         [SerializeField] private TMP_Text resultText;
         [SerializeField] private EquippedModuleListView equippedModuleList;
         [SerializeField] private Button drawButton;
@@ -119,7 +120,7 @@ namespace Overclock.Presentation
             equippedModules.Clear();
 
             Debug.Log("Run seed: " + runSeed);
-            lastPartText.text = "-";
+            ClearLastPart("-");
             moduleSelectPanel.SetActive(false);
             equippedModuleList.Show(equippedModules);
             equippedModuleList.SetInteractable(true);
@@ -154,7 +155,7 @@ namespace Overclock.Presentation
             isRevealing = true;
             skipRequested = false;
             revealStartFrame = Time.frameCount;
-            lastPartText.text = "???";
+            ClearLastPart("???");
             drawButton.interactable = false;
 
             float duration = revealTimings.GetSeconds(result.Part.Grade);
@@ -172,7 +173,12 @@ namespace Overclock.Presentation
         private void ShowDrawResult(DrawResult result)
         {
             PartData part = result.Part;
-            lastPartText.text = part.DisplayName + " [" + part.Grade + "] +" + result.Output;
+            Color gradeColor = GradeStyle.GetColor(part.Grade);
+            lastPartText.text = GradeStyle.GetStars(part.Grade) + " " + part.DisplayName + "  +" + result.Output;
+            lastPartText.color = gradeColor;
+            lastPartIcon.sprite = part.Icon;
+            lastPartIcon.color = gradeColor;
+            lastPartIcon.enabled = part.Icon != null;
             Refresh();
 
             if (runManager.State == RunState.RoundCleared)
@@ -219,8 +225,15 @@ namespace Overclock.Presentation
             moduleSelectPanel.SetActive(false);
             equippedModuleList.Show(equippedModules);
             equippedModuleList.SetInteractable(true);
-            lastPartText.text = "-";
+            ClearLastPart("-");
             Refresh();
+        }
+
+        private void ClearLastPart(string text)
+        {
+            lastPartText.text = text;
+            lastPartText.color = Color.white;
+            lastPartIcon.enabled = false;
         }
 
         private void Refresh()
@@ -233,10 +246,10 @@ namespace Overclock.Presentation
             quotaGauge.value = Mathf.Min(runManager.Production, runManager.Quota);
             drawsText.text = "남은 뽑기 " + runManager.DrawsRemaining;
             gaugePanelText.text =
-                "N  " + FormatPercent(gachaEngine.GetProbability(Grade.N)) + "\n" +
-                "R  " + FormatPercent(gachaEngine.GetProbability(Grade.R)) + "\n" +
-                "SR " + FormatPercent(gachaEngine.GetProbability(Grade.SR)) + "\n" +
-                "보증 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
+                GradeStyle.Colorize(Grade.N, "N  " + FormatPercent(gachaEngine.GetProbability(Grade.N))) + "\n" +
+                GradeStyle.Colorize(Grade.R, "R  " + FormatPercent(gachaEngine.GetProbability(Grade.R))) + "\n" +
+                GradeStyle.Colorize(Grade.SR, "SR " + FormatPercent(gachaEngine.GetProbability(Grade.SR))) + "\n" +
+                "천장 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
 
             drawButton.interactable = state == RunState.Drawing;
             restartButton.gameObject.SetActive(state == RunState.RunFailed || state == RunState.RunCleared);

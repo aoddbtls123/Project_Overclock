@@ -17,3 +17,4 @@ MonoBehaviour:
   grade: 0
   tag: 3
   baseOutput: 1
+  icon: {fileID: 21300000, guid: 5941b3c2f0da3cc429b37cb4b8d69e99, type: 3}

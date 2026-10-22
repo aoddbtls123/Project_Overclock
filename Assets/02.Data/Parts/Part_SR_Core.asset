@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Part_SR_Core
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.PartData
   id: core
-  displayName: "\uCF54\uC5B4"
+  displayName: "\uB3D9\uB825 \uCF54\uC5B4"
   grade: 2
   tag: 3
   baseOutput: 10
+  icon: {fileID: 21300000, guid: f5759e8273fb14541a1c69c1fdaa9e7e, type: 3}

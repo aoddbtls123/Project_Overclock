@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.ModuleData
   id: sync_circuit
   displayName: "\uB3D9\uAE30\uD654 \uD68C\uB85C"
-  description: "\uAC19\uC740 \uB4F1\uAE09 3\uC5F0\uC18D\uB9C8\uB2E4 +10"
+  description: "\uAC19\uC740 \uB4F1\uAE09\uC744 3\uBC88 \uC5F0\uC18D \uBF51\uC744 \uB54C\uB9C8\uB2E4 \uC0DD\uC0B0\uB7C9 +10"
   axis: 2
   effects:
   - type: 2
     target: 0
     tagTarget: 0
     value: 10
+  icon: {fileID: 21300000, guid: 2c7075a35b93f1d4fa83a703e8b689d7, type: 3}

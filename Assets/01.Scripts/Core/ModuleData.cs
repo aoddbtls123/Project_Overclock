@@ -10,12 +10,14 @@ namespace Overclock.Core
         [SerializeField] private string description;
         [SerializeField] private ModuleAxis axis;
         [SerializeField] private ModifierEffect[] effects = new ModifierEffect[0];
+        [SerializeField] private Sprite icon;
 
         public string Id => id;
         public string DisplayName => displayName;
         public string Description => description;
         public ModuleAxis Axis => axis;
         public int EffectCount => effects == null ? 0 : effects.Length;
+        public Sprite Icon => icon;
 
         public ModifierEffect GetEffect(int index)
         {
