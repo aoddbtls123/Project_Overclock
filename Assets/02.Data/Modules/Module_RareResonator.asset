@@ -26,3 +26,4 @@ MonoBehaviour:
     tagTarget: 0
     value: 2
   icon: {fileID: 21300000, guid: 880aa73e26f7b84448158121e32d20f1, type: 3}
+  family: 2

@@ -10,6 +10,7 @@ namespace Overclock.Presentation
     {
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text descriptionText;
+        [SerializeField] private TMP_Text familyText;
         [SerializeField] private TMP_Text previewText;
         [SerializeField] private Image iconImage;
         [SerializeField] private Button selectButton;
@@ -28,6 +29,8 @@ namespace Overclock.Presentation
             this.selected = selected;
             nameText.text = module.DisplayName;
             descriptionText.text = module.Description;
+            familyText.text = FamilyStyle.GetLabel(module.Family);
+            familyText.color = FamilyStyle.GetColor(module.Family);
             previewText.text = preview;
             iconImage.sprite = module.Icon;
             iconImage.enabled = module.Icon != null;

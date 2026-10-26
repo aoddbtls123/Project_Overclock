@@ -11,6 +11,7 @@ namespace Overclock.Core
         [SerializeField] private ModuleAxis axis;
         [SerializeField] private ModifierEffect[] effects = new ModifierEffect[0];
         [SerializeField] private Sprite icon;
+        [SerializeField] private ModuleFamily family;
 
         public string Id => id;
         public string DisplayName => displayName;
@@ -18,6 +19,7 @@ namespace Overclock.Core
         public ModuleAxis Axis => axis;
         public int EffectCount => effects == null ? 0 : effects.Length;
         public Sprite Icon => icon;
+        public ModuleFamily Family => family;
 
         public ModifierEffect GetEffect(int index)
         {

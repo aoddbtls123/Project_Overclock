@@ -187,7 +187,8 @@ namespace Overclock.Presentation
         internal static string BuildTooltipText(EquippedModuleGroup group)
         {
             string label = group.Count > 1 ? group.Module.DisplayName + " ×" + group.Count : group.Module.DisplayName;
-            return "<b>" + label + "</b>\n" + group.Module.Description;
+            string family = FamilyStyle.IsShown(group.Module.Family) ? "  " + FamilyStyle.Colorize(group.Module.Family) : "";
+            return "<b>" + label + "</b>" + family + "\n" + group.Module.Description;
         }
 
         internal sealed class EquippedModuleGroup

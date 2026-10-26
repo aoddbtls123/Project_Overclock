@@ -10,6 +10,7 @@ namespace Overclock.Presentation
     {
         [SerializeField] private Image iconImage;
         [SerializeField] private TMP_Text countText;
+        [SerializeField] private Outline frameOutline;
 
         public RectTransform Rect => (RectTransform)transform;
 
@@ -18,6 +19,10 @@ namespace Overclock.Presentation
             iconImage.sprite = module.Icon;
             iconImage.enabled = module.Icon != null;
             countText.text = count > 1 ? "×" + count : "";
+
+            // 계열 색 테두리. 범용은 테두리 없이 기본 슬롯
+            frameOutline.enabled = FamilyStyle.IsShown(module.Family);
+            frameOutline.effectColor = FamilyStyle.GetColor(module.Family);
             gameObject.SetActive(true);
         }
 
