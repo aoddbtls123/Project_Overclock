@@ -25,7 +25,7 @@ namespace Overclock.Presentation
         [SerializeField] private TMP_Text lastPartText;
         [SerializeField] private Image lastPartIcon;
         [SerializeField] private TMP_Text resultText;
-        [SerializeField] private EquippedModuleListView equippedModuleList;
+        [SerializeField] private MachinePanelView machinePanel;
         [SerializeField] private Button drawButton;
         [SerializeField] private Button restartButton;
         [SerializeField] private GameObject moduleSelectPanel;
@@ -141,7 +141,7 @@ namespace Overclock.Presentation
         private void ShowModeSelect()
         {
             moduleSelectPanel.SetActive(false);
-            equippedModuleList.SetInteractable(false);
+            machinePanel.SetInteractable(false);
             RefreshContinueButton();
             modeSelectPanel.SetActive(true);
         }
@@ -215,8 +215,8 @@ namespace Overclock.Presentation
             ClearLastPart("-");
             modeSelectPanel.SetActive(false);
             moduleSelectPanel.SetActive(false);
-            equippedModuleList.Show(runManager.EquippedModules);
-            equippedModuleList.SetInteractable(true);
+            machinePanel.Show(runManager.EquippedModules);
+            machinePanel.SetInteractable(true);
             Refresh();
         }
 
@@ -297,9 +297,8 @@ namespace Overclock.Presentation
             IReadOnlyList<ModuleData> offer = session.OpenOffer();
             int nextQuota = RunManager.QuotaFor(runManager.CurrentRound + 1);
 
+            // 기계 패널은 카드 영역 밖에서 오버레이 위에 그려지므로 고르는 동안에도 팝업을 쓸 수 있다
             moduleSelectPanel.SetActive(true);
-            // 장착 목록이 카드 뒤에 깔리므로 선택 중에는 팝업을 띄우지 않는다
-            equippedModuleList.SetInteractable(false);
             for (int i = 0; i < moduleCards.Length; i++)
             {
                 if (i < offer.Count)
@@ -325,8 +324,8 @@ namespace Overclock.Presentation
             SaveRun();
 
             moduleSelectPanel.SetActive(false);
-            equippedModuleList.Show(runManager.EquippedModules);
-            equippedModuleList.SetInteractable(true);
+            machinePanel.Show(runManager.EquippedModules);
+            machinePanel.SetInteractable(true);
             ClearLastPart("-");
             Refresh();
         }

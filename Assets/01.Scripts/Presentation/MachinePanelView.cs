@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Text;
 using Overclock.Core;
 using TMPro;
 using UnityEngine;
@@ -7,15 +6,18 @@ using UnityEngine.InputSystem;
 
 namespace Overclock.Presentation
 {
-    // 장착 모듈을 "이름 ×개수" 로 보여 주고, 이름에 마우스를 올리면 설명 팝업을 띄운다.
-    // 이름을 클릭하면 팝업이 고정되고, 다른 곳을 클릭하면 사라진다.
-    public sealed class EquippedModuleListView : MonoBehaviour
+    // 장착 모듈을 기계 슬롯(아이콘)으로 보여 준다. 같은 모듈은 한 슬롯에 ×n 으로 묶는다.
+    // 슬롯에 마우스를 올리면 설명 팝업, 클릭하면 고정, 다른 곳을 클릭하면 닫힌다.
+    public sealed class MachinePanelView : MonoBehaviour
     {
-        [SerializeField] private TMP_Text listText;
+        [SerializeField] private TMP_Text titleText;
+        [SerializeField] private RectTransform slotContainer;
+        [SerializeField] private MachineSlotView slotTemplate;
         [SerializeField] private RectTransform tooltip;
         [SerializeField] private TMP_Text tooltipText;
 
         private readonly List<EquippedModuleGroup> groups = new List<EquippedModuleGroup>();
+        private readonly List<MachineSlotView> slots = new List<MachineSlotView>();
         private readonly Vector3[] tooltipCorners = new Vector3[4];
         private bool interactable = true;
         private int pinnedIndex = -1;
@@ -24,6 +26,7 @@ namespace Overclock.Presentation
 
         private void Awake()
         {
+            slotTemplate.gameObject.SetActive(false);
             tooltip.gameObject.SetActive(false);
         }
 
@@ -31,7 +34,26 @@ namespace Overclock.Presentation
         {
             groups.Clear();
             groups.AddRange(Group(equippedModules));
-            listText.text = BuildListText(groups, equippedModules.Count);
+            titleText.text = "장착 모듈 " + equippedModules.Count;
+
+            // 슬롯은 필요한 만큼만 만들고 다시 쓴다. 템플릿은 꺼 둔 채라 레이아웃에 들어가지 않는다
+            while (slots.Count < groups.Count)
+            {
+                slots.Add(Instantiate(slotTemplate, slotContainer));
+            }
+
+            for (int i = 0; i < slots.Count; i++)
+            {
+                if (i < groups.Count)
+                {
+                    slots[i].Show(groups[i].Module, groups[i].Count);
+                }
+                else
+                {
+                    slots[i].Hide();
+                }
+            }
+
             pinnedIndex = -1;
             HideTooltip();
         }
@@ -78,15 +100,17 @@ namespace Overclock.Presentation
 
         private int FindHoveredGroup(Vector2 pointer)
         {
-            // 캔버스가 Screen Space - Overlay 라 카메라는 null.
-            // 링크는 그룹 순서대로 하나씩 넣으므로 링크 번호 = 그룹 번호
-            int linkIndex = TMP_TextUtilities.FindIntersectingLink(listText, pointer, null);
-            if (linkIndex < 0 || linkIndex >= groups.Count)
+            // 레이캐스트를 쓰지 않고 사각형으로 판정한다. 모듈 선택 오버레이가 위를 덮어도 판정이 같다.
+            // 캔버스가 Screen Space - Overlay 라 카메라는 null
+            for (int i = 0; i < groups.Count; i++)
             {
-                return -1;
+                if (RectTransformUtility.RectangleContainsScreenPoint(slots[i].Rect, pointer, null))
+                {
+                    return i;
+                }
             }
 
-            return linkIndex;
+            return -1;
         }
 
         private void ShowTooltip(int index, Vector2 position)
@@ -160,25 +184,10 @@ namespace Overclock.Presentation
             return result;
         }
 
-        internal static string BuildListText(IReadOnlyList<EquippedModuleGroup> groups, int totalCount)
-        {
-            var builder = new StringBuilder("장착 모듈 " + totalCount);
-            for (int i = 0; i < groups.Count; i++)
-            {
-                builder.Append("\n- <link=\"").Append(i).Append("\">").Append(Label(groups[i])).Append("</link>");
-            }
-
-            return builder.ToString();
-        }
-
         internal static string BuildTooltipText(EquippedModuleGroup group)
         {
-            return "<b>" + Label(group) + "</b>\n" + group.Module.Description;
-        }
-
-        private static string Label(EquippedModuleGroup group)
-        {
-            return group.Count > 1 ? group.Module.DisplayName + " ×" + group.Count : group.Module.DisplayName;
+            string label = group.Count > 1 ? group.Module.DisplayName + " ×" + group.Count : group.Module.DisplayName;
+            return "<b>" + label + "</b>\n" + group.Module.Description;
         }
 
         internal sealed class EquippedModuleGroup
