@@ -21,6 +21,20 @@ namespace Overclock.Tests
         private static readonly PartTag[] Tags = { PartTag.None, PartTag.Electronic, PartTag.Mechanical, PartTag.Power };
         private static readonly int[] DesignBaseOutputs = { 1, 3, 10 };
 
+        // 이 조합 검사가 독립 기대값을 가진 효과 목록. enum 순서 그대로 둔다 (시드별 조합이 바뀌지 않게).
+        // ModifierType 에 새 효과를 추가하면 ① 이 목록 ② CreateValue 의 값 범위
+        // ③ RandomCombinations_KeepTableValidAndFollowDesignRules 의 기대값 계산을 함께 보완해야 한다
+        private static readonly ModifierType[] CheckedTypes =
+        {
+            ModifierType.SuperRareChance,
+            ModifierType.OutputMultiplier,
+            ModifierType.StreakBonus,
+            ModifierType.ExtraDraws,
+            ModifierType.FlatBonus,
+            ModifierType.RareChance,
+            ModifierType.CarryOverDraws
+        };
+
         private readonly List<ModuleData> createdModules = new List<ModuleData>();
 
         [TearDown]
@@ -32,6 +46,24 @@ namespace Overclock.Tests
             }
 
             createdModules.Clear();
+        }
+
+        [Test]
+        public void CheckedTypes_CoverEveryModifierType()
+        {
+            Array allTypes = Enum.GetValues(typeof(ModifierType));
+            var missing = new List<string>();
+            foreach (ModifierType type in allTypes)
+            {
+                if (Array.IndexOf(CheckedTypes, type) < 0)
+                {
+                    missing.Add(type.ToString());
+                }
+            }
+
+            Assert.IsTrue(missing.Count == 0, "조합 검사에 기대값이 없는 효과: " + string.Join(", ", missing)
+                + " — CheckedTypes · CreateValue · 기대값 계산을 함께 보완");
+            Assert.AreEqual(allTypes.Length, CheckedTypes.Length, "CheckedTypes 에 같은 효과가 두 번 있음");
         }
 
         [Test]
@@ -292,7 +324,7 @@ namespace Overclock.Tests
                 var effects = new ModifierEffect[effectCount];
                 for (int j = 0; j < effectCount; j++)
                 {
-                    var type = (ModifierType)(int)(random.NextDouble() * 7);
+                    ModifierType type = CheckedTypes[(int)(random.NextDouble() * CheckedTypes.Length)];
                     var target = (GradeFilter)(int)(random.NextDouble() * 4);
                     var tagTarget = (PartTagFilter)(int)(random.NextDouble() * 4);
                     effects[j] = new ModifierEffect(type, target, tagTarget, CreateValue(type, random));
@@ -318,8 +350,12 @@ namespace Overclock.Tests
                     return (float)(random.NextDouble() * 5.0);
                 case ModifierType.RareChance:
                     return (float)(random.NextDouble() * 0.3);
-                default:
+                case ModifierType.ExtraDraws:
+                case ModifierType.CarryOverDraws:
                     return 1 + (int)(random.NextDouble() * 8);
+                default:
+                    // 값 범위를 정하지 않은 효과를 조용히 다른 효과의 값으로 만들지 않는다
+                    throw new ArgumentOutOfRangeException(nameof(type), type, "CreateValue 에 값 범위가 없는 효과 (CheckedTypes 주석 참고)");
             }
         }
 
