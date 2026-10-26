@@ -10,12 +10,14 @@ namespace Overclock.Core
         [SerializeField] private Grade grade;
         [SerializeField] private PartTag tag;
         [SerializeField, Min(0)] private int baseOutput = 1;
+        [SerializeField] private Sprite icon;
 
         public string Id => id;
         public string DisplayName => displayName;
         public Grade Grade => grade;
         public PartTag Tag => tag;
         public int BaseOutput => baseOutput;
+        public Sprite Icon => icon;
 
         internal void InitializeForTests(string displayName, Grade grade, int baseOutput, PartTag tag = PartTag.None)
         {

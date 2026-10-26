@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.ModuleData
   id: auxiliary_power
   displayName: "\uBCF4\uC870 \uC804\uC6D0"
-  description: "\uB2E4\uC74C \uB77C\uC6B4\uB4DC\uBD80\uD130 \uBF51\uAE30 +1\uD68C, \uBAA8\uB4E0 \uBD80\uD488 \uC0DD\uC0B0\uB7C9 +10%"
+  description: "\uB2E4\uC74C \uB77C\uC6B4\uB4DC\uBD80\uD130 \uBF51\uAE30 +1\uD68C,
+    \uBAA8\uB4E0 \uBD80\uD488 \uC0DD\uC0B0\uB7C9 +10%"
   axis: 3
   effects:
   - type: 3
@@ -25,3 +26,4 @@ MonoBehaviour:
     target: 0
     tagTarget: 0
     value: 0.1
+  icon: {fileID: 21300000, guid: 10ad6583cb2e4674d974b331fe69d006, type: 3}
