@@ -36,6 +36,7 @@ namespace Overclock.Presentation
         [SerializeField] private Button continueButton;
         [SerializeField] private TMP_Text continueLabel;
         [SerializeField] private TMP_Text qaSeedText;
+        [SerializeField] private PauseMenuView pauseMenu;
 
         private RunSaveFile saveFile;
         private uint qaSeed;
@@ -48,14 +49,18 @@ namespace Overclock.Presentation
         private bool skipRequested;
         private int revealStartFrame;
         private bool ignoreDrawButtonClick;
+        private Coroutine revealRoutine;
+        private int resumeFrame;
 
         private void Awake()
         {
             drawButton.onClick.AddListener(OnDrawButtonClicked);
-            restartButton.onClick.AddListener(ShowModeSelect);
+            restartButton.onClick.AddListener(ReturnToModeSelect);
             normalModeButton.onClick.AddListener(() => StartNewRun(RunMode.Normal));
             endlessModeButton.onClick.AddListener(() => StartNewRun(RunMode.Endless));
             continueButton.onClick.AddListener(ContinueSavedRun);
+            pauseMenu.Bind(ResumeGame, ReturnToModeSelect, QuitGame);
+            pauseMenu.Close();
             saveFile = new RunSaveFile(Application.persistentDataPath);
             ReadQaSeed();
         }
@@ -65,14 +70,34 @@ namespace Overclock.Presentation
             ShowModeSelect();
         }
 
+        private void OnDestroy()
+        {
+            // 일시정지 중에 씬이 내려가도 시간이 멈춘 채 남지 않게 한다
+            Time.timeScale = 1f;
+        }
+
         private void Update()
         {
             Keyboard keyboard = Keyboard.current;
             Mouse mouse = Mouse.current;
             UpdateDrawButtonGuard(mouse);
 
-            // 모드를 고르기 전에는 런이 없다
-            if (runManager == null)
+            // ESC 는 일시정지 전용이다 (10/21 결정). 일시정지 중에는 아래 입력을 모두 막는다
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && CanPause())
+            {
+                if (pauseMenu.IsOpen)
+                {
+                    ResumeGame();
+                }
+                else
+                {
+                    PauseGame();
+                }
+
+                return;
+            }
+
+            if (!IsRunInputAllowed())
             {
                 return;
             }
@@ -107,8 +132,9 @@ namespace Overclock.Presentation
 
         private bool IsSkipPressed(Keyboard keyboard, Mouse mouse)
         {
-            // 연출을 시작한 입력(버튼을 뗀 순간·Space)이 같은 프레임에 스킵으로 잡히지 않게 한다
-            if (Time.frameCount <= revealStartFrame)
+            // 연출을 시작한 입력(버튼을 뗀 순간·Space)이 같은 프레임에 스킵으로 잡히지 않게 한다.
+            // 일시정지 창의 '계속하기'를 뗀 클릭도 같은 이유로 스킵에 쓰지 않는다
+            if (Time.frameCount <= revealStartFrame || Time.frameCount <= resumeFrame)
             {
                 return false;
             }
@@ -136,6 +162,71 @@ namespace Overclock.Presentation
             }
 
             qaSeedText.text = qaSeed != 0 ? "QA 시드 " + qaSeed + " (새 판은 모두 이 시드)" : "";
+        }
+
+        private bool IsRunInputAllowed()
+        {
+            // 런 입력(뽑기 · 스킵 · 카드 선택)을 받는 조건은 여기 한 곳에서 정한다.
+            // 모드 선택 화면에는 런이 없고(runManager = null), 일시정지 중에는 창이 열려 있다
+            return runManager != null && !pauseMenu.IsOpen;
+        }
+
+        private bool CanPause()
+        {
+            // 런 화면에서만 연다. 모드 선택 화면으로 갈 때는 런을 버리므로(runManager = null) 거기서는 열리지 않는다
+            return runManager != null;
+        }
+
+        private void PauseGame()
+        {
+            // 연출은 Time.deltaTime 으로 흐르므로 timeScale 0 이면 그 자리에서 멈춘다.
+            // 뽑기 결과는 연출 전에 이미 확정되고 저장됐으므로 멈춰도 결과는 바뀌지 않는다
+            Time.timeScale = 0f;
+            machinePanel.SetInteractable(false);
+            pauseMenu.Open();
+        }
+
+        private void ResumeGame()
+        {
+            pauseMenu.Close();
+            machinePanel.SetInteractable(true);
+            Time.timeScale = 1f;
+            resumeFrame = Time.frameCount;
+        }
+
+        private void ReturnToModeSelect()
+        {
+            // 진행은 뽑기와 모듈 선택마다 저장돼 있다. 메모리의 런만 버리고, 이어하기로 돌아올 수 있게 한다
+            pauseMenu.Close();
+            Time.timeScale = 1f;
+            StopReveal();
+            session = null;
+            gachaEngine = null;
+            runManager = null;
+            ShowModeSelect();
+        }
+
+        private void QuitGame()
+        {
+            // 저장은 이미 끝나 있으므로 바로 끈다
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
+        private void StopReveal()
+        {
+            // 연출 중에 런을 버리면, 남은 연출이 끝난 뒤 버린 런의 결과와 카드를 띄우지 않게 멈춘다
+            if (revealRoutine != null)
+            {
+                StopCoroutine(revealRoutine);
+                revealRoutine = null;
+            }
+
+            isRevealing = false;
+            skipRequested = false;
         }
 
         private void ShowModeSelect()
@@ -206,6 +297,8 @@ namespace Overclock.Presentation
 
         private void BeginRun(RunSession newSession, string logSuffix)
         {
+            // 새 런은 언제나 연출이 없는 상태에서 시작한다. 이전 런의 연출이 새 런 화면에 결과를 띄우지 않게 한다
+            StopReveal();
             session = newSession;
             runMode = session.Mode;
             gachaEngine = session.GachaEngine;
@@ -222,7 +315,8 @@ namespace Overclock.Presentation
 
         private void OnDrawButtonClicked()
         {
-            if (ignoreDrawButtonClick)
+            // 일시정지 창이 클릭을 막지만, 씬 배치가 바뀌어도 일시정지 중 뽑기가 되지 않게 코드에서도 막는다
+            if (ignoreDrawButtonClick || !IsRunInputAllowed())
             {
                 return;
             }
@@ -251,7 +345,7 @@ namespace Overclock.Presentation
                 SaveRun();
             }
 
-            StartCoroutine(RevealDraw(result));
+            revealRoutine = StartCoroutine(RevealDraw(result));
         }
 
         private IEnumerator RevealDraw(DrawResult result)
@@ -315,7 +409,7 @@ namespace Overclock.Presentation
 
         private void OnModuleSelected(ModuleData module)
         {
-            if (runManager.State != RunState.RoundCleared)
+            if (!IsRunInputAllowed() || runManager.State != RunState.RoundCleared)
             {
                 return;
             }
