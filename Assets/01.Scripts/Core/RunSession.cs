@@ -6,7 +6,8 @@ namespace Overclock.Core
     public sealed class RunSession
     {
         private const int PityThreshold = 50;
-        private const int RoundCount = 8;
+        // 일반모드 라운드 수. 최고 기록 검사(BestRecords)도 이 값을 쓴다
+        public const int NormalRoundCount = 8;
         // 무한모드에는 마지막 라운드가 없다. 클리어 판정(현재 라운드 == 라운드 수)에 닿지 않는 값을 넘긴다
         private const int EndlessRoundCount = int.MaxValue;
         private const int DrawsPerRound = 10;
@@ -48,7 +49,7 @@ namespace Overclock.Core
                 throw new ArgumentOutOfRangeException(nameof(mode));
             }
 
-            int roundCount = mode == RunMode.Endless ? EndlessRoundCount : RoundCount;
+            int roundCount = mode == RunMode.Endless ? EndlessRoundCount : NormalRoundCount;
 
             // 보증 카운터가 런 전체에서 이어져야 하므로 GachaEngine 은 런마다 한 번만 만든다
             // 같은 시드로 같은 판을 재현하려면 모든 난수 소비가 이 RandomService 하나를 거쳐야 한다

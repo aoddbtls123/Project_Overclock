@@ -27,18 +27,27 @@ namespace Overclock.Presentation
         [SerializeField] private TMP_Text resultText;
         [SerializeField] private MachinePanelView machinePanel;
         [SerializeField] private Button drawButton;
-        [SerializeField] private Button restartButton;
         [SerializeField] private GameObject moduleSelectPanel;
         [SerializeField] private ModuleCardView[] moduleCards;
+        [SerializeField] private GameObject titlePanel;
+        [SerializeField] private Button startButton;
+        [SerializeField] private Button titleQuitButton;
         [SerializeField] private GameObject modeSelectPanel;
+        [SerializeField] private Button modeBackButton;
+        [SerializeField] private TMP_Text normalBestText;
+        [SerializeField] private TMP_Text endlessBestText;
         [SerializeField] private Button normalModeButton;
         [SerializeField] private Button endlessModeButton;
         [SerializeField] private Button continueButton;
         [SerializeField] private TMP_Text continueLabel;
         [SerializeField] private TMP_Text qaSeedText;
         [SerializeField] private PauseMenuView pauseMenu;
+        [SerializeField] private ResultPanelView resultPanel;
 
         private RunSaveFile saveFile;
+        private BestRecordFile recordFile;
+        private BestRecords bestRecords;
+        private bool lastRunNewRecord;
         private uint qaSeed;
         private RunSession savedSession;
         private RunSession session;
@@ -55,19 +64,25 @@ namespace Overclock.Presentation
         private void Awake()
         {
             drawButton.onClick.AddListener(OnDrawButtonClicked);
-            restartButton.onClick.AddListener(ReturnToModeSelect);
+            startButton.onClick.AddListener(ShowModeSelect);
+            titleQuitButton.onClick.AddListener(QuitGame);
+            modeBackButton.onClick.AddListener(ShowTitle);
             normalModeButton.onClick.AddListener(() => StartNewRun(RunMode.Normal));
             endlessModeButton.onClick.AddListener(() => StartNewRun(RunMode.Endless));
             continueButton.onClick.AddListener(ContinueSavedRun);
-            pauseMenu.Bind(ResumeGame, ReturnToModeSelect, QuitGame);
+            pauseMenu.Bind(ResumeGame, ReturnToTitle, QuitGame);
             pauseMenu.Close();
+            resultPanel.Bind(RetrySameMode, ReturnToTitle);
+            resultPanel.Hide();
             saveFile = new RunSaveFile(Application.persistentDataPath);
+            recordFile = new BestRecordFile(Application.persistentDataPath);
+            LoadBestRecords();
             ReadQaSeed();
         }
 
         private void Start()
         {
-            ShowModeSelect();
+            ShowTitle();
         }
 
         private void OnDestroy()
@@ -173,7 +188,7 @@ namespace Overclock.Presentation
 
         private bool CanPause()
         {
-            // 런 화면에서만 연다. 모드 선택 화면으로 갈 때는 런을 버리므로(runManager = null) 거기서는 열리지 않는다
+            // 런 화면에서만 연다 (결과 창이 떠 있어도 런 화면이다). 타이틀로 갈 때는 런을 버리므로(runManager = null) 타이틀 · 모드 선택에서는 열리지 않는다
             return runManager != null;
         }
 
@@ -194,8 +209,9 @@ namespace Overclock.Presentation
             resumeFrame = Time.frameCount;
         }
 
-        private void ReturnToModeSelect()
+        private void ReturnToTitle()
         {
+            // 런을 떠나는 길은 여기 한 곳이다 (일시정지 '처음으로' · 결과 창 '처음으로').
             // 진행은 뽑기와 모듈 선택마다 저장돼 있다. 메모리의 런만 버리고, 이어하기로 돌아올 수 있게 한다
             pauseMenu.Close();
             Time.timeScale = 1f;
@@ -203,7 +219,17 @@ namespace Overclock.Presentation
             session = null;
             gachaEngine = null;
             runManager = null;
-            ShowModeSelect();
+            ShowTitle();
+        }
+
+        private void RetrySameMode()
+        {
+            if (!IsRunInputAllowed())
+            {
+                return;
+            }
+
+            StartNewRun(runMode);
         }
 
         private void QuitGame()
@@ -229,12 +255,32 @@ namespace Overclock.Presentation
             skipRequested = false;
         }
 
+        private void ShowTitle()
+        {
+            // 화면은 패널을 켜고 끄기만 한다. RunScreen 오브젝트는 끄지 않는다 (10/26 화면 전환 규칙)
+            moduleSelectPanel.SetActive(false);
+            modeSelectPanel.SetActive(false);
+            resultPanel.Hide();
+            machinePanel.SetInteractable(false);
+            titlePanel.SetActive(true);
+        }
+
         private void ShowModeSelect()
         {
-            moduleSelectPanel.SetActive(false);
-            machinePanel.SetInteractable(false);
+            titlePanel.SetActive(false);
             RefreshContinueButton();
+            normalBestText.text = RecordText.Best(bestRecords, RunMode.Normal);
+            endlessBestText.text = RecordText.Best(bestRecords, RunMode.Endless);
             modeSelectPanel.SetActive(true);
+        }
+
+        private void LoadBestRecords()
+        {
+            // 읽을 수 없는 기록은 빈 기록으로 시작한다. 다음 런이 끝날 때 새 기록으로 덮어쓴다
+            if (!recordFile.TryLoad(out bestRecords, out string error))
+            {
+                Debug.LogWarning("최고 기록을 읽을 수 없습니다: " + error);
+            }
         }
 
         private void RefreshContinueButton()
@@ -306,8 +352,10 @@ namespace Overclock.Presentation
 
             Debug.Log("Run seed: " + session.Seed + " mode: " + session.Mode + logSuffix);
             ClearLastPart("-");
+            titlePanel.SetActive(false);
             modeSelectPanel.SetActive(false);
             moduleSelectPanel.SetActive(false);
+            resultPanel.Hide();
             machinePanel.Show(runManager.EquippedModules);
             machinePanel.SetInteractable(true);
             Refresh();
@@ -335,10 +383,12 @@ namespace Overclock.Presentation
             // 결과는 여기서 확정된다. 연출은 표시만 늦추므로 스킵해도 최종 상태가 같다
             DrawResult result = runManager.Draw();
 
-            // 연출 전에 저장한다. 연출 중에 꺼도 이 뽑기는 되돌릴 수 없다
+            // 연출 전에 저장한다. 연출 중에 꺼도 이 뽑기는 되돌릴 수 없다 (최고 기록도 같다)
             if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)
             {
                 DeleteSave();
+                lastRunNewRecord = bestRecords.Submit(session);
+                SaveBestRecords();
             }
             else
             {
@@ -382,6 +432,10 @@ namespace Overclock.Presentation
             if (runManager.State == RunState.RoundCleared)
             {
                 ShowModuleOffer();
+            }
+            else if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)
+            {
+                resultPanel.Show(RecordText.ResultTitle(runManager.State), RecordText.ResultDetail(session, bestRecords, lastRunNewRecord));
             }
         }
 
@@ -449,7 +503,6 @@ namespace Overclock.Presentation
                 "천장 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
 
             drawButton.interactable = state == RunState.Drawing;
-            restartButton.gameObject.SetActive(state == RunState.RunFailed || state == RunState.RunCleared);
 
             if (state == RunState.RunFailed)
             {
@@ -482,6 +535,22 @@ namespace Overclock.Presentation
             catch (UnauthorizedAccessException exception)
             {
                 Debug.LogWarning("세이브를 쓰지 못했습니다: " + exception.Message);
+            }
+        }
+
+        private void SaveBestRecords()
+        {
+            try
+            {
+                recordFile.Save(bestRecords);
+            }
+            catch (IOException exception)
+            {
+                Debug.LogWarning("최고 기록을 쓰지 못했습니다: " + exception.Message);
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                Debug.LogWarning("최고 기록을 쓰지 못했습니다: " + exception.Message);
             }
         }
 
