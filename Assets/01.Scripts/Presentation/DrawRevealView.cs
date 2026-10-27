@@ -21,6 +21,7 @@ namespace Overclock.Presentation
 
         private Coroutine routine;
         private bool skipRequested;
+        private float timeMultiplier = 1f;
 
         public bool IsPlaying { get; private set; }
 
@@ -74,6 +75,23 @@ namespace Overclock.Presentation
             StopEffects();
         }
 
+        /// <summary>
+        /// 플레이어 설정을 적용한다. 연출 속도는 다음 Play 부터 (진행 중인 연출의 시간은 바꾸지 않음) · 흔들림 · 섬광은 바로.
+        /// </summary>
+        public void ApplySettings(GameSettings settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            timeMultiplier = settings.RevealTimeMultiplier;
+            if (effects != null)
+            {
+                effects.SetMotionOptions(settings.ShakeEnabled, settings.FlashEnabled);
+            }
+        }
+
         /// <summary>뽑은 부품이 없을 때의 표시 (런 시작 · 모듈 선택 뒤).</summary>
         public void ShowIdle()
         {
@@ -89,8 +107,10 @@ namespace Overclock.Presentation
 
         private IEnumerator PlayRoutine(DrawResult result, Action onFinished)
         {
+            // 속도는 시작할 때 한 번 읽는다. 즉시(0)면 기다리지 않고 공개 효과도 없다
             Grade grade = result.Part.Grade;
-            float duration = revealTimings.GetSeconds(grade);
+            bool instant = timeMultiplier <= 0f;
+            float duration = revealTimings.GetSeconds(grade) * timeMultiplier;
             bool heating = grade == Grade.SR && effects != null && duration > 0f;
             if (heating)
             {
@@ -116,7 +136,7 @@ namespace Overclock.Presentation
             routine = null;
             IsPlaying = false;
             ShowResult(result);
-            if (skipped)
+            if (skipped || instant)
             {
                 StopEffects();
             }

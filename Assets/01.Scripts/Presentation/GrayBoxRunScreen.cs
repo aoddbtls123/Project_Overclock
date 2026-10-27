@@ -40,9 +40,16 @@ namespace Overclock.Presentation
         [SerializeField] private TMP_Text qaSeedText;
         [SerializeField] private PauseMenuView pauseMenu;
         [SerializeField] private ResultPanelView resultPanel;
+        [SerializeField] private GameObject settingsPanel;
+        [SerializeField] private Button titleSettingsButton;
+        [SerializeField] private Button settingsBackButton;
+        [SerializeField] private SettingsMenuView titleSettingsMenu;
+        [SerializeField] private SettingsMenuView pauseSettingsMenu;
 
         private RunSaveFile saveFile;
         private BestRecordFile recordFile;
+        private GameSettingsFile settingsFile;
+        private GameSettings settings;
         private BestRecords bestRecords;
         private bool lastRunNewRecord;
         private uint qaSeed;
@@ -61,6 +68,10 @@ namespace Overclock.Presentation
             startButton.onClick.AddListener(ShowModeSelect);
             titleQuitButton.onClick.AddListener(QuitGame);
             modeBackButton.onClick.AddListener(ShowTitle);
+            titleSettingsButton.onClick.AddListener(ShowSettings);
+            settingsBackButton.onClick.AddListener(ShowTitle);
+            titleSettingsMenu.Bind(ToggleShake, ToggleFlash, CycleRevealSpeed);
+            pauseSettingsMenu.Bind(ToggleShake, ToggleFlash, CycleRevealSpeed);
             normalModeButton.onClick.AddListener(() => StartNewRun(RunMode.Normal));
             endlessModeButton.onClick.AddListener(() => StartNewRun(RunMode.Endless));
             continueButton.onClick.AddListener(ContinueSavedRun);
@@ -70,12 +81,16 @@ namespace Overclock.Presentation
             resultPanel.Hide();
             saveFile = new RunSaveFile(Application.persistentDataPath);
             recordFile = new BestRecordFile(Application.persistentDataPath);
+            settingsFile = new GameSettingsFile(Application.persistentDataPath);
             LoadBestRecords();
+            LoadSettings();
             ReadQaSeed();
         }
 
         private void Start()
         {
+            // 설정 적용은 Start 에서 한다. 연출 효과(RevealEffectsView)의 Awake 가 끝난 뒤여야 한다
+            ApplySettings();
             ShowTitle();
         }
 
@@ -247,9 +262,57 @@ namespace Overclock.Presentation
             // 화면은 패널을 켜고 끄기만 한다. RunScreen 오브젝트는 끄지 않는다 (10/26 화면 전환 규칙)
             moduleSelectPanel.SetActive(false);
             modeSelectPanel.SetActive(false);
+            settingsPanel.SetActive(false);
             resultPanel.Hide();
             machinePanel.SetInteractable(false);
             titlePanel.SetActive(true);
+        }
+
+        private void ShowSettings()
+        {
+            titlePanel.SetActive(false);
+            settingsPanel.SetActive(true);
+        }
+
+        private void ToggleShake()
+        {
+            settings.ShakeEnabled = !settings.ShakeEnabled;
+            OnSettingsChanged();
+        }
+
+        private void ToggleFlash()
+        {
+            settings.FlashEnabled = !settings.FlashEnabled;
+            OnSettingsChanged();
+        }
+
+        private void CycleRevealSpeed()
+        {
+            settings.CycleRevealSpeed();
+            OnSettingsChanged();
+        }
+
+        private void OnSettingsChanged()
+        {
+            // 바꿀 때마다 바로 저장한다. 일시정지 창 · 타이틀 설정 창 두 곳의 글자를 같이 맞춘다
+            SaveSettings();
+            ApplySettings();
+        }
+
+        private void ApplySettings()
+        {
+            drawReveal.ApplySettings(settings);
+            titleSettingsMenu.Show(settings);
+            pauseSettingsMenu.Show(settings);
+        }
+
+        private void LoadSettings()
+        {
+            // 읽을 수 없는 설정은 기본값으로 시작한다. 파일은 다음에 설정을 바꿀 때 덮어쓴다
+            if (!settingsFile.TryLoad(out settings, out string error))
+            {
+                Debug.LogWarning("설정을 읽을 수 없습니다: " + error);
+            }
         }
 
         private void ShowModeSelect()
@@ -341,6 +404,7 @@ namespace Overclock.Presentation
             drawReveal.ShowIdle();
             titlePanel.SetActive(false);
             modeSelectPanel.SetActive(false);
+            settingsPanel.SetActive(false);
             moduleSelectPanel.SetActive(false);
             resultPanel.Hide();
             machinePanel.Show(runManager.EquippedModules);
@@ -507,6 +571,22 @@ namespace Overclock.Presentation
             catch (UnauthorizedAccessException exception)
             {
                 Debug.LogWarning("최고 기록을 쓰지 못했습니다: " + exception.Message);
+            }
+        }
+
+        private void SaveSettings()
+        {
+            try
+            {
+                settingsFile.Save(settings);
+            }
+            catch (IOException exception)
+            {
+                Debug.LogWarning("설정을 쓰지 못했습니다: " + exception.Message);
+            }
+            catch (UnauthorizedAccessException exception)
+            {
+                Debug.LogWarning("설정을 쓰지 못했습니다: " + exception.Message);
             }
         }
 
