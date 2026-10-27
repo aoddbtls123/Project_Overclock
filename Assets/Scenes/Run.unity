@@ -4895,6 +4895,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1153221389}
   - component: {fileID: 1153221388}
+  - component: {fileID: 1153221390}
   m_Layer: 0
   m_Name: RunScreen
   m_TagString: Untagged
@@ -4944,17 +4945,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f7f3646412e3f2045af9d6ec0e12386b, type: 2}
   - {fileID: 11400000, guid: 95c603802aa87e041890ec2a39758451, type: 2}
   - {fileID: 11400000, guid: d0e2625a0f3b84c4085a587354340cec, type: 2}
-  revealTimings: {fileID: 11400000, guid: fd6968ca63cb4d24daff1ac366d92ced, type: 2}
   roundText: {fileID: 1393589452}
   quotaText: {fileID: 54879744}
   quotaGauge: {fileID: 398789213}
   drawsText: {fileID: 1712964343}
   gaugePanelText: {fileID: 1496419420}
-  lastPartText: {fileID: 1818725458}
-  lastPartIcon: {fileID: 595482760}
   resultText: {fileID: 1001116236}
   machinePanel: {fileID: 1425221666}
   drawButton: {fileID: 565464279}
+  drawReveal: {fileID: 1153221390}
   moduleSelectPanel: {fileID: 268674213}
   moduleCards:
   - {fileID: 1151410005}
@@ -4989,6 +4988,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1153221390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1153221387}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dc03ae2977a13a41afe2263492d4e24, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.DrawRevealView
+  revealTimings: {fileID: 11400000, guid: fd6968ca63cb4d24daff1ac366d92ced, type: 2}
+  partText: {fileID: 1818725458}
+  partIcon: {fileID: 595482760}
 --- !u!1 &1156143306
 GameObject:
   m_ObjectHideFlags: 0

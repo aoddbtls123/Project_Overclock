@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -15,18 +14,16 @@ namespace Overclock.Presentation
         [SerializeField, Min(0)] private int seed;
         [SerializeField] private PartData[] parts;
         [SerializeField] private ModuleData[] modules;
-        [SerializeField] private RevealTimings revealTimings;
 
         [SerializeField] private TMP_Text roundText;
         [SerializeField] private TMP_Text quotaText;
         [SerializeField] private Slider quotaGauge;
         [SerializeField] private TMP_Text drawsText;
         [SerializeField] private TMP_Text gaugePanelText;
-        [SerializeField] private TMP_Text lastPartText;
-        [SerializeField] private Image lastPartIcon;
         [SerializeField] private TMP_Text resultText;
         [SerializeField] private MachinePanelView machinePanel;
         [SerializeField] private Button drawButton;
+        [SerializeField] private DrawRevealView drawReveal;
         [SerializeField] private GameObject moduleSelectPanel;
         [SerializeField] private ModuleCardView[] moduleCards;
         [SerializeField] private GameObject titlePanel;
@@ -54,11 +51,8 @@ namespace Overclock.Presentation
         private GachaEngine gachaEngine;
         private RunManager runManager;
         private RunMode runMode;
-        private bool isRevealing;
-        private bool skipRequested;
         private int revealStartFrame;
         private bool ignoreDrawButtonClick;
-        private Coroutine revealRoutine;
         private int resumeFrame;
 
         private void Awake()
@@ -117,11 +111,11 @@ namespace Overclock.Presentation
                 return;
             }
 
-            if (isRevealing)
+            if (drawReveal.IsPlaying)
             {
                 if (IsSkipPressed(keyboard, mouse))
                 {
-                    skipRequested = true;
+                    drawReveal.Skip();
                 }
             }
             else if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame && runManager.State == RunState.Drawing)
@@ -141,7 +135,7 @@ namespace Overclock.Presentation
             // 연출 중에 시작된 누름은 공개 뒤에 떼도 뽑기가 되지 않게 한다. 다음 누름이 시작되면 다시 판단한다
             if (mouse.leftButton.wasPressedThisFrame)
             {
-                ignoreDrawButtonClick = isRevealing;
+                ignoreDrawButtonClick = drawReveal.IsPlaying;
             }
         }
 
@@ -244,15 +238,8 @@ namespace Overclock.Presentation
 
         private void StopReveal()
         {
-            // 연출 중에 런을 버리면, 남은 연출이 끝난 뒤 버린 런의 결과와 카드를 띄우지 않게 멈춘다
-            if (revealRoutine != null)
-            {
-                StopCoroutine(revealRoutine);
-                revealRoutine = null;
-            }
-
-            isRevealing = false;
-            skipRequested = false;
+            // 연출 중에 런을 버리면, 남은 연출이 끝난 뒤 버린 런의 결과와 카드를 띄우지 않게 멈춘다 (Cancel 은 콜백을 부르지 않는다)
+            drawReveal.Cancel();
         }
 
         private void ShowTitle()
@@ -351,7 +338,7 @@ namespace Overclock.Presentation
             runManager = session.RunManager;
 
             Debug.Log("Run seed: " + session.Seed + " mode: " + session.Mode + logSuffix);
-            ClearLastPart("-");
+            drawReveal.ShowIdle();
             titlePanel.SetActive(false);
             modeSelectPanel.SetActive(false);
             moduleSelectPanel.SetActive(false);
@@ -375,7 +362,7 @@ namespace Overclock.Presentation
         private void OnDrawClicked()
         {
             // 연출 중에도 State 는 Drawing 이다. 막지 않으면 공개 전에 다음 뽑기가 실행된다
-            if (runManager == null || isRevealing || runManager.State != RunState.Drawing)
+            if (runManager == null || drawReveal.IsPlaying || runManager.State != RunState.Drawing)
             {
                 return;
             }
@@ -395,38 +382,14 @@ namespace Overclock.Presentation
                 SaveRun();
             }
 
-            revealRoutine = StartCoroutine(RevealDraw(result));
-        }
-
-        private IEnumerator RevealDraw(DrawResult result)
-        {
-            isRevealing = true;
-            skipRequested = false;
             revealStartFrame = Time.frameCount;
-            ClearLastPart("???");
             drawButton.interactable = false;
-
-            float duration = revealTimings.GetSeconds(result.Part.Grade);
-            float elapsed = 0f;
-            while (elapsed < duration && !skipRequested)
-            {
-                yield return null;
-                elapsed += Time.deltaTime;
-            }
-
-            isRevealing = false;
-            ShowDrawResult(result);
+            drawReveal.Play(result, OnRevealFinished);
         }
 
-        private void ShowDrawResult(DrawResult result)
+        private void OnRevealFinished()
         {
-            PartData part = result.Part;
-            Color gradeColor = GradeStyle.GetColor(part.Grade);
-            lastPartText.text = GradeStyle.GetStars(part.Grade) + " " + part.DisplayName + "  +" + result.Output;
-            lastPartText.color = gradeColor;
-            lastPartIcon.sprite = part.Icon;
-            lastPartIcon.color = gradeColor;
-            lastPartIcon.enabled = part.Icon != null;
+            // 부품 표시는 DrawRevealView 가 끝냈다. 화면은 나머지 숫자와 다음 단계(카드 · 결과 창)만 연다
             Refresh();
 
             if (runManager.State == RunState.RoundCleared)
@@ -474,15 +437,8 @@ namespace Overclock.Presentation
             moduleSelectPanel.SetActive(false);
             machinePanel.Show(runManager.EquippedModules);
             machinePanel.SetInteractable(true);
-            ClearLastPart("-");
+            drawReveal.ShowIdle();
             Refresh();
-        }
-
-        private void ClearLastPart(string text)
-        {
-            lastPartText.text = text;
-            lastPartText.color = Color.white;
-            lastPartIcon.enabled = false;
         }
 
         private void Refresh()
