@@ -9,12 +9,15 @@ namespace Overclock.Presentation
 {
     // 뽑기 결과 공개 연출. 결과는 연출 전에 이미 확정 · 저장돼 있고, 이 창은 보여 주는 시점만 늦춘다.
     // 약속 (10/26 구조 검수): Play 한 번에 onFinished 는 정확히 한 번 · Cancel 은 콜백을 부르지 않음 ·
-    // 시간은 Time.deltaTime 만 쓴다 (timeScale 0 = 일시정지면 그 자리에서 멈춤) · 연출 중인지는 IsPlaying 하나로 판단
+    // 시간은 Time.deltaTime 만 쓴다 (timeScale 0 = 일시정지면 그 자리에서 멈춤) · 연출 중인지는 IsPlaying 하나로 판단.
+    // 겉모습 효과(SR 달아오름 · 공개 순간)는 RevealEffectsView 가 그리고, 언제 그릴지는 여기서 정한다
     public sealed class DrawRevealView : MonoBehaviour
     {
         [SerializeField] private RevealTimings revealTimings;
         [SerializeField] private TMP_Text partText;
         [SerializeField] private Image partIcon;
+        [Tooltip("비어 있으면 효과 없이 시간만 흐른다")]
+        [SerializeField] private RevealEffectsView effects;
 
         private Coroutine routine;
         private bool skipRequested;
@@ -37,6 +40,7 @@ namespace Overclock.Presentation
             // 스킵 요청은 여기 한 곳에서 지운다. 앞 연출에서 남은 요청이 이번 연출을 건너뛰지 않게 한다
             IsPlaying = true;
             skipRequested = false;
+            StopEffects();
             ShowPlaceholder("???");
 
             // 연출 시간이 0 이면 StartCoroutine 안에서 바로 끝나고 콜백까지 불린다.
@@ -67,11 +71,13 @@ namespace Overclock.Presentation
             }
 
             IsPlaying = false;
+            StopEffects();
         }
 
         /// <summary>뽑은 부품이 없을 때의 표시 (런 시작 · 모듈 선택 뒤).</summary>
         public void ShowIdle()
         {
+            StopEffects();
             ShowPlaceholder("-");
         }
 
@@ -83,19 +89,51 @@ namespace Overclock.Presentation
 
         private IEnumerator PlayRoutine(DrawResult result, Action onFinished)
         {
-            float duration = revealTimings.GetSeconds(result.Part.Grade);
+            Grade grade = result.Part.Grade;
+            float duration = revealTimings.GetSeconds(grade);
+            bool heating = grade == Grade.SR && effects != null && duration > 0f;
+            if (heating)
+            {
+                effects.SetHeat(0f);
+            }
+
             float elapsed = 0f;
             while (elapsed < duration && !skipRequested)
             {
                 yield return null;
                 elapsed += Time.deltaTime;
+                if (heating)
+                {
+                    effects.SetHeat(elapsed / duration);
+                }
             }
+
+            // 스킵을 눌렀으면 스킵이다. 누른 프레임에 시간이 끝 선을 넘었어도 마찬가지 (교차검토 #29).
+            // 스킵이면 공개 효과 없이 바로 쉬는 상태로 보여 준다
+            bool skipped = skipRequested;
 
             // 콜백보다 먼저 연출을 끝낸 상태로 만든다. 콜백 안에서 다음 연출을 시작할 수 있다
             routine = null;
             IsPlaying = false;
             ShowResult(result);
+            if (skipped)
+            {
+                StopEffects();
+            }
+            else if (effects != null)
+            {
+                effects.PlayReveal(grade);
+            }
+
             onFinished();
+        }
+
+        private void StopEffects()
+        {
+            if (effects != null)
+            {
+                effects.StopAll();
+            }
         }
 
         private void ShowResult(DrawResult result)

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d171d242935c4a64f9d4a2e478e8d188, type: 3}
+  m_Name: RevealEffectSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.RevealEffectSettings
+  heatStartColor: {r: 1, g: 0.35, b: 0, a: 0}
+  heatEndColor: {r: 1, g: 0.69, b: 0.125, a: 0.6}
+  heatRampRatio: 0.8
+  shakeStrength: 10
+  shakeCycles: 30
+  flashColor: {r: 1, g: 0.91, b: 0.69, a: 0.55}
+  flashSeconds: 0.25
+  iconGlowColor: {r: 1, g: 0.69, b: 0.125, a: 0.9}
+  iconGlowStartScale: 0.6
+  iconGlowEndScale: 1.8
+  afterglowSeconds: 0.4
+  kickStrength: 14
+  kickSeconds: 0.25
+  rarePunch: 0.15
+  superRarePunch: 0.35
+  punchSeconds: 0.3
