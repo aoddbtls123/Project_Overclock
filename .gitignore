@@ -110,3 +110,7 @@ InitTestScene*.unity*
 
 # Claude app output copies
 /Claude outputs/
+
+# Licensed audio (Bluezone etc.) - purchaser-only license, do not share via repo
+/[Aa]ssets/05.Audio/[Ll]icensed/
+/[Aa]ssets/05.Audio/[Ll]icensed.meta
