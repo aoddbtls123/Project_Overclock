@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.ModuleData
   id: selective_amplifier
   displayName: "\uC120\uBCC4 \uC99D\uD3ED\uAE30"
-  description: "SR \uBD80\uD488 \uC0DD\uC0B0\uB7C9 \u00D72"
+  description: "SR \uBD80\uD488 \uC0DD\uC0B0\uB7C9 \xD72"
   axis: 1
   effects:
   - type: 1

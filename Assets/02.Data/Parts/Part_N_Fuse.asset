@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27e97c37ad0c6c0488eeaf43939a8677, type: 3}
   m_Name: Part_N_Fuse
   m_EditorClassIdentifier: Overclock.Core::Overclock.Core.PartData
-  id: fuse
+  id: spark_plug
   displayName: "\uC810\uD654 \uD50C\uB7EC\uADF8"
   grade: 0
   tag: 3
