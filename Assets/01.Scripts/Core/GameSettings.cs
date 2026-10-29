@@ -3,7 +3,7 @@
 namespace Overclock.Core
 {
     /// <summary>
-    /// 플레이어 설정 (접근성 · 연출 속도). 기본값 = 흔들림 켬 · 섬광 켬 · 보통 속도.
+    /// 플레이어 설정 (접근성 · 연출 속도 · 효과음). 기본값 = 흔들림 켬 · 섬광 켬 · 보통 속도 · 효과음 켬.
     /// </summary>
     public sealed class GameSettings
     {
@@ -12,6 +12,8 @@ namespace Overclock.Core
         public bool ShakeEnabled { get; set; } = true;
 
         public bool FlashEnabled { get; set; } = true;
+
+        public bool SoundEnabled { get; set; } = true;
 
         public RevealSpeed RevealSpeed
         {
@@ -50,11 +52,13 @@ namespace Overclock.Core
                 shakeEnabled = ShakeEnabled,
                 flashEnabled = FlashEnabled,
                 revealSpeed = (int)revealSpeed,
+                soundEnabled = SoundEnabled,
             };
         }
 
         /// <summary>
         /// 파일에서 읽은 값으로 설정을 만든다. 게임이 만들 수 없는 값이면 ArgumentException.
+        /// 버전 1 파일(효과음 설정이 생기기 전)은 효과음 켬으로 읽는다.
         /// </summary>
         public static GameSettings FromData(GameSettingsData data)
         {
@@ -63,7 +67,7 @@ namespace Overclock.Core
                 throw new ArgumentNullException(nameof(data));
             }
 
-            if (data.version != GameSettingsData.CurrentVersion)
+            if (data.version != GameSettingsData.FirstVersion && data.version != GameSettingsData.CurrentVersion)
             {
                 throw new ArgumentException("지원하지 않는 설정 버전입니다: " + data.version, nameof(data));
             }
@@ -74,6 +78,7 @@ namespace Overclock.Core
                 ShakeEnabled = data.shakeEnabled,
                 FlashEnabled = data.flashEnabled,
                 RevealSpeed = (RevealSpeed)data.revealSpeed,
+                SoundEnabled = data.version == GameSettingsData.FirstVersion || data.soundEnabled,
             };
         }
 

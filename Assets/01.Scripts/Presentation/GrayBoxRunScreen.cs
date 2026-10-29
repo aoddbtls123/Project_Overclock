@@ -45,6 +45,7 @@ namespace Overclock.Presentation
         [SerializeField] private Button settingsBackButton;
         [SerializeField] private SettingsMenuView titleSettingsMenu;
         [SerializeField] private SettingsMenuView pauseSettingsMenu;
+        [SerializeField] private SoundPlayer soundPlayer;
 
         private RunSaveFile saveFile;
         private BestRecordFile recordFile;
@@ -64,20 +65,21 @@ namespace Overclock.Presentation
 
         private void Awake()
         {
+            // 뽑기 버튼 · 카드 선택은 자기 소리를 낸다 (뽑기가 받아들여졌을 때만 · 장착할 때). 창을 여는 버튼은 열기 소리만 낸다 (10/29 결정)
             drawButton.onClick.AddListener(OnDrawButtonClicked);
-            startButton.onClick.AddListener(ShowModeSelect);
-            titleQuitButton.onClick.AddListener(QuitGame);
-            modeBackButton.onClick.AddListener(ShowTitle);
-            titleSettingsButton.onClick.AddListener(ShowSettings);
-            settingsBackButton.onClick.AddListener(ShowTitle);
-            titleSettingsMenu.Bind(ToggleShake, ToggleFlash, CycleRevealSpeed);
-            pauseSettingsMenu.Bind(ToggleShake, ToggleFlash, CycleRevealSpeed);
-            normalModeButton.onClick.AddListener(() => StartNewRun(RunMode.Normal));
-            endlessModeButton.onClick.AddListener(() => StartNewRun(RunMode.Endless));
-            continueButton.onClick.AddListener(ContinueSavedRun);
-            pauseMenu.Bind(ResumeGame, ReturnToTitle, QuitGame);
+            startButton.onClick.AddListener(WithOpenSound(ShowModeSelect).Invoke);
+            titleSettingsButton.onClick.AddListener(WithOpenSound(ShowSettings).Invoke);
+            titleQuitButton.onClick.AddListener(WithClickSound(QuitGame).Invoke);
+            modeBackButton.onClick.AddListener(WithClickSound(ShowTitle).Invoke);
+            settingsBackButton.onClick.AddListener(WithClickSound(ShowTitle).Invoke);
+            titleSettingsMenu.Bind(WithClickSound(ToggleShake), WithClickSound(ToggleFlash), WithClickSound(CycleRevealSpeed), WithClickSound(ToggleSound));
+            pauseSettingsMenu.Bind(WithClickSound(ToggleShake), WithClickSound(ToggleFlash), WithClickSound(CycleRevealSpeed), WithClickSound(ToggleSound));
+            normalModeButton.onClick.AddListener(WithClickSound(() => StartNewRun(RunMode.Normal)).Invoke);
+            endlessModeButton.onClick.AddListener(WithClickSound(() => StartNewRun(RunMode.Endless)).Invoke);
+            continueButton.onClick.AddListener(WithClickSound(ContinueSavedRun).Invoke);
+            pauseMenu.Bind(WithClickSound(ResumeGame), WithClickSound(ReturnToTitle), WithClickSound(QuitGame));
             pauseMenu.Close();
-            resultPanel.Bind(RetrySameMode, ReturnToTitle);
+            resultPanel.Bind(WithClickSound(RetrySameMode), WithClickSound(ReturnToTitle));
             resultPanel.Hide();
             saveFile = new RunSaveFile(Application.persistentDataPath);
             recordFile = new BestRecordFile(Application.persistentDataPath);
@@ -89,7 +91,7 @@ namespace Overclock.Presentation
 
         private void Start()
         {
-            // 설정 적용은 Start 에서 한다. 연출 효과(RevealEffectsView)의 Awake 가 끝난 뒤여야 한다
+            // 설정 적용은 Start 에서 한다. 연출 효과(RevealEffectsView) · 소리(SoundPlayer, 소스를 Awake 에서 만든다)의 Awake 가 끝난 뒤여야 한다
             ApplySettings();
             ShowTitle();
         }
@@ -206,6 +208,8 @@ namespace Overclock.Presentation
             // 연출은 Time.deltaTime 으로 흐르므로 timeScale 0 이면 그 자리에서 멈춘다.
             // 뽑기 결과는 연출 전에 이미 확정되고 저장됐으므로 멈춰도 결과는 바뀌지 않는다
             Time.timeScale = 0f;
+            soundPlayer.SetPaused(true);
+            soundPlayer.PlayUiOpen();
             machinePanel.SetInteractable(false);
             pauseMenu.Open();
         }
@@ -215,6 +219,7 @@ namespace Overclock.Presentation
             pauseMenu.Close();
             machinePanel.SetInteractable(true);
             Time.timeScale = 1f;
+            soundPlayer.SetPaused(false);
             resumeFrame = Time.frameCount;
         }
 
@@ -224,6 +229,7 @@ namespace Overclock.Presentation
             // 진행은 뽑기와 모듈 선택마다 저장돼 있다. 메모리의 런만 버리고, 이어하기로 돌아올 수 있게 한다
             pauseMenu.Close();
             Time.timeScale = 1f;
+            soundPlayer.SetPaused(false);
             StopReveal();
             session = null;
             gachaEngine = null;
@@ -253,8 +259,10 @@ namespace Overclock.Presentation
 
         private void StopReveal()
         {
-            // 연출 중에 런을 버리면, 남은 연출이 끝난 뒤 버린 런의 결과와 카드를 띄우지 않게 멈춘다 (Cancel 은 콜백을 부르지 않는다)
+            // 연출 중에 런을 버리면, 남은 연출이 끝난 뒤 버린 런의 결과와 카드를 띄우지 않게 멈춘다 (Cancel 은 콜백을 부르지 않는다).
+            // 버린 런의 소리(SR 충전 · 3연속 · 돌파 · 런 실패 예약)도 같이 멈춘다
             drawReveal.Cancel();
+            soundPlayer.StopRunSounds();
         }
 
         private void ShowTitle()
@@ -272,6 +280,24 @@ namespace Overclock.Presentation
         {
             titlePanel.SetActive(false);
             settingsPanel.SetActive(true);
+        }
+
+        private Action WithClickSound(Action action)
+        {
+            return () =>
+            {
+                soundPlayer.PlayUiClick();
+                action();
+            };
+        }
+
+        private Action WithOpenSound(Action action)
+        {
+            return () =>
+            {
+                soundPlayer.PlayUiOpen();
+                action();
+            };
         }
 
         private void ToggleShake()
@@ -292,6 +318,12 @@ namespace Overclock.Presentation
             OnSettingsChanged();
         }
 
+        private void ToggleSound()
+        {
+            settings.SoundEnabled = !settings.SoundEnabled;
+            OnSettingsChanged();
+        }
+
         private void OnSettingsChanged()
         {
             // 바꿀 때마다 바로 저장한다. 일시정지 창 · 타이틀 설정 창 두 곳의 글자를 같이 맞춘다
@@ -302,6 +334,7 @@ namespace Overclock.Presentation
         private void ApplySettings()
         {
             drawReveal.ApplySettings(settings);
+            soundPlayer.SetSoundEnabled(settings.SoundEnabled);
             titleSettingsMenu.Show(settings);
             pauseSettingsMenu.Show(settings);
         }
@@ -432,6 +465,7 @@ namespace Overclock.Presentation
             }
 
             // 결과는 여기서 확정된다. 연출은 표시만 늦추므로 스킵해도 최종 상태가 같다
+            soundPlayer.PlayDrawLever();
             DrawResult result = runManager.Draw();
 
             // 연출 전에 저장한다. 연출 중에 꺼도 이 뽑기는 되돌릴 수 없다 (최고 기록도 같다)
@@ -456,12 +490,19 @@ namespace Overclock.Presentation
             // 부품 표시는 DrawRevealView 가 끝냈다. 화면은 나머지 숫자와 다음 단계(카드 · 결과 창)만 연다
             Refresh();
 
+            // 소리 시작 순서: 공개음 · 3연속(DrawRevealView 가 이미 냄) → 돌파 → 카드 출현 / 런 실패. 앞 소리의 시작 시각 기준이라 꼬리는 겹친다
             if (runManager.State == RunState.RoundCleared)
             {
+                soundPlayer.PlayBreakthrough();
                 ShowModuleOffer();
             }
             else if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)
             {
+                if (runManager.State == RunState.RunFailed)
+                {
+                    soundPlayer.PlayRunFailed();
+                }
+
                 resultPanel.Show(RecordText.ResultTitle(runManager.State), RecordText.ResultDetail(session, bestRecords, lastRunNewRecord));
             }
         }
@@ -474,6 +515,7 @@ namespace Overclock.Presentation
 
             // 기계 패널은 카드 영역 밖에서 오버레이 위에 그려지므로 고르는 동안에도 팝업을 쓸 수 있다
             moduleSelectPanel.SetActive(true);
+            soundPlayer.PlayCardAppear();
             for (int i = 0; i < moduleCards.Length; i++)
             {
                 if (i < offer.Count)
@@ -497,6 +539,7 @@ namespace Overclock.Presentation
 
             session.SelectModule(module);
             SaveRun();
+            soundPlayer.PlayModuleEquip();
 
             moduleSelectPanel.SetActive(false);
             machinePanel.Show(runManager.EquippedModules);

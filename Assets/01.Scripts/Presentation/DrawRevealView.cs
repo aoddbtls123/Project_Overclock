@@ -10,7 +10,8 @@ namespace Overclock.Presentation
     // 뽑기 결과 공개 연출. 결과는 연출 전에 이미 확정 · 저장돼 있고, 이 창은 보여 주는 시점만 늦춘다.
     // 약속 (10/26 구조 검수): Play 한 번에 onFinished 는 정확히 한 번 · Cancel 은 콜백을 부르지 않음 ·
     // 시간은 Time.deltaTime 만 쓴다 (timeScale 0 = 일시정지면 그 자리에서 멈춤) · 연출 중인지는 IsPlaying 하나로 판단.
-    // 겉모습 효과(SR 달아오름 · 공개 순간)는 RevealEffectsView 가 그리고, 언제 그릴지는 여기서 정한다
+    // 겉모습 효과(SR 달아오름 · 공개 순간)는 RevealEffectsView 가, 소리(SR 충전 · 등급 공개 · 3연속)는 SoundPlayer 가 내고,
+    // 언제 낼지는 여기서 정한다
     public sealed class DrawRevealView : MonoBehaviour
     {
         [SerializeField] private RevealTimings revealTimings;
@@ -18,6 +19,8 @@ namespace Overclock.Presentation
         [SerializeField] private Image partIcon;
         [Tooltip("비어 있으면 효과 없이 시간만 흐른다")]
         [SerializeField] private RevealEffectsView effects;
+        [Tooltip("비어 있으면 소리 없이 연출만 한다")]
+        [SerializeField] private SoundPlayer sounds;
 
         private Coroutine routine;
         private bool skipRequested;
@@ -73,6 +76,7 @@ namespace Overclock.Presentation
 
             IsPlaying = false;
             StopEffects();
+            StopCharge();
         }
 
         /// <summary>
@@ -117,6 +121,13 @@ namespace Overclock.Presentation
                 effects.SetHeat(0f);
             }
 
+            // 충전음은 SR 을 기다리는 동안만. 즉시(기다림 0)면 시작하지 않는다
+            bool charging = grade == Grade.SR && sounds != null && duration > 0f;
+            if (charging)
+            {
+                sounds.StartCharge();
+            }
+
             float elapsed = 0f;
             while (elapsed < duration && !skipRequested)
             {
@@ -145,6 +156,14 @@ namespace Overclock.Presentation
                 effects.PlayReveal(grade);
             }
 
+            // 소리는 스킵 · 즉시여도 낸다 (10/29 결정). 충전음은 공개 순간에 끊는다.
+            // 콜백(돌파 · 런 끝 소리 예약)보다 먼저 내야 그 소리들이 3연속보다 늦게 시작한다
+            StopCharge();
+            if (sounds != null)
+            {
+                sounds.PlayReveal(grade, result.StreakTriggered);
+            }
+
             onFinished();
         }
 
@@ -153,6 +172,14 @@ namespace Overclock.Presentation
             if (effects != null)
             {
                 effects.StopAll();
+            }
+        }
+
+        private void StopCharge()
+        {
+            if (sounds != null)
+            {
+                sounds.StopCharge();
             }
         }
 
