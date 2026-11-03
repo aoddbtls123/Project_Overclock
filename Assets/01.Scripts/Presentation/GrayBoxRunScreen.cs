@@ -46,6 +46,8 @@ namespace Overclock.Presentation
         [SerializeField] private SettingsMenuView titleSettingsMenu;
         [SerializeField] private SettingsMenuView pauseSettingsMenu;
         [SerializeField] private SoundPlayer soundPlayer;
+        [Tooltip("비어 있으면 레버 · 돌파 증기 없이 진행한다")]
+        [SerializeField] private GachaMachineView gachaMachine;
 
         private RunSaveFile saveFile;
         private BestRecordFile recordFile;
@@ -263,6 +265,10 @@ namespace Overclock.Presentation
             // 버린 런의 소리(SR 충전 · 3연속 · 돌파 · 런 실패 예약)도 같이 멈춘다
             drawReveal.Cancel();
             soundPlayer.StopRunSounds();
+            if (gachaMachine != null)
+            {
+                gachaMachine.ResetAll();
+            }
         }
 
         private void ShowTitle()
@@ -466,6 +472,11 @@ namespace Overclock.Presentation
 
             // 결과는 여기서 확정된다. 연출은 표시만 늦추므로 스킵해도 최종 상태가 같다
             soundPlayer.PlayDrawLever();
+            if (gachaMachine != null)
+            {
+                gachaMachine.PullLever();
+            }
+
             DrawResult result = runManager.Draw();
 
             // 연출 전에 저장한다. 연출 중에 꺼도 이 뽑기는 되돌릴 수 없다 (최고 기록도 같다)
@@ -494,6 +505,11 @@ namespace Overclock.Presentation
             if (runManager.State == RunState.RoundCleared)
             {
                 soundPlayer.PlayBreakthrough();
+                if (gachaMachine != null)
+                {
+                    gachaMachine.PlayBreakthrough();
+                }
+
                 ShowModuleOffer();
             }
             else if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0aea27bf54eaf0b43a167db5fb0d8ae3, type: 3}
+  m_Name: GachaMachineSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.GachaMachineSettings
+  idleGearSpeed: 6
+  heatGearSpeed: 360
+  ratchetAngle: 30
+  ratchetSeconds: 0.15
+  pistonTravel: 40
+  pistonSeconds: 0.25
+  heatPistonCycles: 10
+  needleRestAngle: 60
+  needleMaxAngle: -60
+  needleReturnSeconds: 0.6
+  steamColor: {r: 0.85, g: 0.88, b: 0.9, a: 0.7}
+  steamStartScale: 0.4
+  smallSteamScale: 1.2
+  bigSteamScale: 2.4
+  steamRise: 60
+  steamSpread: 40
+  steamSeconds: 0.6
+  superRareSteamPuffs: 4
+  breakthroughSteamPuffs: 5
+  breakthroughSteamInterval: 0.15
+  leverPulledAngle: -50
+  leverDownSeconds: 0.08
+  leverUpSeconds: 0.25

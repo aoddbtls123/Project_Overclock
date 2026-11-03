@@ -10,8 +10,8 @@ namespace Overclock.Presentation
     // 뽑기 결과 공개 연출. 결과는 연출 전에 이미 확정 · 저장돼 있고, 이 창은 보여 주는 시점만 늦춘다.
     // 약속 (10/26 구조 검수): Play 한 번에 onFinished 는 정확히 한 번 · Cancel 은 콜백을 부르지 않음 ·
     // 시간은 Time.deltaTime 만 쓴다 (timeScale 0 = 일시정지면 그 자리에서 멈춤) · 연출 중인지는 IsPlaying 하나로 판단.
-    // 겉모습 효과(SR 달아오름 · 공개 순간)는 RevealEffectsView 가, 소리(SR 충전 · 등급 공개 · 3연속)는 SoundPlayer 가 내고,
-    // 언제 낼지는 여기서 정한다
+    // 겉모습 효과(SR 달아오름 · 공개 순간)는 RevealEffectsView 가, 기계 반응(기어 · 피스톤 · 바늘 · 증기)은 GachaMachineView 가,
+    // 소리(SR 충전 · 등급 공개 · 3연속)는 SoundPlayer 가 내고, 언제 낼지는 여기서 정한다
     public sealed class DrawRevealView : MonoBehaviour
     {
         [SerializeField] private RevealTimings revealTimings;
@@ -19,6 +19,8 @@ namespace Overclock.Presentation
         [SerializeField] private Image partIcon;
         [Tooltip("비어 있으면 효과 없이 시간만 흐른다")]
         [SerializeField] private RevealEffectsView effects;
+        [Tooltip("비어 있으면 기계 반응 없이 연출만 한다")]
+        [SerializeField] private GachaMachineView machine;
         [Tooltip("비어 있으면 소리 없이 연출만 한다")]
         [SerializeField] private SoundPlayer sounds;
 
@@ -121,6 +123,12 @@ namespace Overclock.Presentation
                 effects.SetHeat(0f);
             }
 
+            bool machineHeating = grade == Grade.SR && machine != null && duration > 0f;
+            if (machineHeating)
+            {
+                machine.SetHeat(0f);
+            }
+
             // 충전음은 SR 을 기다리는 동안만. 즉시(기다림 0)면 시작하지 않는다
             bool charging = grade == Grade.SR && sounds != null && duration > 0f;
             if (charging)
@@ -137,6 +145,11 @@ namespace Overclock.Presentation
                 {
                     effects.SetHeat(elapsed / duration);
                 }
+
+                if (machineHeating)
+                {
+                    machine.SetHeat(elapsed / duration);
+                }
             }
 
             // 스킵을 눌렀으면 스킵이다. 누른 프레임에 시간이 끝 선을 넘었어도 마찬가지 (교차검토 #29).
@@ -151,9 +164,17 @@ namespace Overclock.Presentation
             {
                 StopEffects();
             }
-            else if (effects != null)
+            else
             {
-                effects.PlayReveal(grade);
+                if (effects != null)
+                {
+                    effects.PlayReveal(grade);
+                }
+
+                if (machine != null)
+                {
+                    machine.PlayReveal(grade);
+                }
             }
 
             // 소리는 스킵 · 즉시여도 낸다 (10/29 결정). 충전음은 공개 순간에 끊는다.
@@ -172,6 +193,12 @@ namespace Overclock.Presentation
             if (effects != null)
             {
                 effects.StopAll();
+            }
+
+            // 레버는 멈추지 않는다 (GachaMachineView.StopReactions). 런 이탈 때 레버는 GrayBoxRunScreen 이 되돌린다
+            if (machine != null)
+            {
+                machine.StopReactions();
             }
         }
 
