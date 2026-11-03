@@ -23,6 +23,8 @@ namespace Overclock.Presentation
         [SerializeField] private TMP_Text resultText;
         [SerializeField] private MachinePanelView machinePanel;
         [SerializeField] private Button drawButton;
+        [SerializeField] private Button overclockButton;
+        [SerializeField] private TMP_Text overclockLabel;
         [SerializeField] private DrawRevealView drawReveal;
         [SerializeField] private GameObject moduleSelectPanel;
         [SerializeField] private ModuleCardView[] moduleCards;
@@ -69,6 +71,7 @@ namespace Overclock.Presentation
         {
             // 뽑기 버튼 · 카드 선택은 자기 소리를 낸다 (뽑기가 받아들여졌을 때만 · 장착할 때). 창을 여는 버튼은 열기 소리만 낸다 (10/29 결정)
             drawButton.onClick.AddListener(OnDrawButtonClicked);
+            overclockButton.onClick.AddListener(OnOverclockClicked);
             startButton.onClick.AddListener(WithOpenSound(ShowModeSelect).Invoke);
             titleSettingsButton.onClick.AddListener(WithOpenSound(ShowSettings).Invoke);
             titleQuitButton.onClick.AddListener(WithClickSound(QuitGame).Invoke);
@@ -462,6 +465,22 @@ namespace Overclock.Presentation
             OnDrawClicked();
         }
 
+        private void OnOverclockClicked()
+        {
+            // 뽑기와 같은 조건: 일시정지 · 연출 중 · 뽑기 상태가 아니면 받지 않는다. 라운드마다 1번은 RunManager 가 지킨다
+            if (!IsRunInputAllowed() || drawReveal.IsPlaying || runManager.State != RunState.Drawing || !runManager.CanActivateOverclock)
+            {
+                return;
+            }
+
+            soundPlayer.PlayUiClick();
+            runManager.ActivateOverclock();
+
+            // 켠 상태도 저장한다. 껐다 켜서 다시 켤 수 있게 되면 라운드마다 1번 규칙이 깨진다
+            SaveRun();
+            Refresh();
+        }
+
         private void OnDrawClicked()
         {
             // 연출 중에도 State 는 Drawing 이다. 막지 않으면 공개 전에 다음 뽑기가 실행된다
@@ -493,6 +512,7 @@ namespace Overclock.Presentation
 
             revealStartFrame = Time.frameCount;
             drawButton.interactable = false;
+            overclockButton.interactable = false;
             drawReveal.Play(result, OnRevealFinished);
         }
 
@@ -582,6 +602,7 @@ namespace Overclock.Presentation
                 "천장 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
 
             drawButton.interactable = state == RunState.Drawing;
+            RefreshOverclock();
 
             if (state == RunState.RunFailed)
             {
@@ -598,6 +619,23 @@ namespace Overclock.Presentation
             else
             {
                 resultText.text = "";
+            }
+        }
+
+        private void RefreshOverclock()
+        {
+            overclockButton.interactable = runManager.CanActivateOverclock && !drawReveal.IsPlaying;
+            if (runManager.OverclockDrawsLeft > 0)
+            {
+                overclockLabel.text = "오버클럭 가동 중\n" + runManager.OverclockDrawsLeft + "회 남음";
+            }
+            else if (runManager.OverclockUsed)
+            {
+                overclockLabel.text = "오버클럭\n이번 라운드 사용함";
+            }
+            else
+            {
+                overclockLabel.text = "오버클럭\n3회 동안 R·SR 배수 +1 / N 0";
             }
         }
 

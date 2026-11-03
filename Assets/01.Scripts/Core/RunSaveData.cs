@@ -20,6 +20,9 @@ namespace Overclock.Core
         public RunState state;
         public Grade streakGrade;
         public int streakCount;
+        // 오버클럭 추가 전 세이브에는 없는 값 → false / 0 (= 이번 라운드 안 켬) 으로 읽힌다
+        public bool overclockUsed;
+        public int overclockDrawsLeft;
         public string[] equippedModuleIds = new string[0];
         public string[] offeredModuleIds = new string[0];
     }

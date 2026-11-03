@@ -116,6 +116,8 @@ namespace Overclock.Core
                 state = RunManager.State,
                 streakGrade = RunManager.StreakGrade,
                 streakCount = RunManager.StreakCount,
+                overclockUsed = RunManager.OverclockUsed,
+                overclockDrawsLeft = RunManager.OverclockDrawsLeft,
                 equippedModuleIds = ToIds(RunManager.EquippedModules),
                 offeredModuleIds = ToIds(CurrentOffer),
             };
@@ -149,6 +151,7 @@ namespace Overclock.Core
             }
 
             runManager.RestoreProgress(data.round, data.production, data.drawsRemaining, data.state, data.streakGrade, data.streakCount);
+            runManager.RestoreOverclock(data.overclockUsed, data.overclockDrawsLeft);
             session.GachaEngine.RestorePityCounter(data.drawsWithoutSuperRare);
             session.randomService.RestoreState(data.randomState);
 

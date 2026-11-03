@@ -9,6 +9,8 @@ namespace Overclock.Core
         public const double MaxRareChance = 0.5;
         public const double MaxOutputMultiplier = 8.0;
         public const int MaxDrawsPerRound = 20;
+        // 오버클럭 중 R · SR 배수 증가분. 모듈 배수와 더해서 합치고 ×8 상한 안에서만 (N 은 0)
+        public const double OverclockMultiplierBonus = 1.0;
 
         private readonly double baseN;
         private readonly double baseR;
@@ -99,7 +101,33 @@ namespace Overclock.Core
             return CalculateOutput(part.Grade, part.Tag, part.BaseOutput, streakTriggered);
         }
 
+        /// <summary>오버클럭 중 생산량. N 은 0 (고정 · 연속 보너스 포함), R · SR 은 배수 증가분 +1 (×8 상한 안).</summary>
+        public int CalculateOverclockedOutput(PartData part, bool streakTriggered)
+        {
+            if (part == null)
+            {
+                throw new ArgumentNullException(nameof(part));
+            }
+
+            return CalculateOverclockedOutput(part.Grade, part.Tag, part.BaseOutput, streakTriggered);
+        }
+
+        internal int CalculateOverclockedOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered)
+        {
+            if (grade == Grade.N)
+            {
+                return 0;
+            }
+
+            return CalculateOutput(grade, tag, baseOutput, streakTriggered, OverclockMultiplierBonus);
+        }
+
         internal int CalculateOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered)
+        {
+            return CalculateOutput(grade, tag, baseOutput, streakTriggered, 0.0);
+        }
+
+        private int CalculateOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered, double extraMultiplier)
         {
             double bonus = SumValues(ModifierType.FlatBonus, grade, tag);
             if (streakTriggered)
@@ -107,7 +135,7 @@ namespace Overclock.Core
                 bonus += SumValues(ModifierType.StreakBonus, grade, tag);
             }
 
-            double multiplier = Math.Min(1.0 + SumValues(ModifierType.OutputMultiplier, grade, tag), MaxOutputMultiplier);
+            double multiplier = Math.Min(1.0 + SumValues(ModifierType.OutputMultiplier, grade, tag) + extraMultiplier, MaxOutputMultiplier);
 
             // 가산(고정 보너스, 연속 보너스) → 승산 순서 고정. 반올림은 부품 1개마다
             return (int)Math.Round((baseOutput + bonus) * multiplier, MidpointRounding.AwayFromZero);

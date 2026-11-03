@@ -8,6 +8,7 @@ namespace Overclock.Core
         private const double BaseQuota = 8.0;
         private const double QuotaGrowth = 1.45;
         private const int StreakLength = 3;
+        public const int OverclockDraws = 3;
 
         private readonly GachaEngine gachaEngine;
         private readonly PartCatalog partCatalog;
@@ -22,6 +23,8 @@ namespace Overclock.Core
         private RunState state;
         private Grade streakGrade;
         private int streakCount;
+        private bool overclockUsed;
+        private int overclockDrawsLeft;
 
         public RunManager(GachaEngine gachaEngine, PartCatalog partCatalog, int roundCount, int drawsPerRound)
         {
@@ -66,6 +69,14 @@ namespace Overclock.Core
         internal Grade StreakGrade => streakGrade;
         internal int StreakCount => streakCount;
 
+        /// <summary>이번 라운드에 오버클럭을 이미 켰는가. 라운드가 바뀌면 다시 false.</summary>
+        public bool OverclockUsed => overclockUsed;
+
+        /// <summary>오버클럭이 걸려 있는 남은 뽑기 수 (0 = 꺼짐).</summary>
+        public int OverclockDrawsLeft => overclockDrawsLeft;
+
+        public bool CanActivateOverclock => state == RunState.Drawing && !overclockUsed;
+
         public static int QuotaFor(int round)
         {
             if (round < 1)
@@ -89,9 +100,16 @@ namespace Overclock.Core
             Grade grade = gachaEngine.Draw();
             PartData part = partCatalog.Pick(grade);
             bool streakTriggered = AdvanceStreak(grade);
-            int output = modifierEngine.CalculateOutput(part, streakTriggered);
+            bool overclocked = overclockDrawsLeft > 0;
+            int output = overclocked
+                ? modifierEngine.CalculateOverclockedOutput(part, streakTriggered)
+                : modifierEngine.CalculateOutput(part, streakTriggered);
             production += output;
             drawsRemaining--;
+            if (overclocked)
+            {
+                overclockDrawsLeft--;
+            }
 
             // 돌파 판정이 소진 판정보다 먼저. 마지막 뽑기로 할당량에 도달하면 돌파
             if (production >= Quota)
@@ -103,7 +121,27 @@ namespace Overclock.Core
                 state = RunState.RunFailed;
             }
 
-            return new DrawResult(part, output, streakTriggered);
+            // 돌파 · 런 끝이면 남은 오버클럭 횟수는 사라진다
+            if (state != RunState.Drawing)
+            {
+                overclockDrawsLeft = 0;
+            }
+
+            return new DrawResult(part, output, streakTriggered, overclocked);
+        }
+
+        /// <summary>
+        /// 오버클럭을 켠다. 라운드마다 1번 · 다음 뽑기부터 3회 (남은 뽑기가 적으면 그만큼). 난수는 쓰지 않는다.
+        /// </summary>
+        public void ActivateOverclock()
+        {
+            if (!CanActivateOverclock)
+            {
+                throw new InvalidOperationException("오버클럭을 켤 수 없습니다: " + state + (overclockUsed ? " (이번 라운드 사용함)" : ""));
+            }
+
+            overclockUsed = true;
+            overclockDrawsLeft = Math.Min(OverclockDraws, drawsRemaining);
         }
 
         public void EquipModule(ModuleData module)
@@ -205,12 +243,31 @@ namespace Overclock.Core
             this.streakCount = streakCount;
         }
 
+        // 세이브 복원 전용. RestoreProgress 다음에 부른다. ActivateOverclock 과 Draw 가 만들 수 있는 값만 받는다
+        internal void RestoreOverclock(bool used, int drawsLeft)
+        {
+            if (drawsLeft < 0 || drawsLeft > OverclockDraws)
+            {
+                throw new ArgumentOutOfRangeException(nameof(drawsLeft));
+            }
+
+            if (drawsLeft > 0 && (!used || state != RunState.Drawing || drawsLeft > drawsRemaining))
+            {
+                throw new ArgumentException("오버클럭 상태가 진행과 맞지 않습니다: 사용 " + used + " 남은 " + drawsLeft + " " + state + " 남은 뽑기 " + drawsRemaining);
+            }
+
+            overclockUsed = used;
+            overclockDrawsLeft = drawsLeft;
+        }
+
         private void StartRound(int round, int carriedOverDraws)
         {
             currentRound = round;
             production = 0;
             drawsRemaining = modifierEngine.DrawsForNextRound(drawsPerRound, carriedOverDraws);
             streakCount = 0;
+            overclockUsed = false;
+            overclockDrawsLeft = 0;
             state = RunState.Drawing;
         }
 
