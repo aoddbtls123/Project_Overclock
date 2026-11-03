@@ -23,6 +23,10 @@ namespace Overclock.Core
         // 오버클럭 추가 전 세이브에는 없는 값 → false / 0 (= 이번 라운드 안 켬) 으로 읽힌다
         public bool overclockUsed;
         public int overclockDrawsLeft;
+        // 이번 라운드에 뽑은 부품 id (뽑은 순서 · 수확물 더미 복원용) 와, 그 목록이 라운드 처음부터 빠짐없는지.
+        // 추가 전 세이브에는 둘 다 없음 → false · 빈 목록 = 이번 라운드 부품을 모름 (빈 더미 · 다음 라운드부터 저장)
+        public bool roundPartsRecorded;
+        public string[] roundPartIds = new string[0];
         public string[] equippedModuleIds = new string[0];
         public string[] offeredModuleIds = new string[0];
     }

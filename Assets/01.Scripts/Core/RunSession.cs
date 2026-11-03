@@ -118,6 +118,8 @@ namespace Overclock.Core
                 streakCount = RunManager.StreakCount,
                 overclockUsed = RunManager.OverclockUsed,
                 overclockDrawsLeft = RunManager.OverclockDrawsLeft,
+                roundPartsRecorded = RunManager.RoundPartsComplete,
+                roundPartIds = RunManager.RoundPartsComplete ? ToIds(RunManager.RoundParts) : new string[0],
                 equippedModuleIds = ToIds(RunManager.EquippedModules),
                 offeredModuleIds = ToIds(CurrentOffer),
             };
@@ -153,6 +155,19 @@ namespace Overclock.Core
             runManager.RestoreProgress(data.round, data.production, data.drawsRemaining, data.state, data.streakGrade, data.streakCount);
             runManager.RestoreOverclock(data.overclockUsed, data.overclockDrawsLeft);
             session.GachaEngine.RestorePityCounter(data.drawsWithoutSuperRare);
+            List<PartData> roundParts = FindParts(data.roundPartIds, parts);
+            if (data.roundPartsRecorded)
+            {
+                runManager.RestoreRoundParts(roundParts);
+            }
+            else if (roundParts.Count > 0)
+            {
+                throw new ArgumentException("부품 목록을 기록하지 않았다는 세이브에 부품이 있습니다.", nameof(data));
+            }
+            else
+            {
+                runManager.MarkRoundPartsUnknown();
+            }
             session.randomService.RestoreState(data.randomState);
 
             List<ModuleData> offer = FindAll(data.offeredModuleIds, modulesById);
@@ -188,6 +203,59 @@ namespace Overclock.Core
             }
 
             return ids;
+        }
+
+        private static string[] ToIds(IReadOnlyList<PartData> parts)
+        {
+            var ids = new string[parts.Count];
+            for (int i = 0; i < parts.Count; i++)
+            {
+                if (string.IsNullOrEmpty(parts[i].Id))
+                {
+                    throw new InvalidOperationException("id 가 비어 있는 부품은 저장할 수 없습니다: " + parts[i].DisplayName);
+                }
+
+                ids[i] = parts[i].Id;
+            }
+
+            return ids;
+        }
+
+        private static List<PartData> FindParts(string[] ids, IReadOnlyList<PartData> parts)
+        {
+            var found = new List<PartData>();
+            if (ids == null || ids.Length == 0)
+            {
+                return found;
+            }
+
+            var partsById = new Dictionary<string, PartData>();
+            foreach (PartData part in parts)
+            {
+                if (part == null || string.IsNullOrEmpty(part.Id))
+                {
+                    continue;
+                }
+
+                if (partsById.ContainsKey(part.Id))
+                {
+                    throw new ArgumentException("부품 id 가 중복됩니다: " + part.Id, nameof(parts));
+                }
+
+                partsById.Add(part.Id, part);
+            }
+
+            foreach (string id in ids)
+            {
+                if (id == null || !partsById.TryGetValue(id, out PartData part))
+                {
+                    throw new ArgumentException("부품을 찾을 수 없습니다: " + id);
+                }
+
+                found.Add(part);
+            }
+
+            return found;
         }
 
         private static Dictionary<string, ModuleData> IndexById(IReadOnlyList<ModuleData> modules)

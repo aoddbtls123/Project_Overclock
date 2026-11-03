@@ -19,8 +19,10 @@ namespace Overclock.Core
         public int BaseOutput => baseOutput;
         public Sprite Icon => icon;
 
+        // 테스트 부품은 표시 이름을 id 로 쓴다. 세이브에 이번 라운드 부품 id 가 들어가므로 id 가 비어 있으면 저장할 수 없다
         internal void InitializeForTests(string displayName, Grade grade, int baseOutput, PartTag tag = PartTag.None)
         {
+            id = displayName;
             this.displayName = displayName;
             this.grade = grade;
             this.baseOutput = baseOutput;

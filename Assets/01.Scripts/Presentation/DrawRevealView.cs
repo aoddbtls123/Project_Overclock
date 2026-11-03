@@ -30,6 +30,9 @@ namespace Overclock.Presentation
 
         public bool IsPlaying { get; private set; }
 
+        /// <summary>마지막 연출이 공개 모습까지 보여 줬는가 (false = 스킵 · 즉시). onFinished 안에서 읽는다 — 더미 · 숫자 롤업이 같은 판단을 쓴다.</summary>
+        public bool LastRevealAnimated { get; private set; }
+
         public void Play(DrawResult result, Action onFinished)
         {
             if (onFinished == null)
@@ -159,6 +162,7 @@ namespace Overclock.Presentation
             // 콜백보다 먼저 연출을 끝낸 상태로 만든다. 콜백 안에서 다음 연출을 시작할 수 있다
             routine = null;
             IsPlaying = false;
+            LastRevealAnimated = !(skipped || instant);
             ShowResult(result);
             if (skipped || instant)
             {

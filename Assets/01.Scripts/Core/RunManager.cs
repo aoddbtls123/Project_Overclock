@@ -16,6 +16,7 @@ namespace Overclock.Core
         private readonly int drawsPerRound;
         private readonly ModifierEngine modifierEngine;
         private readonly List<ModuleData> equippedModules = new List<ModuleData>();
+        private readonly List<PartData> roundParts = new List<PartData>(ModifierEngine.MaxDrawsPerRound);
 
         private int currentRound;
         private int production;
@@ -24,6 +25,7 @@ namespace Overclock.Core
         private Grade streakGrade;
         private int streakCount;
         private bool overclockUsed;
+        private bool roundPartsComplete = true;
         private int overclockDrawsLeft;
 
         public RunManager(GachaEngine gachaEngine, PartCatalog partCatalog, int roundCount, int drawsPerRound)
@@ -66,6 +68,14 @@ namespace Overclock.Core
         public int DrawsRemaining => drawsRemaining;
         public RunState State => state;
         public IReadOnlyList<ModuleData> EquippedModules => equippedModules;
+
+        /// <summary>이번 라운드에 뽑은 부품 (뽑은 순서). 새 라운드가 시작되면 비운다. 화면의 수확물 더미가 쓴다.</summary>
+        public IReadOnlyList<PartData> RoundParts => roundParts;
+
+        /// <summary>
+        /// RoundParts 가 이번 라운드 처음부터 빠짐없는가. 부품 목록이 없는 옛 세이브로 이어 한 라운드는 false — 앞 부품을 모르므로 저장하지 않는다 (다음 라운드부터 true).
+        /// </summary>
+        public bool RoundPartsComplete => roundPartsComplete;
         internal Grade StreakGrade => streakGrade;
         internal int StreakCount => streakCount;
 
@@ -99,6 +109,7 @@ namespace Overclock.Core
 
             Grade grade = gachaEngine.Draw();
             PartData part = partCatalog.Pick(grade);
+            roundParts.Add(part);
             bool streakTriggered = AdvanceStreak(grade);
             bool overclocked = overclockDrawsLeft > 0;
             int output = overclocked
@@ -260,10 +271,95 @@ namespace Overclock.Core
             overclockDrawsLeft = drawsLeft;
         }
 
+        // 세이브 복원 전용 (옛 세이브). 이번 라운드에 이미 뽑은 부품을 모른다 → 빈 목록 · 이번 라운드는 목록을 저장하지 않는다.
+        // 모르는 앞 부품이 연속 · 천장에 들어 있어서, 뒤에 쌓인 부품만으로 검사하면 맞는 세이브를 거부하게 된다 (교차검토 #32)
+        internal void MarkRoundPartsUnknown()
+        {
+            roundParts.Clear();
+            roundPartsComplete = false;
+        }
+
+        // 세이브 복원 전용. RestoreProgress · 보증 복원 다음에 부른다. 라운드 처음부터 빠짐없는 목록만 받는다 (빈 목록 = 아직 안 뽑음).
+        // Draw 가 만들 수 있는 것만 받는다: 이번 라운드 뽑기 수 상한 · 뽑은 적 없으면 생산량 0 · 뽑기 중 · 연속 상태 · 보증 카운터가 목록과 맞아야 한다
+        internal void RestoreRoundParts(IReadOnlyList<PartData> drawnParts)
+        {
+            roundParts.Clear();
+            roundPartsComplete = true;
+            if (drawnParts == null || drawnParts.Count == 0)
+            {
+                // 뽑지 않은 라운드: 생산량 0 · 뽑기 중 · 연속 0 (라운드 시작 상태) 이어야 한다
+                if (production != 0 || state != RunState.Drawing || streakCount != 0)
+                {
+                    throw new ArgumentException("이번 라운드 부품이 없는데 진행이 있습니다: 생산량 " + production + " " + state + " 연속 " + streakCount);
+                }
+
+                return;
+            }
+
+            if (drawnParts.Count + drawsRemaining > ModifierEngine.MaxDrawsPerRound)
+            {
+                throw new ArgumentException("이번 라운드 부품 수가 뽑기 상한을 넘습니다: 부품 " + drawnParts.Count + " 남은 뽑기 " + drawsRemaining);
+            }
+
+            // 연속은 라운드 시작에 0 이므로 이번 라운드 부품만으로 다시 셀 수 있다 (AdvanceStreak 와 같은 규칙)
+            Grade replayGrade = Grade.N;
+            int replayCount = 0;
+            int sinceSuperRare = 0;
+            bool sawSuperRare = false;
+            foreach (PartData part in drawnParts)
+            {
+                if (part == null)
+                {
+                    throw new ArgumentException("이번 라운드 부품에 빈 칸이 있습니다.");
+                }
+
+                if (replayCount > 0 && part.Grade == replayGrade)
+                {
+                    replayCount++;
+                }
+                else
+                {
+                    replayGrade = part.Grade;
+                    replayCount = 1;
+                }
+
+                if (replayCount == StreakLength)
+                {
+                    replayCount = 0;
+                }
+
+                if (part.Grade == Grade.SR)
+                {
+                    sawSuperRare = true;
+                    sinceSuperRare = 0;
+                }
+                else
+                {
+                    sinceSuperRare++;
+                }
+            }
+
+            if (replayCount != streakCount || (streakCount > 0 && replayGrade != streakGrade))
+            {
+                throw new ArgumentException("이번 라운드 부품과 연속 상태가 맞지 않습니다: 다시 센 값 " + replayGrade + "x" + replayCount + " 저장 " + streakGrade + "x" + streakCount);
+            }
+
+            // 보증 카운터 = 마지막 SR 뒤 뽑기 수. 이번 라운드에 SR 이 있었으면 같아야 하고, 없었으면 적어도 부품 수만큼이다
+            int pity = gachaEngine.DrawsWithoutSuperRare;
+            if (sawSuperRare ? pity != sinceSuperRare : pity < sinceSuperRare)
+            {
+                throw new ArgumentException("이번 라운드 부품과 천장 카운터가 맞지 않습니다: 카운터 " + pity + " 마지막 SR 뒤 " + sinceSuperRare);
+            }
+
+            roundParts.AddRange(drawnParts);
+        }
+
         private void StartRound(int round, int carriedOverDraws)
         {
             currentRound = round;
             production = 0;
+            roundParts.Clear();
+            roundPartsComplete = true;
             drawsRemaining = modifierEngine.DrawsForNextRound(drawsPerRound, carriedOverDraws);
             streakCount = 0;
             overclockUsed = false;

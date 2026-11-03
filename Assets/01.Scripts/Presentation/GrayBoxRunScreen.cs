@@ -50,6 +50,10 @@ namespace Overclock.Presentation
         [SerializeField] private SoundPlayer soundPlayer;
         [Tooltip("비어 있으면 레버 · 돌파 증기 없이 진행한다")]
         [SerializeField] private GachaMachineView gachaMachine;
+        [Tooltip("비어 있으면 수확물 더미 없이 진행한다")]
+        [SerializeField] private HarvestTrayView harvestTray;
+        [Tooltip("비어 있으면 생산량 숫자를 세어 올리지 않고 바로 바꾼다 (quotaText · quotaGauge 를 직접 씀)")]
+        [SerializeField] private ProductionCounterView productionCounter;
 
         private RunSaveFile saveFile;
         private BestRecordFile recordFile;
@@ -64,6 +68,7 @@ namespace Overclock.Presentation
         private RunManager runManager;
         private RunMode runMode;
         private int revealStartFrame;
+        private DrawResult lastDrawResult;
         private bool ignoreDrawButtonClick;
         private int resumeFrame;
 
@@ -272,6 +277,16 @@ namespace Overclock.Presentation
             {
                 gachaMachine.ResetAll();
             }
+
+            if (harvestTray != null)
+            {
+                harvestTray.Clear();
+            }
+
+            if (productionCounter != null)
+            {
+                productionCounter.CompleteNow();
+            }
         }
 
         private void ShowTitle()
@@ -444,6 +459,20 @@ namespace Overclock.Presentation
 
             Debug.Log("Run seed: " + session.Seed + " mode: " + session.Mode + logSuffix);
             drawReveal.ShowIdle();
+
+            // 이어하기면 이번 라운드에 뽑아 둔 부품을 바로 놓는다. 돌파 직후에 꺼진 판은 이미 쏟은 뒤라 빈 트레이다
+            if (harvestTray != null)
+            {
+                if (runManager.State == RunState.RoundCleared)
+                {
+                    harvestTray.Clear();
+                }
+                else
+                {
+                    harvestTray.ShowParts(runManager.RoundParts);
+                }
+            }
+
             titlePanel.SetActive(false);
             modeSelectPanel.SetActive(false);
             settingsPanel.SetActive(false);
@@ -496,7 +525,14 @@ namespace Overclock.Presentation
                 gachaMachine.PullLever();
             }
 
+            // 앞 뽑기의 숫자가 아직 세어 오르는 중이면 최종 값으로 맞춘다 (숫자가 뒤처지지 않게)
+            if (productionCounter != null)
+            {
+                productionCounter.CompleteNow();
+            }
+
             DrawResult result = runManager.Draw();
+            lastDrawResult = result;
 
             // 연출 전에 저장한다. 연출 중에 꺼도 이 뽑기는 되돌릴 수 없다 (최고 기록도 같다)
             if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)
@@ -518,8 +554,14 @@ namespace Overclock.Presentation
 
         private void OnRevealFinished()
         {
-            // 부품 표시는 DrawRevealView 가 끝냈다. 화면은 나머지 숫자와 다음 단계(카드 · 결과 창)만 연다
-            Refresh();
+            // 부품 표시는 DrawRevealView 가 끝냈다. 화면은 나머지 숫자와 다음 단계(카드 · 결과 창)만 연다.
+            // 더미 · 숫자 롤업은 공개 모습과 같이 움직인다: 스킵 · 즉시면 바로 최종 모습
+            bool animated = drawReveal.LastRevealAnimated;
+            Refresh(animated);
+            if (harvestTray != null)
+            {
+                harvestTray.Add(lastDrawResult.Part, animated);
+            }
 
             // 소리 시작 순서: 공개음 · 3연속(DrawRevealView 가 이미 냄) → 돌파 → 카드 출현 / 런 실패. 앞 소리의 시작 시각 기준이라 꼬리는 겹친다
             if (runManager.State == RunState.RoundCleared)
@@ -528,6 +570,12 @@ namespace Overclock.Presentation
                 if (gachaMachine != null)
                 {
                     gachaMachine.PlayBreakthrough();
+                }
+
+                // 돌파 증기와 같이 이번 라운드 수확을 쏟는다. 런 실패 · 클리어는 쏟지 않고 그대로 둔다 (무엇을 뽑았는지 보이게)
+                if (harvestTray != null)
+                {
+                    harvestTray.Dump();
                 }
 
                 ShowModuleOffer();
@@ -581,19 +629,28 @@ namespace Overclock.Presentation
             machinePanel.Show(runManager.EquippedModules);
             machinePanel.SetInteractable(true);
             drawReveal.ShowIdle();
+            if (harvestTray != null)
+            {
+                harvestTray.Clear();
+            }
+
             Refresh();
         }
 
         private void Refresh()
+        {
+            Refresh(false);
+        }
+
+        // rollProduction = 방금 공개한 뽑기의 생산량을 세어 올린다. 그 밖에는 바로 바꾼다
+        private void Refresh(bool rollProduction)
         {
             RunState state = runManager.State;
 
             roundText.text = runMode == RunMode.Endless
                 ? "R" + runManager.CurrentRound + " (무한)"
                 : "R" + runManager.CurrentRound + " / " + runManager.RoundCount;
-            quotaText.text = runManager.Production + " / " + runManager.Quota;
-            quotaGauge.maxValue = runManager.Quota;
-            quotaGauge.value = Mathf.Min(runManager.Production, runManager.Quota);
+            ShowProduction(rollProduction);
             drawsText.text = "남은 뽑기 " + runManager.DrawsRemaining;
             gaugePanelText.text =
                 GradeStyle.Colorize(Grade.N, "N  " + FormatPercent(gachaEngine.GetProbability(Grade.N))) + "\n" +
@@ -619,6 +676,24 @@ namespace Overclock.Presentation
             else
             {
                 resultText.text = "";
+            }
+        }
+
+        private void ShowProduction(bool roll)
+        {
+            if (productionCounter == null)
+            {
+                quotaText.text = runManager.Production + " / " + runManager.Quota;
+                quotaGauge.maxValue = runManager.Quota;
+                quotaGauge.value = Mathf.Min(runManager.Production, runManager.Quota);
+            }
+            else if (roll)
+            {
+                productionCounter.RollTo(runManager.Production, runManager.Quota, lastDrawResult.Part.Grade);
+            }
+            else
+            {
+                productionCounter.SetImmediate(runManager.Production, runManager.Quota);
             }
         }
 
