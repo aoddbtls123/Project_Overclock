@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e92d357bfc80bc4da35529fec0e78f6, type: 3}
   m_Name: HarvestDisplaySettings
   m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.HarvestDisplaySettings
-  columns: 7
-  columnSpacing: 40
-  rowSpacing: 36
-  bottomRowY: -40
+  pileColumns: 12
+  pileRows: 9
+  pileColumnSpacing: 22
+  pileRowSpacing: 11
+  pileBottomY: -56
+  pieceSize: 20
   slotTilts:
   - -8
   - 5
@@ -48,8 +50,22 @@ MonoBehaviour:
   - 1
   - -4
   superRareScale: 1.3
-  dropHeight: 120
-  dropSeconds: 0.12
+  spawnPoint: {x: 85, y: 95}
+  spawnOffsetsX:
+  - 0
+  - -30
+  - 25
+  - -12
+  - 40
+  - -45
+  - 12
+  - -22
+  - 32
+  arcHeight: 60
+  flightSeconds: 0.25
+  launchInterval: 0.03
+  sprayMaxSeconds: 0.45
+  flyingPoolSize: 24
   dumpDelay: 0.2
   dumpDistance: 160
   dumpSeconds: 0.4

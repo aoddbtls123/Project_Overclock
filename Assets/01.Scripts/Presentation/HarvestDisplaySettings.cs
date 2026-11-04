@@ -3,20 +3,23 @@ using UnityEngine;
 
 namespace Overclock.Presentation
 {
-    // 수확물 더미(출력 창 아래 트레이)와 생산량 숫자 롤업의 겉모습 값. 시간은 scaled time(초) · 거리는 px · 각도는 Z 회전(도).
+    // 수확물 더미(출력 창 아래 트레이 · 조각 1개 = 생산량 1)와 생산량 숫자 롤업의 겉모습 값. 시간은 scaled time(초) · 거리는 px · 각도는 Z 회전(도).
     // 등급 반응 크기는 연출 예산 N 10 / R 20 / SR 70% 를 따른다 — N 은 작게, SR 은 크게
     [CreateAssetMenu(fileName = "HarvestDisplaySettings", menuName = "Overclock/Harvest Display Settings")]
     public sealed class HarvestDisplaySettings : ScriptableObject
     {
-        [Header("트레이 칸")]
-        [Tooltip("한 줄 칸 수. 칸 수 × 줄 수가 아이콘 풀 크기(라운드 최대 뽑기 20) 이상이어야 넘치지 않는다")]
-        [SerializeField, Min(1)] private int columns = 7;
-        [Tooltip("칸 가로 간격 (px)")]
-        [SerializeField, Min(0f)] private float columnSpacing = 40f;
-        [Tooltip("줄 세로 간격 (px). 아래 줄부터 채우고 위로 쌓는다")]
-        [SerializeField, Min(0f)] private float rowSpacing = 36f;
+        [Header("더미 (조각 1개 = 생산량 1 · 11/04)")]
+        [Tooltip("더미 한 줄 칸 수")]
+        [SerializeField, Min(1)] private int pileColumns = 12;
+        [Tooltip("더미 줄 수. 칸 수 × 줄 수 = 그릴 수 있는 조각 수 (기본 108 = R8 할당량). 넘는 조각은 세지만 그리지 않는다")]
+        [SerializeField, Min(1)] private int pileRows = 9;
+        [SerializeField, Min(0f)] private float pileColumnSpacing = 22f;
+        [Tooltip("줄 세로 간격 (px). 조각보다 작으면 겹쳐 쌓인 모습")]
+        [SerializeField, Min(0f)] private float pileRowSpacing = 11f;
         [Tooltip("맨 아래 줄 중심의 트레이 안 y (px)")]
-        [SerializeField] private float bottomRowY = -40f;
+        [SerializeField] private float pileBottomY = -56f;
+        [Tooltip("조각 크기 (px)")]
+        [SerializeField, Min(1f)] private float pieceSize = 20f;
         [Tooltip("칸마다 차례로 돌려 쓰는 기울기 (도). 난수 없이 더미가 흐트러져 보이게 한다")]
         [SerializeField] private float[] slotTilts = { -8f, 5f, -3f, 9f, -6f, 2f, 7f, -4f, 4f, -9f, 6f, -2f };
         [Tooltip("칸마다 차례로 돌려 쓰는 가로 어긋남 (px)")]
@@ -26,12 +29,22 @@ namespace Overclock.Presentation
         [Tooltip("SR 아이콘 크기 배율")]
         [SerializeField, Min(0.1f)] private float superRareScale = 1.3f;
 
-        [Header("들어오기 · 쏟기")]
-        [Tooltip("공개 순간 칸 위 이만큼에서 떨어진다 (px)")]
-        [SerializeField, Min(0f)] private float dropHeight = 120f;
-        [Tooltip("가속하며 떨어져 딱 멈춘다 (11/04)")]
-        [SerializeField, Min(0.01f)] private float dropSeconds = 0.12f;
-        [Tooltip("돌파 때 쏟기 시작까지 기다리는 시간. 마지막 부품이 떨어진 뒤에 쏟는다")]
+        [Header("튀어나오기 · 쏟기")]
+        [Tooltip("조각이 튀어나오는 자리 (트레이 안 좌표 · 출력 창 아래쪽)")]
+        [SerializeField] private Vector2 spawnPoint = new Vector2(85f, 95f);
+        [Tooltip("조각마다 차례로 돌려 쓰는 튀어나오는 가로 어긋남 (px)")]
+        [SerializeField] private float[] spawnOffsetsX = { 0f, -30f, 25f, -12f, 40f, -45f, 12f, -22f, 32f };
+        [Tooltip("포물선 높이 (px)")]
+        [SerializeField, Min(0f)] private float arcHeight = 60f;
+        [Tooltip("조각 하나가 날아가 앉는 시간")]
+        [SerializeField, Min(0.01f)] private float flightSeconds = 0.25f;
+        [Tooltip("조각이 튀어나오는 간격")]
+        [SerializeField, Min(0f)] private float launchInterval = 0.03f;
+        [Tooltip("한 번 공개에 조각을 뿌리는 시간 상한 (많이 나오면 간격이 줄어든다)")]
+        [SerializeField, Min(0.01f)] private float sprayMaxSeconds = 0.45f;
+        [Tooltip("동시에 날 수 있는 조각 수. 넘으면 앞 조각이 앉아 이미지가 빌 때까지 출발을 미룬다")]
+        [SerializeField, Min(1)] private int flyingPoolSize = 24;
+        [Tooltip("돌파 때 마지막 조각이 앉은 뒤 쏟기 시작까지 기다리는 시간")]
         [SerializeField, Min(0f)] private float dumpDelay = 0.2f;
         [Tooltip("쏟을 때 아래로 떨어지는 거리 (px)")]
         [SerializeField, Min(0f)] private float dumpDistance = 160f;
@@ -48,13 +61,19 @@ namespace Overclock.Presentation
         [Tooltip("튀었다 돌아오는 시간. 그동안 숫자가 등급 색이다")]
         [SerializeField, Min(0.01f)] private float punchSeconds = 0.25f;
 
-        public int Columns => columns;
-        public float ColumnSpacing => columnSpacing;
-        public float RowSpacing => rowSpacing;
-        public float BottomRowY => bottomRowY;
+        public int PileColumns => pileColumns;
+        public int PileRows => pileRows;
+        public float PileColumnSpacing => pileColumnSpacing;
+        public float PileRowSpacing => pileRowSpacing;
+        public float PileBottomY => pileBottomY;
+        public float PieceSize => pieceSize;
         public float SuperRareScale => superRareScale;
-        public float DropHeight => dropHeight;
-        public float DropSeconds => dropSeconds;
+        public Vector2 SpawnPoint => spawnPoint;
+        public float ArcHeight => arcHeight;
+        public float FlightSeconds => flightSeconds;
+        public float LaunchInterval => launchInterval;
+        public float SprayMaxSeconds => sprayMaxSeconds;
+        public int FlyingPoolSize => flyingPoolSize;
         public float DumpDelay => dumpDelay;
         public float DumpDistance => dumpDistance;
         public float DumpSeconds => dumpSeconds;
@@ -63,6 +82,7 @@ namespace Overclock.Presentation
         public float GetSlotTilt(int index) => Pick(slotTilts, index);
         public float GetSlotOffsetX(int index) => Pick(slotOffsetsX, index);
         public float GetSlotOffsetY(int index) => Pick(slotOffsetsY, index);
+        public float GetSpawnOffsetX(int index) => Pick(spawnOffsetsX, index);
 
         public float GetRollSeconds(Grade grade)
         {

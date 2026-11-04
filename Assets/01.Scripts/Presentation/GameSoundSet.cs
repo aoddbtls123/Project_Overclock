@@ -23,8 +23,12 @@ namespace Overclock.Presentation
         [Header("기계 타격감 (11/04) — 멈추는 순간에 난다")]
         [Tooltip("공개 반응의 래칫 한 칸이 딱 멈출 때 (스킵 · 즉시면 없음)")]
         [SerializeField] private AudioClip ratchetStop;
-        [Tooltip("수확물이 트레이에 앉을 때 (스킵 · 즉시면 없음)")]
+        [Tooltip("이번 뽑기의 첫 조각이 더미에 앉을 때 (스킵 · 즉시면 없음)")]
         [SerializeField] private AudioClip trayLand;
+        [Tooltip("수확물 조각이 더미에 앉을 때 (첫 조각 = Tray Land · 그다음부터 이 소리)")]
+        [SerializeField] private AudioClip pieceLand;
+        [Tooltip("조각 착지음 사이 최소 간격 (초). 와다다 쏟아질 때 소리가 뭉개지지 않게")]
+        [SerializeField, Min(0f)] private float pieceLandInterval = 0.03f;
 
         [Header("3연속")]
         [Tooltip("적힌 순서대로 한 번씩 (철컥 · 철컥 · 쿵)")]
@@ -72,6 +76,8 @@ namespace Overclock.Presentation
         public AudioClip SuperRareCharge => superRareCharge;
         public AudioClip RatchetStop => ratchetStop;
         public AudioClip TrayLand => trayLand;
+        public AudioClip PieceLand => pieceLand;
+        public float PieceLandInterval => pieceLandInterval;
         public AudioClip[] StreakHits => streakHits;
         public float StreakDelay => streakDelay;
         public float StreakInterval => streakInterval;

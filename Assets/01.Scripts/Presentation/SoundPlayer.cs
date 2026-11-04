@@ -20,6 +20,7 @@ namespace Overclock.Presentation
         private AudioSource chargeSource;
         private AudioSource uiSource;
         private float clock;
+        private float lastPieceLandTime = float.NegativeInfinity;
         private bool soundEnabled = true;
 
         private bool CanPlay => soundEnabled && soundSet != null;
@@ -104,6 +105,18 @@ namespace Overclock.Presentation
             {
                 PlayEffect(soundSet.TrayLand);
             }
+        }
+
+        /// <summary>조각 착지음. 간격(PieceLandInterval)보다 촘촘하면 건너뛴다.</summary>
+        public void PlayPieceLand()
+        {
+            if (!CanPlay || clock - lastPieceLandTime < soundSet.PieceLandInterval)
+            {
+                return;
+            }
+
+            lastPieceLandTime = clock;
+            PlayEffect(soundSet.PieceLand);
         }
 
         public void StartCharge()

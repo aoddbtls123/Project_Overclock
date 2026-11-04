@@ -22,9 +22,11 @@ namespace Overclock.Presentation
         private Color restColor = Color.white;
         private Tween rollTween;
         private Tween punchTween;
+        private bool counting;
+        private Grade countGrade;
 
         /// <summary>세는 중이거나 튀는 중인가.</summary>
-        public bool IsAnimating => rollTween != null || punchTween != null;
+        public bool IsAnimating => rollTween != null || punchTween != null || counting;
 
         private void Awake()
         {
@@ -48,6 +50,7 @@ namespace Overclock.Presentation
         public void SetImmediate(int production, int quota)
         {
             KillTweens();
+            counting = false;
             targetProduction = production;
             this.quota = quota;
             shownProduction = production;
@@ -79,6 +82,39 @@ namespace Overclock.Presentation
                 });
         }
 
+        /// <summary>
+        /// 조각 단위로 세기 시작한다 (수확물 조각이 앉을 때마다 Advance). 값이 줄었거나 할당량이 바뀌면 바로 맞춘다.
+        /// </summary>
+        public void BeginCount(int production, int quota, Grade grade)
+        {
+            CompleteNow();
+            if (quota != this.quota || production <= targetProduction)
+            {
+                SetImmediate(production, quota);
+                return;
+            }
+
+            targetProduction = production;
+            countGrade = grade;
+            counting = true;
+        }
+
+        /// <summary>앉은 조각만큼 올린다. 목표에 닿으면 등급 색으로 튄다. 세는 중이 아니면 무시한다.</summary>
+        public void Advance(int units)
+        {
+            if (!counting)
+            {
+                return;
+            }
+
+            SetShown(Mathf.Min(shownProduction + units, targetProduction));
+            if (shownProduction >= targetProduction)
+            {
+                counting = false;
+                Punch(countGrade);
+            }
+        }
+
         /// <summary>세는 중 · 튀는 중이면 바로 최종 값 · 평소 모습으로 (다음 뽑기 시작 · 런 이탈).</summary>
         public void CompleteNow()
         {
@@ -88,6 +124,7 @@ namespace Overclock.Presentation
             }
 
             KillTweens();
+            counting = false;
             shownProduction = targetProduction;
             ResetPunch();
             Apply();

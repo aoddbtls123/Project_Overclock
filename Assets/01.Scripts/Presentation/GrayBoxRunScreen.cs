@@ -86,7 +86,7 @@ namespace Overclock.Presentation
 
             if (harvestTray != null)
             {
-                harvestTray.PartLanded += OnPartLanded;
+                harvestTray.PieceLanded += OnPieceLanded;
             }
 
             overclockButton.onClick.AddListener(OnOverclockClicked);
@@ -132,16 +132,29 @@ namespace Overclock.Presentation
 
             if (harvestTray != null)
             {
-                harvestTray.PartLanded -= OnPartLanded;
+                harvestTray.PieceLanded -= OnPieceLanded;
             }
         }
 
-        private void OnPartLanded()
+        private void OnPieceLanded(bool firstOfDraw)
         {
-            soundPlayer.PlayTrayLand();
-            if (gachaMachine != null)
+            // 조각이 앉을 때마다 숫자가 하나씩 오른다 (마지막 조각에서 최종 값). 이번 뽑기의 첫 조각만 덜컹 · 착지음
+            if (productionCounter != null)
             {
-                gachaMachine.OnPartLanded();
+                productionCounter.Advance(1);
+            }
+
+            if (firstOfDraw)
+            {
+                soundPlayer.PlayTrayLand();
+                if (gachaMachine != null)
+                {
+                    gachaMachine.OnPartLanded();
+                }
+            }
+            else
+            {
+                soundPlayer.PlayPieceLand();
             }
         }
 
@@ -502,7 +515,7 @@ namespace Overclock.Presentation
                 }
                 else
                 {
-                    harvestTray.ShowParts(runManager.RoundParts);
+                    harvestTray.ShowPile(runManager.RoundParts, runManager.Production);
                 }
             }
 
@@ -540,7 +553,9 @@ namespace Overclock.Presentation
 
             // 켠 상태도 저장한다. 껐다 켜서 다시 켤 수 있게 되면 라운드마다 1번 규칙이 깨진다
             SaveRun();
-            Refresh();
+
+            // 버튼 글자만 바꾼다. 전체 Refresh 는 생산량 숫자를 바로 맞춰, 조각이 날아오는 중이면 세기가 끊긴다 (교차검토 #34)
+            RefreshOverclock();
         }
 
         private void OnDrawClicked()
@@ -561,7 +576,12 @@ namespace Overclock.Presentation
                 soundPlayer.PlayDrawLever();
             }
 
-            // 앞 뽑기의 숫자가 아직 세어 오르는 중이면 최종 값으로 맞춘다 (숫자가 뒤처지지 않게)
+            // 앞 뽑기의 조각 · 숫자가 아직 날아가는 중이면 바로 최종 모습으로 (숫자가 뒤처지지 않게)
+            if (harvestTray != null)
+            {
+                harvestTray.CompleteFlights();
+            }
+
             if (productionCounter != null)
             {
                 productionCounter.CompleteNow();
@@ -596,7 +616,7 @@ namespace Overclock.Presentation
             Refresh(animated);
             if (harvestTray != null)
             {
-                harvestTray.Add(lastDrawResult.Part, animated);
+                harvestTray.AddOutput(lastDrawResult.Part, lastDrawResult.Output, animated);
             }
 
             // 소리 시작 순서: 공개음 · 3연속(DrawRevealView 가 이미 냄) → 돌파 → 카드 출현 / 런 실패. 앞 소리의 시작 시각 기준이라 꼬리는 겹친다
@@ -722,6 +742,11 @@ namespace Overclock.Presentation
                 quotaText.text = runManager.Production + " / " + runManager.Quota;
                 quotaGauge.maxValue = runManager.Quota;
                 quotaGauge.value = Mathf.Min(runManager.Production, runManager.Quota);
+            }
+            else if (roll && harvestTray != null && lastDrawResult.Output > 0)
+            {
+                // 조각이 앉을 때마다 오른다 (OnPieceLanded). 다 앉으면 최종 값 · 튐
+                productionCounter.BeginCount(runManager.Production, runManager.Quota, lastDrawResult.Part.Grade);
             }
             else if (roll)
             {
