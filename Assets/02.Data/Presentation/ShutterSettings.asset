@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7bf0e439ba07f964e8654f5ae4553c26, type: 3}
+  m_Name: ShutterSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.ShutterSettings
+  closeDelay: 0.05
+  closeSeconds: 0.1
+  closeThudPixels: 2
+  openSeconds: 0.08
+  superRareOpenSeconds: 0.06
+  superRareBounceSeconds: 0.16
+  superRareBounceAmount: 0.15
+  rareTickInterval: 0.2
+  superRareTickIntervalStart: 0.2
+  superRareTickIntervalEnd: 0.05
+  tickAngle: 4
+  tickSeconds: 0.03
+  superRareJitterPixels: 2
+  jitterFrequency: 40
+  gapPuffOffsetsX:
+  - -120
+  - 90
+  - -40
+  - 150
+  - 20
+  - -160
+  - 60
+  gapPuffSeconds: 0.35
+  gapPuffRise: 25
+  gapPuffStartScale: 0.2
+  gapPuffEndScale: 0.5
+  gapPuffColor: {r: 0.85, g: 0.88, b: 0.9, a: 0.6}

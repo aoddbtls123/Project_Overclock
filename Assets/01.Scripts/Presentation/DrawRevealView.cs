@@ -11,7 +11,9 @@ namespace Overclock.Presentation
     // 약속 (10/26 구조 검수): Play 한 번에 onFinished 는 정확히 한 번 · Cancel 은 콜백을 부르지 않음 ·
     // 시간은 Time.deltaTime 만 쓴다 (timeScale 0 = 일시정지면 그 자리에서 멈춤) · 연출 중인지는 IsPlaying 하나로 판단.
     // 겉모습 효과(SR 달아오름 · 공개 순간)는 RevealEffectsView 가, 기계 반응(기어 · 피스톤 · 바늘 · 증기)은 GachaMachineView 가,
-    // 소리(SR 충전 · 등급 공개 · 3연속)는 SoundPlayer 가 내고, 언제 낼지는 여기서 정한다
+    // 소리(SR 충전 · 등급 공개 · 3연속)는 SoundPlayer 가 내고, 언제 낼지는 여기서 정한다.
+    // 셔터 (11/04 · §14-5): 기다리는 동안 출력 창을 닫아 두고 공개 순간 연다 · R · SR 은 기다리는 동안 래칫 틱 · SR 은 떨림 + 틈새 증기.
+    // 모두 뜸들이기 시간 안에서만 · 스킵 · 즉시 = 셔터 없이 바로 최종 모습
     public sealed class DrawRevealView : MonoBehaviour
     {
         [SerializeField] private RevealTimings revealTimings;
@@ -23,10 +25,13 @@ namespace Overclock.Presentation
         [SerializeField] private GachaMachineView machine;
         [Tooltip("비어 있으면 소리 없이 연출만 한다")]
         [SerializeField] private SoundPlayer sounds;
+        [Tooltip("비어 있으면 셔터 · 기다림 틱 없이 연출만 한다")]
+        [SerializeField] private MachineShutterView shutter;
 
         private Coroutine routine;
         private bool skipRequested;
         private float timeMultiplier = 1f;
+        private bool shutterHooked;
 
         public bool IsPlaying { get; private set; }
 
@@ -114,6 +119,14 @@ namespace Overclock.Presentation
             ShowPlaceholder("-");
         }
 
+        private void OnDestroy()
+        {
+            if (shutterHooked && shutter != null)
+            {
+                shutter.Closed -= OnShutterClosed;
+            }
+        }
+
         private void OnDisable()
         {
             // 오브젝트가 꺼지면 Unity 가 코루틴을 멈춘다. IsPlaying 이 true 로 남지 않게 같이 정리한다
@@ -123,9 +136,11 @@ namespace Overclock.Presentation
         private IEnumerator PlayRoutine(DrawResult result, Action onFinished)
         {
             // 속도는 시작할 때 한 번 읽는다. 즉시(0)면 기다리지 않고 공개 효과도 없다
+            // 이 뽑기가 끝날 때까지 이 배율을 쓴다 — 기다리는 도중 설정을 바꿔도 이번 박자는 그대로 · 다음 뽑기부터 (교차검토 #35)
             Grade grade = result.Part.Grade;
-            bool instant = timeMultiplier <= 0f;
-            float duration = revealTimings.GetSeconds(grade) * timeMultiplier;
+            float multiplier = timeMultiplier;
+            bool instant = multiplier <= 0f;
+            float duration = revealTimings.GetSeconds(grade) * multiplier;
             bool heating = grade == Grade.SR && effects != null && duration > 0f;
             if (heating)
             {
@@ -145,6 +160,21 @@ namespace Overclock.Presentation
                 sounds.StartCharge();
             }
 
+            // 셔터: 레버가 바닥에 닿을 즈음 내려와 닫히고, 기다리는 동안 R · SR 은 래칫 틱 (뜸들이기 시간 안 · 연출 속도 배율 적용)
+            bool shuttering = shutter != null && duration > 0f;
+            ShutterSettings shutterSettings = shuttering ? shutter.Settings : null;
+            float nextTick = float.PositiveInfinity;
+            int ticks = 0;
+            if (shuttering)
+            {
+                HookShutter();
+                shutter.Close(shutterSettings.CloseDelay * multiplier, shutterSettings.CloseSeconds * multiplier);
+                if (shutterSettings.GetTickInterval(grade, 0f) > 0f)
+                {
+                    nextTick = (shutterSettings.CloseDelay + shutterSettings.CloseSeconds) * multiplier;
+                }
+            }
+
             float elapsed = 0f;
             while (elapsed < duration && !skipRequested)
             {
@@ -158,6 +188,29 @@ namespace Overclock.Presentation
                 if (machineHeating)
                 {
                     machine.SetHeat(elapsed / duration);
+                }
+
+                if (shuttering && !skipRequested && elapsed < duration)
+                {
+                    float progress = elapsed / duration;
+                    if (grade == Grade.SR)
+                    {
+                        // 공개가 가까울수록 크게 떤다. 시계(elapsed)로 값을 정해 스킵 · 일시정지와 맞는다
+                        float amplitude = shutterSettings.SuperRareJitterPixels * progress;
+                        shutter.SetJitter(amplitude * (Mathf.PerlinNoise(elapsed * shutterSettings.JitterFrequency, 0.37f) * 2f - 1f));
+                    }
+
+                    // 시간이 흐른 프레임에만 틱 하나 (일시정지 중에는 없음 · 긴 프레임에 소리가 겹쳐 터지지 않게).
+                    // 긴 프레임으로 이미 지나간 박자는 소리 없이 넘겨 다음 틱을 미래로 옮긴다 — 안 그러면 멈춘 동안 밀린 틱이 난다 (교차검토 #35)
+                    if (elapsed >= nextTick && Time.deltaTime > 0f)
+                    {
+                        Tick(grade, ticks, multiplier);
+                        ticks++;
+                        while (nextTick <= elapsed)
+                        {
+                            nextTick += shutterSettings.GetTickInterval(grade, nextTick / duration) * multiplier;
+                        }
+                    }
                 }
             }
 
@@ -185,6 +238,15 @@ namespace Overclock.Presentation
                 {
                     machine.PlayReveal(grade);
                 }
+
+                if (shuttering)
+                {
+                    shutter.Open(grade, multiplier);
+                    if (sounds != null)
+                    {
+                        sounds.PlayShutterOpen(grade);
+                    }
+                }
             }
 
             // 소리는 스킵 · 즉시여도 낸다 (10/29 결정). 충전음은 공개 순간에 끊는다.
@@ -198,11 +260,58 @@ namespace Overclock.Presentation
             onFinished();
         }
 
+        private void Tick(Grade grade, int index, float multiplier)
+        {
+            ShutterSettings shutterSettings = shutter.Settings;
+            if (machine != null)
+            {
+                machine.PlayWaitTick(shutterSettings.TickAngle, shutterSettings.TickSeconds * multiplier);
+            }
+
+            if (sounds != null)
+            {
+                sounds.PlayRatchetTick();
+            }
+
+            if (grade == Grade.SR)
+            {
+                shutter.PuffGap(index);
+            }
+        }
+
+        private void HookShutter()
+        {
+            if (!shutterHooked)
+            {
+                shutter.Closed += OnShutterClosed;
+                shutterHooked = true;
+            }
+        }
+
+        private void OnShutterClosed()
+        {
+            if (machine != null)
+            {
+                machine.Bump(shutter.Settings.CloseThudPixels);
+            }
+
+            if (sounds != null)
+            {
+                sounds.PlayShutterClose();
+            }
+        }
+
         private void StopEffects()
         {
             if (effects != null)
             {
                 effects.StopAll();
+            }
+
+            // 셔터는 바로 열린 자세로 (스킵 · 즉시 · 새 연출 · Cancel · 쉬는 상태)
+            if (shutter != null)
+            {
+                shutter.ShowOpen();
             }
 
             // 레버는 멈추지 않는다 (GachaMachineView.StopReactions). 런 이탈 때 레버는 GrayBoxRunScreen 이 되돌린다

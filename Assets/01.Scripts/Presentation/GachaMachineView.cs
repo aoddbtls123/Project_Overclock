@@ -60,6 +60,8 @@ namespace Overclock.Presentation
         private Sequence revealSequence;
         private Tween leverTween;
         private Tween ratchetTween;
+        private Tween tickTween;
+        private float tickEnd;
         private Tween pistonTween;
         private int thudStage;
         private int thudFrame;
@@ -135,6 +137,31 @@ namespace Overclock.Presentation
         public void OnPartLanded()
         {
             Thud(settings.LandingThudPixels);
+        }
+
+        /// <summary>기계 전체 덜컹 (셔터가 닫힌 순간 등). 흔들림 끄기면 없음.</summary>
+        public void Bump(float pixels)
+        {
+            Thud(pixels);
+        }
+
+        /// <summary>
+        /// 기다리는 동안의 래칫 틱 (셔터 · §14-5) — 한 칸 조금 가속하며 돌고 딱 멈춘다. 덜컹 · 이벤트 없음 (소리는 부르는 쪽).
+        /// 앞 틱이 끝나기 전이면 그 끝 자리에서 이어 돈다 (각도가 뒤로 가지 않게)
+        /// </summary>
+        public void PlayWaitTick(float angle, float seconds)
+        {
+            CompleteTick();
+            float start = ratchetOffset;
+            float end = start + angle;
+            tickEnd = end;
+            tickTween = DOTween.To(t => ratchetOffset = start + (end - start) * InCubic(t), 0f, 1f, seconds)
+                .SetEase(Ease.Linear)
+                .OnComplete(() =>
+                {
+                    tickTween = null;
+                    ratchetOffset = end;
+                });
         }
 
         /// <summary>
@@ -491,8 +518,21 @@ namespace Overclock.Presentation
             }
 
             revealSequence = null;
+            CompleteTick();
             Kill(ref ratchetTween);
             Kill(ref pistonTween);
+        }
+
+        private void CompleteTick()
+        {
+            // 틱은 끝 자리로 보낸다 (공개 래칫 · 다음 틱이 그 자리에서 시작 · 각도가 뒤로 가지 않게)
+            if (tickTween == null)
+            {
+                return;
+            }
+
+            Kill(ref tickTween);
+            ratchetOffset = tickEnd;
         }
 
         private void KillLever()

@@ -107,6 +107,30 @@ namespace Overclock.Presentation
             }
         }
 
+        public void PlayShutterClose()
+        {
+            if (CanPlay)
+            {
+                PlayEffect(soundSet.ShutterClose);
+            }
+        }
+
+        public void PlayShutterOpen(Grade grade)
+        {
+            if (CanPlay)
+            {
+                PlayEffect(soundSet.GetShutterOpen(grade));
+            }
+        }
+
+        public void PlayRatchetTick()
+        {
+            if (CanPlay)
+            {
+                PlayEffect(soundSet.RatchetTick);
+            }
+        }
+
         /// <summary>조각 착지음. 간격(PieceLandInterval)보다 촘촘하면 건너뛴다.</summary>
         public void PlayPieceLand()
         {

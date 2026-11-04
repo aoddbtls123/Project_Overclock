@@ -30,6 +30,16 @@ namespace Overclock.Presentation
         [Tooltip("조각 착지음 사이 최소 간격 (초). 와다다 쏟아질 때 소리가 뭉개지지 않게")]
         [SerializeField, Min(0f)] private float pieceLandInterval = 0.03f;
 
+        [Header("셔터 · 기다림 박자 (11/04 · 스킵 · 즉시면 없음)")]
+        [Tooltip("셔터가 쾅 닫힐 때")]
+        [SerializeField] private AudioClip shutterClose;
+        [Tooltip("공개 순간 셔터가 열릴 때 (N · R)")]
+        [SerializeField] private AudioClip shutterOpen;
+        [Tooltip("SR 공개 순간 셔터가 튕겨 열릴 때. 비어 있으면 Shutter Open")]
+        [SerializeField] private AudioClip shutterOpenSuperRare;
+        [Tooltip("R · SR 을 기다리는 동안 래칫 틱마다")]
+        [SerializeField] private AudioClip ratchetTick;
+
         [Header("3연속")]
         [Tooltip("적힌 순서대로 한 번씩 (철컥 · 철컥 · 쿵)")]
         [SerializeField] private AudioClip[] streakHits;
@@ -78,6 +88,13 @@ namespace Overclock.Presentation
         public AudioClip TrayLand => trayLand;
         public AudioClip PieceLand => pieceLand;
         public float PieceLandInterval => pieceLandInterval;
+        public AudioClip ShutterClose => shutterClose;
+        public AudioClip RatchetTick => ratchetTick;
+
+        public AudioClip GetShutterOpen(Grade grade)
+        {
+            return grade == Grade.SR && shutterOpenSuperRare != null ? shutterOpenSuperRare : shutterOpen;
+        }
         public AudioClip[] StreakHits => streakHits;
         public float StreakDelay => streakDelay;
         public float StreakInterval => streakInterval;
