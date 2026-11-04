@@ -15,9 +15,13 @@ MonoBehaviour:
   idleGearSpeed: 6
   heatGearSpeed: 360
   ratchetAngle: 30
-  ratchetSeconds: 0.15
+  ratchetWindupAngle: 3
+  ratchetWindupSeconds: 0.03
+  ratchetSeconds: 0.05
   pistonTravel: 40
-  pistonSeconds: 0.25
+  pistonOutSeconds: 0.08
+  pistonHoldSeconds: 0.04
+  pistonReturnSeconds: 0.15
   heatPistonCycles: 10
   needleRestAngle: 60
   needleMaxAngle: -60
@@ -33,5 +37,9 @@ MonoBehaviour:
   breakthroughSteamPuffs: 5
   breakthroughSteamInterval: 0.15
   leverPulledAngle: -50
-  leverDownSeconds: 0.08
+  leverDownSeconds: 0.06
+  leverHoldSeconds: 0.2
   leverUpSeconds: 0.25
+  leverThudPixels: 3
+  ratchetThudPixels: 1
+  landingThudPixels: 1

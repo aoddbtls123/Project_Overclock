@@ -99,6 +99,12 @@ namespace Overclock.Presentation
             {
                 effects.SetMotionOptions(settings.ShakeEnabled, settings.FlashEnabled);
             }
+
+            // 기계 덜컹만 흔들림 설정을 따른다. 기어 · 피스톤 · 증기는 그대로 (기계연출 구상 §14-1)
+            if (machine != null)
+            {
+                machine.SetThudEnabled(settings.ShakeEnabled);
+            }
         }
 
         /// <summary>뽑은 부품이 없을 때의 표시 (런 시작 · 모듈 선택 뒤).</summary>

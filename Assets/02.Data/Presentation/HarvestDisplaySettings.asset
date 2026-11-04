@@ -49,7 +49,7 @@ MonoBehaviour:
   - -4
   superRareScale: 1.3
   dropHeight: 120
-  dropSeconds: 0.2
+  dropSeconds: 0.12
   dumpDelay: 0.2
   dumpDistance: 160
   dumpSeconds: 0.4

@@ -11,7 +11,9 @@ namespace Overclock.Presentation
     // 결과 · 콜백은 모르고, 무엇을 해도 게임 상태는 바뀌지 않는다 (RevealEffectsView 와 같은 약속).
     // 시간은 scaled time 만 쓴다 — 일시정지(timeScale 0)면 기계도 그 자리에서 멈춘다.
     // 모습은 값(기어 각도 · 열 · 피스톤 · 바늘)만 바꾸고 ApplyPose 한 곳에서 그린다.
-    // 쉬는 상태 = 열 0 · 피스톤 · 바늘 제자리 · 증기 투명 (기어는 천천히 계속 돈다). 레버는 따로 — 아래 StopReactions 참고
+    // 쉬는 상태 = 열 0 · 피스톤 · 바늘 제자리 · 증기 투명 (기어는 천천히 계속 돈다). 레버는 따로 — 아래 StopReactions 참고.
+    // 타격감 (11/04): 레버 · 래칫 · 피스톤은 가속하며 딱 멈춘다. 멈추는 순간 기계 전체가 덜컹하고 이벤트를 낸다 (소리는 받는 쪽이 낸다).
+    // 덜컹만 설정의 흔들림 끄기를 따른다 (기계연출 구상 §14-1). 이 오브젝트의 위치를 움직이므로 부모 레이아웃에 묶이지 않게 둔다
     public sealed class GachaMachineView : MonoBehaviour
     {
         [Serializable]
@@ -36,6 +38,12 @@ namespace Overclock.Presentation
         [Tooltip("증기가 나오는 자리. 증기는 이 위치에서 시작한다")]
         [SerializeField] private RectTransform[] steamVents = Array.Empty<RectTransform>();
 
+        /// <summary>레버가 바닥에 닿은 순간 (받아들여진 뽑기마다 한 번).</summary>
+        public event Action LeverBottomed;
+
+        /// <summary>공개 반응의 래칫 한 칸이 딱 멈춘 순간 (스킵 · 즉시면 없음).</summary>
+        public event Action RatchetStopped;
+
         private float gearAngle;
         private float ratchetOffset;
         private float heat;
@@ -44,8 +52,18 @@ namespace Overclock.Presentation
         private float pistonKick;
         private float leverAngle;
         private Vector2 restPistonPosition;
+        private RectTransform root;
+        private Vector2 restRootPosition;
+        private float thudOffset;
+        private bool thudEnabled = true;
+        private bool leverBottomPending;
         private Sequence revealSequence;
-        private Sequence leverSequence;
+        private Tween leverTween;
+        private Tween ratchetTween;
+        private Tween pistonTween;
+        private int thudStage;
+        private int thudFrame;
+        private float thudPixels;
         private Tween[] puffTweens;
         private Vector2[] puffStartPositions;
         private int nextPuff;
@@ -55,6 +73,12 @@ namespace Overclock.Presentation
             if (piston != null)
             {
                 restPistonPosition = piston.anchoredPosition;
+            }
+
+            root = transform as RectTransform;
+            if (root != null)
+            {
+                restRootPosition = root.anchoredPosition;
             }
 
             puffTweens = new Tween[steamPuffs.Length];
@@ -78,6 +102,7 @@ namespace Overclock.Presentation
             float speed = Mathf.Lerp(settings.IdleGearSpeed, settings.HeatGearSpeed, heat * heat);
             // 값이 한없이 커지지 않게 되돌린다. 360 × 3600 이면 배율이 소수 둘째 자리까지일 때 되돌리는 순간에도 각도가 튀지 않는다
             gearAngle = Mathf.Repeat(gearAngle + speed * Time.deltaTime, 360f * 3600f);
+            AdvanceThud();
             ApplyPose();
         }
 
@@ -90,22 +115,83 @@ namespace Overclock.Presentation
         {
             KillReveal();
             KillLever();
+            KillThud();
             KillPuffs();
         }
 
-        /// <summary>뽑기가 받아들여졌을 때 레버 손잡이를 내렸다 올린다. 연출 · 스킵과 관계없이 끝까지 움직인다.</summary>
+        /// <summary>덜컹을 켜고 끈다 (설정의 흔들림). 끄면 지금 덜컹도 바로 제자리.</summary>
+        public void SetThudEnabled(bool enabled)
+        {
+            thudEnabled = enabled;
+            if (!enabled)
+            {
+                KillThud();
+                thudOffset = 0f;
+                ApplyPose();
+            }
+        }
+
+        /// <summary>수확물이 트레이에 앉은 순간 (작은 덜컹).</summary>
+        public void OnPartLanded()
+        {
+            Thud(settings.LandingThudPixels);
+        }
+
+        /// <summary>
+        /// 뽑기가 받아들여졌을 때 레버 손잡이를 내렸다 올린다. 연출 · 스킵과 관계없이 끝까지 움직인다.
+        /// 바닥에 닿는 순간 덜컹 + LeverBottomed (손잡이가 없어도 같은 시각에 낸다 — 레버 소리가 이 이벤트로 난다)
+        /// </summary>
         public void PullLever()
         {
-            if (leverHandle == null)
+            // 앞 레버가 바닥에 닿기 전에 다시 당기면 (즉시 속도에서 연타) 앞 레버를 바닥에 놓고 그 순간을 지금 낸다.
+            // 그냥 끊으면 레버 소리가 한 번도 안 날 수 있다. 새 당김은 지금 각도에서 시작한다 (바닥에서 튀어 오르지 않게)
+            KillLever();
+            if (leverBottomPending)
             {
-                return;
+                Bottom();
             }
 
-            KillLever();
-            leverSequence = DOTween.Sequence();
-            leverSequence.Append(DOTween.To(() => leverAngle, SetLeverAngle, settings.LeverPulledAngle, settings.LeverDownSeconds).SetEase(Ease.OutQuad));
-            leverSequence.Append(DOTween.To(() => leverAngle, SetLeverAngle, 0f, settings.LeverUpSeconds).SetEase(Ease.OutBack));
-            leverSequence.OnComplete(() => leverSequence = null);
+            float start = leverAngle;
+            float pulled = settings.LeverPulledAngle;
+            float down = settings.LeverDownSeconds;
+            float hold = settings.LeverHoldSeconds;
+            float total = down + hold + settings.LeverUpSeconds;
+            leverBottomPending = true;
+            leverTween = DOTween.To(t =>
+                {
+                    float elapsed = t * total;
+                    if (elapsed < down)
+                    {
+                        SetLeverAngle(start + (pulled - start) * InCubic(elapsed / down));
+                        return;
+                    }
+
+                    // 바닥을 처음 넘은 갱신은 바닥 자세로 멈춘다 (소리 · 덜컹과 같은 프레임). 돌아오는 자세는 다음 갱신부터 (교차검토 #33)
+                    if (leverBottomPending)
+                    {
+                        Bottom();
+                        return;
+                    }
+
+                    // 바닥에서 잠깐 버틴 뒤 감속하며 올라온다 (11/04 사용자: "너무 빠르게 내려갔다 올라옴")
+                    if (elapsed < down + hold)
+                    {
+                        SetLeverAngle(pulled);
+                        return;
+                    }
+
+                    SetLeverAngle(pulled * (1f - OutQuad((elapsed - down - hold) / settings.LeverUpSeconds)));
+                }, 0f, 1f, total)
+                .SetEase(Ease.Linear)
+                .OnComplete(() => leverTween = null);
+        }
+
+        private void Bottom()
+        {
+            leverBottomPending = false;
+            SetLeverAngle(settings.LeverPulledAngle);
+            Thud(settings.LeverThudPixels);
+            LeverBottomed?.Invoke();
         }
 
         /// <summary>SR 기다림 진행률(0~1)에 맞춰 기어를 가속하고 피스톤을 연타하고 바늘을 올린다. 같은 진행률이면 피스톤 · 바늘은 같은 모습이다.</summary>
@@ -137,14 +223,10 @@ namespace Overclock.Presentation
                 needleHeat = 0f;
             }
 
-            revealSequence = DOTween.Sequence();
-            revealSequence.Insert(0f, DOTween.To(() => ratchetOffset, SetRatchetOffset, ratchetOffset + settings.RatchetAngle, settings.RatchetSeconds).SetEase(Ease.OutBack));
-
+            PlayRatchet();
             if (grade != Grade.N)
             {
-                float half = settings.PistonSeconds * 0.5f;
-                revealSequence.Insert(0f, DOTween.To(() => pistonKick, SetPistonKick, settings.PistonTravel, half).SetEase(Ease.OutQuad));
-                revealSequence.Insert(half, DOTween.To(() => pistonKick, SetPistonKick, 0f, half).SetEase(Ease.InQuad));
+                PlayPistonKick();
             }
 
             if (grade == Grade.R)
@@ -153,14 +235,14 @@ namespace Overclock.Presentation
             }
             else if (grade == Grade.SR)
             {
+                revealSequence = DOTween.Sequence();
                 revealSequence.Insert(0f, DOTween.To(() => needleHeat, SetNeedleHeat, 0f, settings.NeedleReturnSeconds).SetEase(Ease.OutQuad));
+                revealSequence.OnComplete(() => revealSequence = null);
                 for (int i = 0; i < settings.SuperRareSteamPuffs; i++)
                 {
                     Puff(i, settings.BigSteamScale, 0f);
                 }
             }
-
-            revealSequence.OnComplete(() => revealSequence = null);
         }
 
         /// <summary>할당량 돌파 — 긴 증기 배출. 스킵 · 즉시여도 낸다 (10/30 결정: 공개가 아니라 라운드 사건).</summary>
@@ -187,12 +269,114 @@ namespace Overclock.Presentation
             ApplyPose();
         }
 
-        /// <summary>레버까지 포함해 모두 쉬는 상태로 (런 이탈 · 비활성화).</summary>
+        /// <summary>레버 · 덜컹까지 포함해 모두 쉬는 상태로 (런 이탈 · 비활성화).</summary>
         public void ResetAll()
         {
+            // 런을 떠날 때는 바닥 순간(레버 소리)을 내지 않는다
             KillLever();
+            leverBottomPending = false;
+            KillThud();
             leverAngle = 0f;
+            thudOffset = 0f;
             StopReactions();
+        }
+
+        private void PlayRatchet()
+        {
+            // 반대로 살짝 당겼다가 (windup) 한 칸을 가속하며 돌고 딱 멈춘다. 멈추는 순간 덜컹 + RatchetStopped
+            float start = ratchetOffset;
+            float windup = settings.RatchetWindupSeconds;
+            float total = windup + settings.RatchetSeconds;
+            float back = start - settings.RatchetWindupAngle;
+            float end = start + settings.RatchetAngle;
+            ratchetTween = DOTween.To(t =>
+                {
+                    float elapsed = t * total;
+                    ratchetOffset = elapsed < windup
+                        ? start + (back - start) * (elapsed / windup)
+                        : back + (end - back) * InCubic((elapsed - windup) / settings.RatchetSeconds);
+                }, 0f, 1f, total)
+                .SetEase(Ease.Linear)
+                .OnComplete(() =>
+                {
+                    ratchetTween = null;
+                    ratchetOffset = end;
+                    Thud(settings.RatchetThudPixels);
+                    RatchetStopped?.Invoke();
+                });
+        }
+
+        private void PlayPistonKick()
+        {
+            // 가속하며 내려가 딱 멈춤 → 잠깐 멈춰 있음 → 돌아옴
+            float travel = settings.PistonTravel;
+            float outTime = settings.PistonOutSeconds;
+            float hold = settings.PistonHoldSeconds;
+            float back = settings.PistonReturnSeconds;
+            float total = outTime + hold + back;
+            pistonTween = DOTween.To(t =>
+                {
+                    float elapsed = t * total;
+                    if (elapsed < outTime)
+                    {
+                        pistonKick = travel * InCubic(elapsed / outTime);
+                    }
+                    else if (elapsed < outTime + hold)
+                    {
+                        pistonKick = travel;
+                    }
+                    else
+                    {
+                        pistonKick = travel * (1f - OutQuad((elapsed - outTime - hold) / back));
+                    }
+                }, 0f, 1f, total)
+                .SetEase(Ease.Linear)
+                .OnComplete(() =>
+                {
+                    pistonTween = null;
+                    pistonKick = 0f;
+                });
+        }
+
+        private void Thud(float pixels)
+        {
+            // 아래로 → 위로 1/3 → 제자리, 각 자세를 한 프레임씩 (§14-3 "2프레임"). 시간으로 나누면 긴 프레임에서 위 단계가 사라진다 (교차검토 #33).
+            // 멈춘 그 프레임에 바로 아래로. 다음 단계는 이 프레임 다음의 Update 부터 · 일시정지(deltaTime 0) 중에는 넘어가지 않는다.
+            // 흔들림을 껐거나 크기가 0 이면 하지 않는다
+            if (!thudEnabled || pixels <= 0f || root == null)
+            {
+                return;
+            }
+
+            thudPixels = pixels;
+            thudStage = 1;
+            thudFrame = Time.frameCount;
+            thudOffset = -pixels;
+            ApplyPose();
+        }
+
+        private void AdvanceThud()
+        {
+            if (thudStage == 0 || Time.frameCount <= thudFrame || Time.deltaTime <= 0f)
+            {
+                return;
+            }
+
+            thudFrame = Time.frameCount;
+            thudStage = thudStage == 1 ? 2 : 0;
+            thudOffset = thudStage == 2 ? thudPixels / 3f : 0f;
+        }
+
+        private static float InCubic(float x)
+        {
+            float clamped = Mathf.Clamp01(x);
+            return clamped * clamped * clamped;
+        }
+
+        private static float OutQuad(float x)
+        {
+            float rest = 1f - Mathf.Clamp01(x);
+            return 1f - rest * rest;
         }
 
         private void Puff(int index, float endScale, float delay)
@@ -281,22 +465,17 @@ namespace Overclock.Presentation
             {
                 leverHandle.localEulerAngles = new Vector3(0f, 0f, leverAngle);
             }
+
+            if (root != null)
+            {
+                root.anchoredPosition = restRootPosition + new Vector2(0f, thudOffset);
+            }
         }
 
         private void SetLeverAngle(float value)
         {
             leverAngle = value;
             ApplyPose();
-        }
-
-        private void SetRatchetOffset(float value)
-        {
-            ratchetOffset = value;
-        }
-
-        private void SetPistonKick(float value)
-        {
-            pistonKick = value;
         }
 
         private void SetNeedleHeat(float value)
@@ -312,16 +491,29 @@ namespace Overclock.Presentation
             }
 
             revealSequence = null;
+            Kill(ref ratchetTween);
+            Kill(ref pistonTween);
         }
 
         private void KillLever()
         {
-            if (leverSequence != null && leverSequence.IsActive())
+            Kill(ref leverTween);
+        }
+
+        private void KillThud()
+        {
+            thudStage = 0;
+            thudOffset = 0f;
+        }
+
+        private static void Kill(ref Tween tween)
+        {
+            if (tween != null && tween.IsActive())
             {
-                leverSequence.Kill();
+                tween.Kill();
             }
 
-            leverSequence = null;
+            tween = null;
         }
 
         private void KillPuffs()

@@ -17,6 +17,9 @@ namespace Overclock.Presentation
         [Tooltip("트레이 칸 아이콘 풀 (라운드 최대 뽑기 20 이상). 트레이 오브젝트의 자식")]
         [SerializeField] private Image[] slotIcons = Array.Empty<Image>();
 
+        /// <summary>떨어지던 부품이 칸에 앉은 순간 (바로 놓을 때는 없음). 받는 쪽이 덜컹 · 착지음을 낸다.</summary>
+        public event Action PartLanded;
+
         private Tween[] dropTweens;
         private Tween dumpTween;
         private int count;
@@ -93,10 +96,14 @@ namespace Overclock.Presentation
 
             Vector2 start = rest + new Vector2(0f, settings.DropHeight);
             icon.rectTransform.anchoredPosition = start;
-            // OutBack 은 끝에서 칸 아래로 살짝 넘어갔다 돌아온다 (툭 튐). 넘어간 값을 자르지 않게 직접 섞는다
+            // 가속하며 떨어져 칸에서 딱 멈춘다 (튕기지 않음 · 11/04 타격감). 멈추는 순간 PartLanded
             dropTweens[slot] = DOTween.To(t => icon.rectTransform.anchoredPosition = new Vector2(start.x + (rest.x - start.x) * t, start.y + (rest.y - start.y) * t), 0f, 1f, settings.DropSeconds)
-                .SetEase(Ease.OutBack)
-                .OnComplete(() => dropTweens[slot] = null);
+                .SetEase(Ease.InCubic)
+                .OnComplete(() =>
+                {
+                    dropTweens[slot] = null;
+                    PartLanded?.Invoke();
+                });
         }
 
         /// <summary>이어하기 · 런 시작: 목록대로 바로 놓는다 (떨어지는 모습 없음).</summary>

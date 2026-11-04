@@ -29,7 +29,8 @@ namespace Overclock.Presentation
         [Header("들어오기 · 쏟기")]
         [Tooltip("공개 순간 칸 위 이만큼에서 떨어진다 (px)")]
         [SerializeField, Min(0f)] private float dropHeight = 120f;
-        [SerializeField, Min(0.01f)] private float dropSeconds = 0.2f;
+        [Tooltip("가속하며 떨어져 딱 멈춘다 (11/04)")]
+        [SerializeField, Min(0.01f)] private float dropSeconds = 0.12f;
         [Tooltip("돌파 때 쏟기 시작까지 기다리는 시간. 마지막 부품이 떨어진 뒤에 쏟는다")]
         [SerializeField, Min(0f)] private float dumpDelay = 0.2f;
         [Tooltip("쏟을 때 아래로 떨어지는 거리 (px)")]

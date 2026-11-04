@@ -9,7 +9,7 @@ namespace Overclock.Presentation
     public sealed class GameSoundSet : ScriptableObject
     {
         [Header("뽑기")]
-        [Tooltip("뽑기가 받아들여졌을 때만 (버튼 · Space)")]
+        [Tooltip("뽑기가 받아들여졌을 때만 (버튼 · Space). 기계가 있으면 레버가 바닥에 닿는 순간")]
         [SerializeField] private AudioClip drawLever;
         [Tooltip("여러 개면 무작위 (직전과 같은 것 제외)")]
         [SerializeField] private AudioClip[] normalReveal;
@@ -19,6 +19,12 @@ namespace Overclock.Presentation
         [SerializeField] private AudioClip[] superRareReveal;
         [Tooltip("SR 대기 시작부터 공개 순간까지. 공개 · 스킵되면 멈춘다. 연출 속도 '즉시' 면 시작하지 않는다")]
         [SerializeField] private AudioClip superRareCharge;
+
+        [Header("기계 타격감 (11/04) — 멈추는 순간에 난다")]
+        [Tooltip("공개 반응의 래칫 한 칸이 딱 멈출 때 (스킵 · 즉시면 없음)")]
+        [SerializeField] private AudioClip ratchetStop;
+        [Tooltip("수확물이 트레이에 앉을 때 (스킵 · 즉시면 없음)")]
+        [SerializeField] private AudioClip trayLand;
 
         [Header("3연속")]
         [Tooltip("적힌 순서대로 한 번씩 (철컥 · 철컥 · 쿵)")]
@@ -64,6 +70,8 @@ namespace Overclock.Presentation
 
         public AudioClip DrawLever => drawLever;
         public AudioClip SuperRareCharge => superRareCharge;
+        public AudioClip RatchetStop => ratchetStop;
+        public AudioClip TrayLand => trayLand;
         public AudioClip[] StreakHits => streakHits;
         public float StreakDelay => streakDelay;
         public float StreakInterval => streakInterval;

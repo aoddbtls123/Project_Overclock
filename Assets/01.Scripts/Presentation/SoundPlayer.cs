@@ -90,6 +90,22 @@ namespace Overclock.Presentation
             }
         }
 
+        public void PlayRatchetStop()
+        {
+            if (CanPlay)
+            {
+                PlayEffect(soundSet.RatchetStop);
+            }
+        }
+
+        public void PlayTrayLand()
+        {
+            if (CanPlay)
+            {
+                PlayEffect(soundSet.TrayLand);
+            }
+        }
+
         public void StartCharge()
         {
             if (!CanPlay || soundSet.SuperRareCharge == null)

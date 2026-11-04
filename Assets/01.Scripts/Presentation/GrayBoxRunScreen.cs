@@ -76,6 +76,19 @@ namespace Overclock.Presentation
         {
             // 뽑기 버튼 · 카드 선택은 자기 소리를 낸다 (뽑기가 받아들여졌을 때만 · 장착할 때). 창을 여는 버튼은 열기 소리만 낸다 (10/29 결정)
             drawButton.onClick.AddListener(OnDrawButtonClicked);
+
+            // 레버 소리 · 래칫 · 착지 소리는 멈추는 순간에 난다 (11/04 타격감). 기계가 없으면 레버 소리는 클릭 때
+            if (gachaMachine != null)
+            {
+                gachaMachine.LeverBottomed += soundPlayer.PlayDrawLever;
+                gachaMachine.RatchetStopped += soundPlayer.PlayRatchetStop;
+            }
+
+            if (harvestTray != null)
+            {
+                harvestTray.PartLanded += OnPartLanded;
+            }
+
             overclockButton.onClick.AddListener(OnOverclockClicked);
             startButton.onClick.AddListener(WithOpenSound(ShowModeSelect).Invoke);
             titleSettingsButton.onClick.AddListener(WithOpenSound(ShowSettings).Invoke);
@@ -110,6 +123,26 @@ namespace Overclock.Presentation
         {
             // 일시정지 중에 씬이 내려가도 시간이 멈춘 채 남지 않게 한다
             Time.timeScale = 1f;
+
+            if (gachaMachine != null)
+            {
+                gachaMachine.LeverBottomed -= soundPlayer.PlayDrawLever;
+                gachaMachine.RatchetStopped -= soundPlayer.PlayRatchetStop;
+            }
+
+            if (harvestTray != null)
+            {
+                harvestTray.PartLanded -= OnPartLanded;
+            }
+        }
+
+        private void OnPartLanded()
+        {
+            soundPlayer.PlayTrayLand();
+            if (gachaMachine != null)
+            {
+                gachaMachine.OnPartLanded();
+            }
         }
 
         private void Update()
@@ -519,10 +552,13 @@ namespace Overclock.Presentation
             }
 
             // 결과는 여기서 확정된다. 연출은 표시만 늦추므로 스킵해도 최종 상태가 같다
-            soundPlayer.PlayDrawLever();
             if (gachaMachine != null)
             {
                 gachaMachine.PullLever();
+            }
+            else
+            {
+                soundPlayer.PlayDrawLever();
             }
 
             // 앞 뽑기의 숫자가 아직 세어 오르는 중이면 최종 값으로 맞춘다 (숫자가 뒤처지지 않게)

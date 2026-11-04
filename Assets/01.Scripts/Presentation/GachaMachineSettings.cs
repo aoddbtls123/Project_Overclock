@@ -3,7 +3,8 @@
 namespace Overclock.Presentation
 {
     // 런 화면 가운데 기계(기어 · 피스톤 · 바늘 · 증기 · 레버)의 움직임 값. 시간(초)은 RevealTimings 가 등급별로 정하고,
-    // 기계는 그 시간을 늘리지 않는다. 각도는 Z 회전(도) · 거리는 px
+    // 기계는 그 시간을 늘리지 않는다. 각도는 Z 회전(도) · 거리는 px.
+    // 타격감 (11/04): 움직임은 끝에서 감속하지 않고 가속하며 딱 멈춘다 (InCubic). 멈추는 순간 기계 전체가 덜컹 · 소리
     [CreateAssetMenu(fileName = "GachaMachineSettings", menuName = "Overclock/Gacha Machine Settings")]
     public sealed class GachaMachineSettings : ScriptableObject
     {
@@ -14,13 +15,21 @@ namespace Overclock.Presentation
         [SerializeField] private float heatGearSpeed = 360f;
         [Tooltip("공개 순간 한 칸 끊어서 도는 각도 (도)")]
         [SerializeField] private float ratchetAngle = 30f;
-        [SerializeField, Min(0.01f)] private float ratchetSeconds = 0.15f;
+        [Tooltip("한 칸 돌기 전에 반대로 살짝 당기는 각도 (도)")]
+        [SerializeField, Min(0f)] private float ratchetWindupAngle = 3f;
+        [SerializeField, Min(0.01f)] private float ratchetWindupSeconds = 0.03f;
+        [Tooltip("한 칸 도는 시간 (가속하며 딱 멈춤)")]
+        [SerializeField, Min(0.01f)] private float ratchetSeconds = 0.05f;
 
         [Header("피스톤")]
         [Tooltip("피스톤이 내려가는 거리 (px)")]
         [SerializeField] private float pistonTravel = 40f;
-        [Tooltip("R · SR 공개 때 한 번 내려갔다 올라오는 시간")]
-        [SerializeField, Min(0.01f)] private float pistonSeconds = 0.25f;
+        [Tooltip("R · SR 공개 때 내려가는 시간 (가속하며 딱 멈춤)")]
+        [SerializeField, Min(0.01f)] private float pistonOutSeconds = 0.08f;
+        [Tooltip("내려간 채 멈춰 있는 시간")]
+        [SerializeField, Min(0f)] private float pistonHoldSeconds = 0.04f;
+        [Tooltip("제자리로 돌아오는 시간")]
+        [SerializeField, Min(0.01f)] private float pistonReturnSeconds = 0.15f;
         [Tooltip("SR 기다림 전체 동안 피스톤이 오르내리는 횟수")]
         [SerializeField, Min(1f)] private float heatPistonCycles = 10f;
 
@@ -50,15 +59,29 @@ namespace Overclock.Presentation
         [Header("레버")]
         [Tooltip("당겼을 때 손잡이 각도 (도)")]
         [SerializeField] private float leverPulledAngle = -50f;
-        [SerializeField, Min(0.01f)] private float leverDownSeconds = 0.08f;
+        [Tooltip("내려가는 시간 (가속하며 바닥에서 딱 멈춤 · 그 순간 레버 소리 · 덜컹)")]
+        [SerializeField, Min(0.01f)] private float leverDownSeconds = 0.06f;
+        [Tooltip("바닥에서 버티는 시간")]
+        [SerializeField, Min(0f)] private float leverHoldSeconds = 0.08f;
+        [Tooltip("올라오는 시간 (감속하며 제자리)")]
         [SerializeField, Min(0.01f)] private float leverUpSeconds = 0.25f;
+
+        [Header("덜컹 (멈추는 순간 기계 전체 · 아래 → 위 1/3 → 제자리, 한 프레임씩) — 설정의 흔들림 끄기를 따른다")]
+        [SerializeField, Min(0f)] private float leverThudPixels = 3f;
+        [SerializeField, Min(0f)] private float ratchetThudPixels = 1f;
+        [Tooltip("수확물이 트레이에 앉을 때")]
+        [SerializeField, Min(0f)] private float landingThudPixels = 1f;
 
         public float IdleGearSpeed => idleGearSpeed;
         public float HeatGearSpeed => heatGearSpeed;
         public float RatchetAngle => ratchetAngle;
+        public float RatchetWindupAngle => ratchetWindupAngle;
+        public float RatchetWindupSeconds => ratchetWindupSeconds;
         public float RatchetSeconds => ratchetSeconds;
         public float PistonTravel => pistonTravel;
-        public float PistonSeconds => pistonSeconds;
+        public float PistonOutSeconds => pistonOutSeconds;
+        public float PistonHoldSeconds => pistonHoldSeconds;
+        public float PistonReturnSeconds => pistonReturnSeconds;
         public float HeatPistonCycles => heatPistonCycles;
         public float NeedleRestAngle => needleRestAngle;
         public float NeedleMaxAngle => needleMaxAngle;
@@ -75,6 +98,10 @@ namespace Overclock.Presentation
         public float BreakthroughSteamInterval => breakthroughSteamInterval;
         public float LeverPulledAngle => leverPulledAngle;
         public float LeverDownSeconds => leverDownSeconds;
+        public float LeverHoldSeconds => leverHoldSeconds;
         public float LeverUpSeconds => leverUpSeconds;
+        public float LeverThudPixels => leverThudPixels;
+        public float RatchetThudPixels => ratchetThudPixels;
+        public float LandingThudPixels => landingThudPixels;
     }
 }
