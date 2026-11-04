@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Overclock.Core;
 using UnityEngine;
 
@@ -19,17 +20,26 @@ namespace Overclock.Presentation
         private AudioSource effectsSource;
         private AudioSource chargeSource;
         private AudioSource uiSource;
+        private AudioSource previewSource;
         private float clock;
         private float lastPieceLandTime = float.NegativeInfinity;
-        private bool soundEnabled = true;
+        private float effectsVolume = 1f;
+        private float uiVolume = 1f;
+        private float musicVolume = 1f;
+        private SoundChannel previewChannel = SoundChannel.Ui;
 
-        private bool CanPlay => soundEnabled && soundSet != null;
+        private bool CanPlay => soundSet != null;
+
+        /// <summary>BGM 실제 크기 (전체 × BGM). 아직 BGM 재생이 없어 값만 둔다 — BGM 을 넣으면 이 값을 쓴다.</summary>
+        public float MusicVolume => musicVolume;
 
         private void Awake()
         {
             effectsSource = CreateSource(false);
             chargeSource = CreateSource(false);
             uiSource = CreateSource(true);
+            previewSource = CreateSource(true);
+            ApplySourceVolumes();
         }
 
         private void OnDestroy()
@@ -58,14 +68,57 @@ namespace Overclock.Presentation
             }
         }
 
-        /// <summary>효과음 설정. 끄면 지금 나는 소리 · 예약 · 충전음을 모두 멈춘다.</summary>
-        public void SetSoundEnabled(bool enabled)
+        /// <summary>
+        /// 볼륨 설정 (11/04 · 효과음 켬/끔 대신). 실제 크기 = 전체 × 종류. 소스 볼륨으로 걸어서 지금 나는 소리 · 충전음에도 바로 반영된다.
+        /// 0 이어도 재생 · 예약은 그대로 한다 (들리지만 않음) — 다시 올리면 박자가 어긋나지 않게
+        /// </summary>
+        public void ApplyVolumes(GameSettings settings)
         {
-            soundEnabled = enabled;
-            if (!enabled)
+            if (settings == null)
             {
-                StopRunSounds();
-                uiSource.Stop();
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            effectsVolume = settings.GetEffectiveVolume(SoundChannel.Effects);
+            uiVolume = settings.GetEffectiveVolume(SoundChannel.Ui);
+            musicVolume = settings.GetEffectiveVolume(SoundChannel.Music);
+            ApplySourceVolumes();
+        }
+
+        /// <summary>
+        /// 볼륨 슬라이더를 놓았을 때 그 크기로 한 번 들려준다. 일시정지 중에도 들리는 소스로 낸다.
+        /// 효과음 = 레버 소리 · 전체 · UI = 버튼 소리 · BGM = 아직 없음
+        /// </summary>
+        public void PlayPreview(SoundChannel channel)
+        {
+            if (!CanPlay || previewSource == null)
+            {
+                return;
+            }
+
+            AudioClip clip;
+            float clipVolume;
+            switch (channel)
+            {
+                case SoundChannel.Effects:
+                    clip = soundSet.DrawLever;
+                    clipVolume = soundSet.EffectsVolume;
+                    previewChannel = SoundChannel.Effects;
+                    break;
+                case SoundChannel.Music:
+                    return;
+                default:
+                    clip = soundSet.UiClick;
+                    clipVolume = soundSet.UiVolume;
+                    previewChannel = SoundChannel.Ui;
+                    break;
+            }
+
+            // 크기는 소스 볼륨으로 건다 — 들려주는 도중에 슬라이더를 다시 움직여도 바로 따라간다 (교차검토 #36)
+            ApplySourceVolumes();
+            if (clip != null)
+            {
+                previewSource.PlayOneShot(clip, clipVolume);
             }
         }
 
@@ -151,7 +204,7 @@ namespace Overclock.Presentation
             }
 
             chargeSource.clip = soundSet.SuperRareCharge;
-            chargeSource.volume = soundSet.ChargeVolume;
+            ApplySourceVolumes();
             chargeSource.Play();
         }
 
@@ -304,6 +357,20 @@ namespace Overclock.Presentation
             {
                 uiSource.PlayOneShot(clip, soundSet.UiVolume);
             }
+        }
+
+        private void ApplySourceVolumes()
+        {
+            // Awake 전에 불려도 값은 남기고, 소스가 생기면 Awake 가 다시 건다
+            if (effectsSource == null)
+            {
+                return;
+            }
+
+            effectsSource.volume = effectsVolume;
+            chargeSource.volume = effectsVolume * (soundSet != null ? soundSet.ChargeVolume : 1f);
+            uiSource.volume = uiVolume;
+            previewSource.volume = previewChannel == SoundChannel.Effects ? effectsVolume : uiVolume;
         }
 
         private AudioSource CreateSource(bool ignoreListenerPause)

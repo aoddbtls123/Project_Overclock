@@ -59,6 +59,7 @@ namespace Overclock.Presentation
         private BestRecordFile recordFile;
         private GameSettingsFile settingsFile;
         private GameSettings settings;
+        private bool volumeDirty;
         private BestRecords bestRecords;
         private bool lastRunNewRecord;
         private uint qaSeed;
@@ -95,8 +96,8 @@ namespace Overclock.Presentation
             titleQuitButton.onClick.AddListener(WithClickSound(QuitGame).Invoke);
             modeBackButton.onClick.AddListener(WithClickSound(ShowTitle).Invoke);
             settingsBackButton.onClick.AddListener(WithClickSound(ShowTitle).Invoke);
-            titleSettingsMenu.Bind(WithClickSound(ToggleShake), WithClickSound(ToggleFlash), WithClickSound(CycleRevealSpeed), WithClickSound(ToggleSound));
-            pauseSettingsMenu.Bind(WithClickSound(ToggleShake), WithClickSound(ToggleFlash), WithClickSound(CycleRevealSpeed), WithClickSound(ToggleSound));
+            titleSettingsMenu.Bind(WithClickSound(ToggleShake), WithClickSound(ToggleFlash), WithClickSound(CycleRevealSpeed), OnVolumeChanged, OnVolumeCommitted);
+            pauseSettingsMenu.Bind(WithClickSound(ToggleShake), WithClickSound(ToggleFlash), WithClickSound(CycleRevealSpeed), OnVolumeChanged, OnVolumeCommitted);
             normalModeButton.onClick.AddListener(WithClickSound(() => StartNewRun(RunMode.Normal)).Invoke);
             endlessModeButton.onClick.AddListener(WithClickSound(() => StartNewRun(RunMode.Endless)).Invoke);
             continueButton.onClick.AddListener(WithClickSound(ContinueSavedRun).Invoke);
@@ -117,6 +118,12 @@ namespace Overclock.Presentation
             // 설정 적용은 Start 에서 한다. 연출 효과(RevealEffectsView) · 소리(SoundPlayer, 소스를 Awake 에서 만든다)의 Awake 가 끝난 뒤여야 한다
             ApplySettings();
             ShowTitle();
+        }
+
+        private void OnApplicationQuit()
+        {
+            // 창의 X · Alt+F4 로 끄면 '놓기' · QuitGame 을 거치지 않는다. 키보드로 바꾼 볼륨이 남지 않게 여기서도 저장한다 (교차검토 #36)
+            SaveVolumeIfDirty();
         }
 
         private void OnDestroy()
@@ -272,6 +279,8 @@ namespace Overclock.Presentation
 
         private void ResumeGame()
         {
+            // 슬라이더를 키보드로 바꿨거나 놓는 순간을 놓쳤어도 창을 닫을 때 저장한다
+            SaveVolumeIfDirty();
             pauseMenu.Close();
             machinePanel.SetInteractable(true);
             Time.timeScale = 1f;
@@ -305,7 +314,8 @@ namespace Overclock.Presentation
 
         private void QuitGame()
         {
-            // 저장은 이미 끝나 있으므로 바로 끈다
+            // 런 진행은 이미 저장돼 있다. 볼륨만 아직이면 저장하고 끈다
+            SaveVolumeIfDirty();
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -337,6 +347,8 @@ namespace Overclock.Presentation
 
         private void ShowTitle()
         {
+            // 설정 창 '뒤로' · 일시정지 '처음으로' 모두 여기를 지난다
+            SaveVolumeIfDirty();
             // 화면은 패널을 켜고 끄기만 한다. RunScreen 오브젝트는 끄지 않는다 (10/26 화면 전환 규칙)
             moduleSelectPanel.SetActive(false);
             modeSelectPanel.SetActive(false);
@@ -388,10 +400,29 @@ namespace Overclock.Presentation
             OnSettingsChanged();
         }
 
-        private void ToggleSound()
+        private void OnVolumeChanged(SoundChannel channel, float value)
         {
-            settings.SoundEnabled = !settings.SoundEnabled;
-            OnSettingsChanged();
+            // 끄는 동안은 소리 · 두 창 글자만 바로 맞추고 저장하지 않는다 (파일을 매 프레임 쓰지 않게). 놓을 때 · 창을 닫을 때 저장
+            settings.SetVolume(channel, value);
+            volumeDirty = true;
+            soundPlayer.ApplyVolumes(settings);
+            titleSettingsMenu.Show(settings);
+            pauseSettingsMenu.Show(settings);
+        }
+
+        private void OnVolumeCommitted(SoundChannel channel)
+        {
+            SaveVolumeIfDirty();
+            soundPlayer.PlayPreview(channel);
+        }
+
+        private void SaveVolumeIfDirty()
+        {
+            // 표시는 저장이 성공했을 때만 지운다 (SaveSettings) — 실패하면 창을 닫을 때 다시 시도한다 (교차검토 #36)
+            if (volumeDirty)
+            {
+                SaveSettings();
+            }
         }
 
         private void OnSettingsChanged()
@@ -404,7 +435,7 @@ namespace Overclock.Presentation
         private void ApplySettings()
         {
             drawReveal.ApplySettings(settings);
-            soundPlayer.SetSoundEnabled(settings.SoundEnabled);
+            soundPlayer.ApplyVolumes(settings);
             titleSettingsMenu.Show(settings);
             pauseSettingsMenu.Show(settings);
         }
@@ -812,6 +843,9 @@ namespace Overclock.Presentation
             try
             {
                 settingsFile.Save(settings);
+
+                // 설정 전체를 쓰므로 아직 안 쓴 볼륨도 이때 같이 저장된다
+                volumeDirty = false;
             }
             catch (IOException exception)
             {
