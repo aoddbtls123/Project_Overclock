@@ -74,6 +74,7 @@ namespace Overclock.Presentation
         private DrawResult lastDrawResult;
         private bool ignoreDrawButtonClick;
         private int resumeFrame;
+        private readonly PlaytestLog playtestLog = new PlaytestLog();
 
         private void Awake()
         {
@@ -126,6 +127,10 @@ namespace Overclock.Presentation
         {
             // 창의 X · Alt+F4 로 끄면 '놓기' · QuitGame 을 거치지 않는다. 키보드로 바꾼 볼륨이 남지 않게 여기서도 저장한다 (교차검토 #36)
             SaveVolumeIfDirty();
+            if (runManager != null)
+            {
+                playtestLog.RunLeft(runManager, Time.time);
+            }
         }
 
         private void OnDestroy()
@@ -198,6 +203,7 @@ namespace Overclock.Presentation
                 if (IsSkipPressed(keyboard, mouse))
                 {
                     drawReveal.Skip();
+                    playtestLog.Skipped(Time.time);
                 }
             }
             else if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame && runManager.State == RunState.Drawing)
@@ -298,6 +304,11 @@ namespace Overclock.Presentation
             Time.timeScale = 1f;
             soundPlayer.SetPaused(false);
             StopReveal();
+            if (runManager != null)
+            {
+                playtestLog.RunLeft(runManager, Time.time);
+            }
+
             session = null;
             gachaEngine = null;
             runManager = null;
@@ -400,6 +411,7 @@ namespace Overclock.Presentation
         {
             settings.CycleRevealSpeed();
             OnSettingsChanged();
+            playtestLog.SpeedChanged(settings.RevealSpeed);
         }
 
         private void OnVolumeChanged(SoundChannel channel, float value)
@@ -505,7 +517,7 @@ namespace Overclock.Presentation
                 }
             }
 
-            BeginRun(RunSession.Create(runSeed, parts, modules, mode), qaSeed != 0 ? " (QA 시드)" : "");
+            BeginRun(RunSession.Create(runSeed, parts, modules, mode), qaSeed != 0 ? " (QA 시드)" : "", false);
             SaveRun();
         }
 
@@ -518,7 +530,7 @@ namespace Overclock.Presentation
 
             RunSession restored = savedSession;
             savedSession = null;
-            BeginRun(restored, " (이어하기)");
+            BeginRun(restored, " (이어하기)", true);
 
             // 돌파 직후에 꺼진 판. 저장된 난수 상태에서 카드를 열므로 끄기 전과 같은 카드가 나온다
             if (runManager.State == RunState.RoundCleared)
@@ -527,7 +539,7 @@ namespace Overclock.Presentation
             }
         }
 
-        private void BeginRun(RunSession newSession, string logSuffix)
+        private void BeginRun(RunSession newSession, string logSuffix, bool continued)
         {
             // 새 런은 언제나 연출이 없는 상태에서 시작한다. 이전 런의 연출이 새 런 화면에 결과를 띄우지 않게 한다
             StopReveal();
@@ -537,6 +549,7 @@ namespace Overclock.Presentation
             runManager = session.RunManager;
 
             Debug.Log("Run seed: " + session.Seed + " mode: " + session.Mode + logSuffix);
+            playtestLog.RunStarted(session, settings.RevealSpeed, continued, Time.time);
             drawReveal.ShowIdle();
 
             // 이어하기면 이번 라운드에 뽑아 둔 부품을 바로 놓는다. 돌파 직후에 꺼진 판은 이미 쏟은 뒤라 빈 트레이다
@@ -590,6 +603,7 @@ namespace Overclock.Presentation
 
             soundPlayer.PlayUiClick();
             runManager.ActivateOverclock();
+            playtestLog.OverclockActivated(runManager, runManager.RoundParts.Count);
 
             // 켠 상태도 저장한다. 껐다 켜서 다시 켤 수 있게 되면 라운드마다 1번 규칙이 깨진다
             SaveRun();
@@ -627,8 +641,10 @@ namespace Overclock.Presentation
                 productionCounter.CompleteNow();
             }
 
+            bool overclockActive = runManager.OverclockDrawsLeft > 0;
             DrawResult result = runManager.Draw();
             lastDrawResult = result;
+            playtestLog.Draw(result, runManager, overclockActive, Time.time);
 
             // 연출 전에 저장한다. 연출 중에 꺼도 이 뽑기는 되돌릴 수 없다 (최고 기록도 같다)
             if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)
@@ -636,6 +652,7 @@ namespace Overclock.Presentation
                 DeleteSave();
                 lastRunNewRecord = bestRecords.Submit(session);
                 SaveBestRecords();
+                playtestLog.RunEnded(runManager, Time.time);
             }
             else
             {
@@ -717,7 +734,9 @@ namespace Overclock.Presentation
                 return;
             }
 
+            int clearedRound = runManager.CurrentRound;
             session.SelectModule(module);
+            playtestLog.ModuleSelected(clearedRound, module);
             SaveRun();
             soundPlayer.PlayModuleEquip();
 
