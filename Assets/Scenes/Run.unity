@@ -11276,6 +11276,7 @@ MonoBehaviour:
   gachaMachine: {fileID: 2012098739}
   harvestTray: {fileID: 1304475578}
   productionCounter: {fileID: 54879746}
+  gaugePanel: {fileID: 1496419422}
 --- !u!4 &1153221389
 Transform:
   m_ObjectHideFlags: 0
@@ -15229,6 +15230,7 @@ GameObject:
   - component: {fileID: 1496419419}
   - component: {fileID: 1496419421}
   - component: {fileID: 1496419420}
+  - component: {fileID: 1496419422}
   m_Layer: 5
   m_Name: GaugePanelText
   m_TagString: Untagged
@@ -15355,6 +15357,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1496419418}
   m_CullTransparentMesh: 1
+--- !u!114 &1496419422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1496419418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f52b24375c39a7b4dacad911ffcd3149, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.GaugePanelView
+  settings: {fileID: 11400000, guid: ac7d1041bf67c324e98eae61fafe1723, type: 2}
+  panelText: {fileID: 1496419420}
 --- !u!1 &1499041123
 GameObject:
   m_ObjectHideFlags: 0

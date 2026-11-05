@@ -54,6 +54,8 @@ namespace Overclock.Presentation
         [SerializeField] private HarvestTrayView harvestTray;
         [Tooltip("비어 있으면 생산량 숫자를 세어 올리지 않고 바로 바꾼다 (quotaText · quotaGauge 를 직접 씀)")]
         [SerializeField] private ProductionCounterView productionCounter;
+        [Tooltip("비어 있으면 확률을 세어 바꾸지 않고 바로 바꾼다 (gaugePanelText 를 직접 씀)")]
+        [SerializeField] private GaugePanelView gaugePanel;
 
         private RunSaveFile saveFile;
         private BestRecordFile recordFile;
@@ -557,6 +559,13 @@ namespace Overclock.Presentation
             resultPanel.Hide();
             machinePanel.Show(runManager.EquippedModules);
             machinePanel.SetInteractable(true);
+
+            // 앞 런에서 남은 계기판 연출 (▲▼) 을 지우고 시작한다
+            if (gaugePanel != null)
+            {
+                gaugePanel.CompleteNow();
+            }
+
             Refresh();
         }
 
@@ -721,6 +730,16 @@ namespace Overclock.Presentation
                 harvestTray.Clear();
             }
 
+            // 확률이 바뀌었으면 계기판이 이전 값에서 세어 바꾼다. 이어지는 Refresh 는 같은 확률이라 이 연출을 끊지 않는다
+            if (gaugePanel != null)
+            {
+                gaugePanel.AnimateTo(
+                    gachaEngine.GetProbability(Grade.N),
+                    gachaEngine.GetProbability(Grade.R),
+                    gachaEngine.GetProbability(Grade.SR),
+                    settings.RevealTimeMultiplier);
+            }
+
             Refresh();
         }
 
@@ -739,11 +758,7 @@ namespace Overclock.Presentation
                 : "R" + runManager.CurrentRound + " / " + runManager.RoundCount;
             ShowProduction(rollProduction);
             drawsText.text = "남은 뽑기 " + runManager.DrawsRemaining;
-            gaugePanelText.text =
-                GradeStyle.Colorize(Grade.N, "N  " + FormatPercent(gachaEngine.GetProbability(Grade.N))) + "\n" +
-                GradeStyle.Colorize(Grade.R, "R  " + FormatPercent(gachaEngine.GetProbability(Grade.R))) + "\n" +
-                GradeStyle.Colorize(Grade.SR, "SR " + FormatPercent(gachaEngine.GetProbability(Grade.SR))) + "\n" +
-                "천장 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
+            ShowGauge();
 
             drawButton.interactable = state == RunState.Drawing;
             RefreshOverclock();
@@ -764,6 +779,26 @@ namespace Overclock.Presentation
             {
                 resultText.text = "";
             }
+        }
+
+        private void ShowGauge()
+        {
+            if (gaugePanel == null)
+            {
+                gaugePanelText.text =
+                    GradeStyle.Colorize(Grade.N, "N  " + FormatPercent(gachaEngine.GetProbability(Grade.N))) + "\n" +
+                    GradeStyle.Colorize(Grade.R, "R  " + FormatPercent(gachaEngine.GetProbability(Grade.R))) + "\n" +
+                    GradeStyle.Colorize(Grade.SR, "SR " + FormatPercent(gachaEngine.GetProbability(Grade.SR))) + "\n" +
+                    "천장 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
+                return;
+            }
+
+            gaugePanel.Show(
+                gachaEngine.GetProbability(Grade.N),
+                gachaEngine.GetProbability(Grade.R),
+                gachaEngine.GetProbability(Grade.SR),
+                gachaEngine.DrawsWithoutSuperRare,
+                gachaEngine.PityThreshold);
         }
 
         private void ShowProduction(bool roll)
