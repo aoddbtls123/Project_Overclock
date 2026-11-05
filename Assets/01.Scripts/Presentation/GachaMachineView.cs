@@ -37,6 +37,8 @@ namespace Overclock.Presentation
         [SerializeField] private Image[] steamPuffs = Array.Empty<Image>();
         [Tooltip("증기가 나오는 자리. 증기는 이 위치에서 시작한다")]
         [SerializeField] private RectTransform[] steamVents = Array.Empty<RectTransform>();
+        [Tooltip("출력 창 이미지의 Outline. 공개된 등급 색 테두리 (11/05). 비어 있으면 테두리 없음")]
+        [SerializeField] private Outline outputFrame;
 
         /// <summary>레버가 바닥에 닿은 순간 (받아들여진 뽑기마다 한 번).</summary>
         public event Action LeverBottomed;
@@ -69,6 +71,7 @@ namespace Overclock.Presentation
         private Tween[] puffTweens;
         private Vector2[] puffStartPositions;
         private int nextPuff;
+        private int nextHeatSteam;
 
         private void Awake()
         {
@@ -95,6 +98,7 @@ namespace Overclock.Presentation
                 }
             }
 
+            ClearGradeFrame();
             ApplyPose();
         }
 
@@ -178,6 +182,9 @@ namespace Overclock.Presentation
                 Bottom();
             }
 
+            // 새 뽑기 — 앞 공개의 등급 테두리를 끈다
+            ClearGradeFrame();
+
             float start = leverAngle;
             float pulled = settings.LeverPulledAngle;
             float down = settings.LeverDownSeconds;
@@ -231,6 +238,48 @@ namespace Overclock.Presentation
             // 진행률을 시계로 쓰는 오르내림 — 스킵 · 일시정지와 늘 맞는다. 열이 오를수록 깊게 내려간다
             float wave = 0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * clamped * settings.HeatPistonCycles);
             pistonHeatOffset = settings.PistonTravel * wave * clamped;
+
+            // 진행률이 다음 점을 넘으면 위 증기 구멍에서 작은 증기 하나 (구멍을 번갈아).
+            // 한 번에 하나만 — 긴 프레임으로 여러 점을 지났으면 나머지는 증기 없이 넘긴다 (한 프레임에 몰려 나오지 않게)
+            if (progress <= 0f)
+            {
+                nextHeatSteam = 0;
+                return;
+            }
+
+            int count = settings.HeatSteamPointCount;
+            if (nextHeatSteam < count && clamped >= settings.GetHeatSteamPoint(nextHeatSteam))
+            {
+                Puff(steamVents.Length > 0 ? nextHeatSteam % steamVents.Length : 0, settings.SmallSteamScale, 0f);
+                nextHeatSteam++;
+                while (nextHeatSteam < count && clamped >= settings.GetHeatSteamPoint(nextHeatSteam))
+                {
+                    nextHeatSteam++;
+                }
+            }
+        }
+
+        /// <summary>공개된 등급 색 테두리를 출력 창에 켠다. 다음 레버 · 쉬는 화면 · 런 이탈까지 남는다 (스킵 · 즉시도 같은 모습).</summary>
+        public void ShowGradeFrame(Grade grade)
+        {
+            if (outputFrame == null)
+            {
+                return;
+            }
+
+            float width = settings.GetFrameWidth(grade);
+            outputFrame.effectColor = GradeStyle.GetColor(grade);
+            outputFrame.effectDistance = new Vector2(width, -width);
+            outputFrame.enabled = width > 0f;
+        }
+
+        /// <summary>출력 창 테두리를 끈다.</summary>
+        public void ClearGradeFrame()
+        {
+            if (outputFrame != null)
+            {
+                outputFrame.enabled = false;
+            }
         }
 
         /// <summary>
@@ -289,6 +338,7 @@ namespace Overclock.Presentation
         {
             KillReveal();
             KillPuffs();
+            nextHeatSteam = 0;
             heat = 0f;
             needleHeat = 0f;
             pistonHeatOffset = 0f;
@@ -305,6 +355,7 @@ namespace Overclock.Presentation
             KillThud();
             leverAngle = 0f;
             thudOffset = 0f;
+            ClearGradeFrame();
             StopReactions();
         }
 

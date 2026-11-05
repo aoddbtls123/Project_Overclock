@@ -117,6 +117,10 @@ namespace Overclock.Presentation
         {
             StopEffects();
             ShowPlaceholder("-");
+            if (machine != null)
+            {
+                machine.ClearGradeFrame();
+            }
         }
 
         private void OnDestroy()
@@ -247,6 +251,12 @@ namespace Overclock.Presentation
                         sounds.PlayShutterOpen(grade);
                     }
                 }
+            }
+
+            // 출력 창 테두리 = 공개된 등급 색. 스킵 · 즉시여도 같은 최종 모습 (다음 레버에서 꺼짐)
+            if (machine != null)
+            {
+                machine.ShowGradeFrame(grade);
             }
 
             // 소리는 스킵 · 즉시여도 낸다 (10/29 결정). 충전음은 공개 순간에 끊는다.

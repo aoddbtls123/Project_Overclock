@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Overclock.Core;
+using UnityEngine;
 
 namespace Overclock.Presentation
 {
@@ -56,6 +57,10 @@ namespace Overclock.Presentation
         [Tooltip("돌파 증기 사이 간격")]
         [SerializeField, Min(0f)] private float breakthroughSteamInterval = 0.15f;
 
+        [Header("SR 기다림 증기 (11/05) — 위 증기 구멍에서 작은 증기, 공개가 가까울수록 잦게")]
+        [Tooltip("SR 기다림 진행률(0~1)이 이 값을 넘는 순간마다 작은 증기 하나 (오름차순). 진행률을 시계로 써서 스킵 · 일시정지 · 연출 속도와 맞는다. 증기 풀(10)을 SR 공개 · 돌파와 같이 쓰므로 6개 이하로")]
+        [SerializeField] private float[] heatSteamPoints = { 0.3f, 0.5f, 0.64f, 0.76f, 0.86f, 0.94f };
+
         [Header("레버")]
         [Tooltip("당겼을 때 손잡이 각도 (도)")]
         [SerializeField] private float leverPulledAngle = -50f;
@@ -71,6 +76,11 @@ namespace Overclock.Presentation
         [SerializeField, Min(0f)] private float ratchetThudPixels = 1f;
         [Tooltip("수확물이 트레이에 앉을 때")]
         [SerializeField, Min(0f)] private float landingThudPixels = 1f;
+
+        [Header("출력 창 테두리 (11/05) — 공개 순간 등급 색으로 켜고 다음 레버까지 둔다 · 0 = 그 등급은 테두리 없음")]
+        [SerializeField, Min(0f)] private float frameWidthN = 2f;
+        [SerializeField, Min(0f)] private float frameWidthR = 3f;
+        [SerializeField, Min(0f)] private float frameWidthSR = 4f;
 
         public float IdleGearSpeed => idleGearSpeed;
         public float HeatGearSpeed => heatGearSpeed;
@@ -103,5 +113,24 @@ namespace Overclock.Presentation
         public float LeverThudPixels => leverThudPixels;
         public float RatchetThudPixels => ratchetThudPixels;
         public float LandingThudPixels => landingThudPixels;
+        public int HeatSteamPointCount => heatSteamPoints == null ? 0 : heatSteamPoints.Length;
+
+        public float GetHeatSteamPoint(int index)
+        {
+            return heatSteamPoints[index];
+        }
+
+        public float GetFrameWidth(Grade grade)
+        {
+            switch (grade)
+            {
+                case Grade.R:
+                    return frameWidthR;
+                case Grade.SR:
+                    return frameWidthSR;
+                default:
+                    return frameWidthN;
+            }
+        }
     }
 }

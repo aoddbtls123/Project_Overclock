@@ -36,6 +36,13 @@ MonoBehaviour:
   superRareSteamPuffs: 4
   breakthroughSteamPuffs: 5
   breakthroughSteamInterval: 0.15
+  heatSteamPoints:
+  - 0.3
+  - 0.5
+  - 0.64
+  - 0.76
+  - 0.86
+  - 0.94
   leverPulledAngle: -50
   leverDownSeconds: 0.06
   leverHoldSeconds: 0.2
@@ -43,3 +50,6 @@ MonoBehaviour:
   leverThudPixels: 3
   ratchetThudPixels: 1
   landingThudPixels: 1
+  frameWidthN: 2
+  frameWidthR: 3
+  frameWidthSR: 4
