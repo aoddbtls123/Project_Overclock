@@ -27,6 +27,8 @@ namespace Overclock.Presentation
         [SerializeField] private SoundPlayer sounds;
         [Tooltip("비어 있으면 셔터 · 기다림 틱 없이 연출만 한다")]
         [SerializeField] private MachineShutterView shutter;
+        [Tooltip("공개 순간 출력 창 위에 뜨는 큰 생산량 +n (11/06). 비어 있으면 없이 연출한다")]
+        [SerializeField] private OutputPopupView outputPopup;
 
         private Coroutine routine;
         private bool skipRequested;
@@ -243,6 +245,11 @@ namespace Overclock.Presentation
                     machine.PlayReveal(grade);
                 }
 
+                if (outputPopup != null)
+                {
+                    outputPopup.Play(result, multiplier);
+                }
+
                 if (shuttering)
                 {
                     shutter.Open(grade, multiplier);
@@ -328,6 +335,12 @@ namespace Overclock.Presentation
             if (machine != null)
             {
                 machine.StopReactions();
+            }
+
+            // 큰 +n 은 공개 효과다. 새 연출 · 스킵 · 즉시 · Cancel · 쉬는 상태에서는 지운다
+            if (outputPopup != null)
+            {
+                outputPopup.HideNow();
             }
         }
 
