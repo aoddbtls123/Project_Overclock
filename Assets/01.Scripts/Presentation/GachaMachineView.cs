@@ -56,6 +56,14 @@ namespace Overclock.Presentation
         private Vector2 restPistonPosition;
         private RectTransform root;
         private Vector2 restRootPosition;
+        // 클리어 마무리 연출 전용 겹 (11/06). 평소 연출은 쓰지 않는다 — 기본값이면 모습이 그대로다.
+        // 같은 부품을 두 연출이 덮어쓰지 않게 값만 더하고 ApplyPose 한 곳에서 그린다
+        private Vector3 restRootScale = Vector3.one;
+        private float clearRootOffsetY;
+        private float clearScaleY = 1f;
+        private float needleJitter;
+        private float needleWobble;
+        private readonly System.Collections.Generic.List<Tween> clearTweens = new System.Collections.Generic.List<Tween>();
         private float thudOffset;
         private bool thudEnabled = true;
         private bool leverBottomPending;
@@ -84,6 +92,7 @@ namespace Overclock.Presentation
             if (root != null)
             {
                 restRootPosition = root.anchoredPosition;
+                restRootScale = root.localScale;
             }
 
             puffTweens = new Tween[steamPuffs.Length];
@@ -123,6 +132,7 @@ namespace Overclock.Presentation
             KillLever();
             KillThud();
             KillPuffs();
+            KillClear();
         }
 
         /// <summary>덜컹을 켜고 끈다 (설정의 흔들림). 끄면 지금 덜컹도 바로 제자리.</summary>
@@ -231,13 +241,19 @@ namespace Overclock.Presentation
         /// <summary>SR 기다림 진행률(0~1)에 맞춰 기어를 가속하고 피스톤을 연타하고 바늘을 올린다. 같은 진행률이면 피스톤 · 바늘은 같은 모습이다.</summary>
         public void SetHeat(float progress)
         {
+            ApplyHeat(progress, settings.SteamSeconds, 1f);
+        }
+
+        // SR 기다림 · 클리어 기 모으기가 같이 쓴다. puffSeconds = 위 작은 증기 시간 · pistonPower = 피스톤 연타 깊이 배율 (평소 1)
+        private void ApplyHeat(float progress, float puffSeconds, float pistonPower)
+        {
             float clamped = Mathf.Clamp01(progress);
             heat = clamped;
             needleHeat = clamped;
 
             // 진행률을 시계로 쓰는 오르내림 — 스킵 · 일시정지와 늘 맞는다. 열이 오를수록 깊게 내려간다
             float wave = 0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * clamped * settings.HeatPistonCycles);
-            pistonHeatOffset = settings.PistonTravel * wave * clamped;
+            pistonHeatOffset = settings.PistonTravel * wave * clamped * pistonPower;
 
             // 진행률이 다음 점을 넘으면 위 증기 구멍에서 작은 증기 하나 (구멍을 번갈아).
             // 한 번에 하나만 — 긴 프레임으로 여러 점을 지났으면 나머지는 증기 없이 넘긴다 (한 프레임에 몰려 나오지 않게)
@@ -250,7 +266,7 @@ namespace Overclock.Presentation
             int count = settings.HeatSteamPointCount;
             if (nextHeatSteam < count && clamped >= settings.GetHeatSteamPoint(nextHeatSteam))
             {
-                Puff(steamVents.Length > 0 ? nextHeatSteam % steamVents.Length : 0, settings.SmallSteamScale, 0f);
+                Puff(steamVents.Length > 0 ? nextHeatSteam % steamVents.Length : 0, settings.SmallSteamScale, 0f, puffSeconds);
                 nextHeatSteam++;
                 while (nextHeatSteam < count && clamped >= settings.GetHeatSteamPoint(nextHeatSteam))
                 {
@@ -333,11 +349,137 @@ namespace Overclock.Presentation
         /// </summary>
         public void PlayBreakthrough(float timeMultiplier)
         {
+            PlayBreakthrough(timeMultiplier, 1f);
+        }
+
+        /// <summary>돌파 증기 · steamScale = 큰 증기 크기 배율 (클리어 뒤로 갈수록 잦아드는 증기 · 11/06). 평소는 1</summary>
+        public void PlayBreakthrough(float timeMultiplier, float steamScale)
+        {
             float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
             for (int i = 0; i < settings.BreakthroughSteamPuffs; i++)
             {
-                Puff(i, settings.BigSteamScale, i * settings.BreakthroughSteamInterval * multiplier, settings.SteamSeconds * multiplier);
+                Puff(i, settings.BigSteamScale * steamScale, i * settings.BreakthroughSteamInterval * multiplier, settings.SteamSeconds * multiplier);
             }
+        }
+
+        /// <summary>
+        /// 클리어 기 모으기 (11/06). progress 0 → 1: 기어 가속 · 바늘 올라감 · 틈의 작은 증기는 SR 기다림과 같고,
+        /// 피스톤은 뒤로 갈수록 깊어진다 (진행률²). needleJitterDegrees = 바늘을 열 각도 위에서 더 흔드는 각도 (부르는 쪽이 정한다) ·
+        /// timeMultiplier = 작은 증기 시간 배율 (빠름 0.5)
+        /// </summary>
+        public void SetClearCharge(float progress, float needleJitterDegrees, float timeMultiplier)
+        {
+            float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
+            ApplyHeat(progress, settings.SteamSeconds * multiplier, Mathf.Clamp01(progress));
+            needleJitter = needleJitterDegrees;
+            ApplyPose();
+        }
+
+        /// <summary>
+        /// 클리어 수축 · 버팀 (11/06): seconds 동안 몸통이 sinkPixels 만큼 내려앉고 세로만 squashY 로 눌린다 (가로는 그대로) ·
+        /// 바늘은 높은 자리에서 멈춰 버틴다 · 새 증기는 내지 않는다
+        /// </summary>
+        public void HoldClearPressure(float sinkPixels, float squashY, float seconds)
+        {
+            KillClear();
+            needleJitter = 0f;
+            needleWobble = 0f;
+            float duration = seconds > 0f ? seconds : 0.01f;
+            AddClearTween(DOTween.To(t =>
+                {
+                    // 점점 빠르게 눌린다 (힘을 모아 버티는 느낌)
+                    float eased = t * t;
+                    clearRootOffsetY = -sinkPixels * eased;
+                    clearScaleY = Mathf.Lerp(1f, squashY, eased);
+                }, 0f, 1f, duration).SetEase(Ease.Linear));
+            ApplyPose();
+        }
+
+        /// <summary>
+        /// 클리어 분출 · 반동 (11/06). 몸통 즉시 → 기어 래칫 → 피스톤 → 바늘 복귀 · 잔떨림 순으로 시간차를 두고 움직인다.
+        /// 몸통은 bouncePixels 만큼 위로 튀었다가 settleSeconds 안에 먼저 자리 잡고, 세로는 popY 를 살짝 넘었다 돌아온다.
+        /// 모든 시간 (지연 · 래칫 · 피스톤 · 바늘 · 잔떨림) 에 timeMultiplier 가 곱해진다. 증기는 PlayBreakthrough 로 따로
+        /// </summary>
+        public void PlayClearBurst(float bouncePixels, float popY, float settleSeconds, float gearDelay, float pistonDelay, float needleDelay,
+            float needleWobbleDegrees, float wobbleSeconds, float timeMultiplier)
+        {
+            float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
+            // 눌린 자리에서 출발한다 — KillClear 가 값을 0 으로 돌리기 전에 읽는다 (안 그러면 분출 순간 한 번 제자리로 튄다)
+            float startOffset = clearRootOffsetY;
+            float startScale = clearScaleY;
+            KillClear();
+            KillReveal();
+            clearRootOffsetY = startOffset;
+            clearScaleY = startScale;
+            heat = 0f;
+            pistonHeatOffset = 0f;
+            pistonKick = 0f;
+            needleJitter = 0f;
+            float settle = Mathf.Max(0.01f, settleSeconds * multiplier);
+            AddClearTween(DOTween.To(t =>
+                {
+                    if (t < 0.2f)
+                    {
+                        // 눌린 자리에서 위로 튀어 오른다
+                        float u = t / 0.2f;
+                        float rise = 1f - (1f - u) * (1f - u);
+                        clearRootOffsetY = Mathf.Lerp(startOffset, bouncePixels, rise);
+                        clearScaleY = Mathf.Lerp(startScale, popY, rise);
+                    }
+                    else
+                    {
+                        // 한 번 살짝 내려갔다가 자리 잡는다 (철제 몸통 — 오래 출렁이지 않게)
+                        float u = (t - 0.2f) / 0.8f;
+                        float damp = (1f - u) * (1f - u);
+                        clearRootOffsetY = bouncePixels * damp * Mathf.Cos(Mathf.PI * 1.5f * u);
+                        clearScaleY = 1f + (popY - 1f) * damp;
+                    }
+                }, 0f, 1f, settle).SetEase(Ease.Linear).OnComplete(() =>
+                {
+                    clearRootOffsetY = 0f;
+                    clearScaleY = 1f;
+                }));
+
+            AddClearTween(Delay(gearDelay * multiplier, () => PlayRatchet(multiplier)));
+            AddClearTween(Delay(pistonDelay * multiplier, () => PlayPistonKick(multiplier)));
+            AddClearTween(Delay(needleDelay * multiplier, () =>
+            {
+                // 바늘은 높은 자리에서 내려오며 작게 잔떨림 (작은 부품만 짧게 남는다)
+                float from = needleHeat;
+                AddClearTween(DOTween.To(t => needleHeat = from * (1f - (1f - (1f - t) * (1f - t))), 0f, 1f, settings.NeedleReturnSeconds * multiplier)
+                    .SetEase(Ease.Linear));
+                float wobble = Mathf.Max(0.01f, wobbleSeconds * multiplier);
+                AddClearTween(DOTween.To(t => needleWobble = needleWobbleDegrees * (1f - t) * (1f - t) * Mathf.Sin(2f * Mathf.PI * 4f * t), 0f, 1f, wobble)
+                    .SetEase(Ease.Linear)
+                    .OnComplete(() => needleWobble = 0f));
+            }));
+        }
+
+        private static Tween Delay(float seconds, Action action)
+        {
+            return DOTween.To(t => { }, 0f, 1f, Mathf.Max(0.0001f, seconds)).SetEase(Ease.Linear).OnComplete(() => action());
+        }
+
+        private void AddClearTween(Tween tween)
+        {
+            clearTweens.Add(tween);
+        }
+
+        private void KillClear()
+        {
+            for (int i = 0; i < clearTweens.Count; i++)
+            {
+                if (clearTweens[i] != null && clearTweens[i].IsActive())
+                {
+                    clearTweens[i].Kill();
+                }
+            }
+
+            clearTweens.Clear();
+            clearRootOffsetY = 0f;
+            clearScaleY = 1f;
+            needleJitter = 0f;
+            needleWobble = 0f;
         }
 
         /// <summary>마지막 돌파 증기가 끝나는 시각 (호출 시점부터 · 초). 클리어 연출이 증기보다 먼저 끝나지 않게 쓴다.</summary>
@@ -356,12 +498,21 @@ namespace Overclock.Presentation
         {
             KillReveal();
             KillPuffs();
+            KillClear();
             nextHeatSteam = 0;
             heat = 0f;
             needleHeat = 0f;
             pistonHeatOffset = 0f;
             pistonKick = 0f;
             ApplyPose();
+        }
+
+        /// <summary>클리어 연출을 건너뛸 때 (11/06). StopReactions + 덜컹까지 제자리 — 래칫이 멈춘 순간의 2프레임 덜컹이 결과 창 뒤에 남지 않게.
+        /// 레버 · 출력 창 테두리는 그대로 둔다.</summary>
+        public void StopClearMotion()
+        {
+            KillThud();
+            StopReactions();
         }
 
         /// <summary>레버 · 덜컹까지 포함해 모두 쉬는 상태로 (런 이탈 · 비활성화).</summary>
@@ -379,10 +530,18 @@ namespace Overclock.Presentation
 
         private void PlayRatchet()
         {
+            PlayRatchet(1f);
+        }
+
+        // multiplier = 시간 배율 (클리어 빠름 · 11/06). 평소 1
+        private void PlayRatchet(float multiplier)
+        {
             // 반대로 살짝 당겼다가 (windup) 한 칸을 가속하며 돌고 딱 멈춘다. 멈추는 순간 덜컹 + RatchetStopped
+            Kill(ref ratchetTween);
             float start = ratchetOffset;
-            float windup = settings.RatchetWindupSeconds;
-            float total = windup + settings.RatchetSeconds;
+            float windup = settings.RatchetWindupSeconds * multiplier;
+            float spin = settings.RatchetSeconds * multiplier;
+            float total = windup + spin;
             float back = start - settings.RatchetWindupAngle;
             float end = start + settings.RatchetAngle;
             ratchetTween = DOTween.To(t =>
@@ -390,7 +549,7 @@ namespace Overclock.Presentation
                     float elapsed = t * total;
                     ratchetOffset = elapsed < windup
                         ? start + (back - start) * (elapsed / windup)
-                        : back + (end - back) * InCubic((elapsed - windup) / settings.RatchetSeconds);
+                        : back + (end - back) * InCubic((elapsed - windup) / spin);
                 }, 0f, 1f, total)
                 .SetEase(Ease.Linear)
                 .OnComplete(() =>
@@ -404,11 +563,18 @@ namespace Overclock.Presentation
 
         private void PlayPistonKick()
         {
+            PlayPistonKick(1f);
+        }
+
+        // multiplier = 시간 배율 (클리어 빠름 · 11/06). 평소 1
+        private void PlayPistonKick(float multiplier)
+        {
             // 가속하며 내려가 딱 멈춤 → 잠깐 멈춰 있음 → 돌아옴
+            Kill(ref pistonTween);
             float travel = settings.PistonTravel;
-            float outTime = settings.PistonOutSeconds;
-            float hold = settings.PistonHoldSeconds;
-            float back = settings.PistonReturnSeconds;
+            float outTime = settings.PistonOutSeconds * multiplier;
+            float hold = settings.PistonHoldSeconds * multiplier;
+            float back = settings.PistonReturnSeconds * multiplier;
             float total = outTime + hold + back;
             pistonTween = DOTween.To(t =>
                 {
@@ -559,7 +725,7 @@ namespace Overclock.Presentation
 
             if (needle != null)
             {
-                needle.localEulerAngles = new Vector3(0f, 0f, Mathf.Lerp(settings.NeedleRestAngle, settings.NeedleMaxAngle, needleHeat));
+                needle.localEulerAngles = new Vector3(0f, 0f, Mathf.Lerp(settings.NeedleRestAngle, settings.NeedleMaxAngle, needleHeat) + needleJitter + needleWobble);
             }
 
             if (leverHandle != null)
@@ -569,7 +735,11 @@ namespace Overclock.Presentation
 
             if (root != null)
             {
-                root.anchoredPosition = restRootPosition + new Vector2(0f, thudOffset);
+                // 클리어 몸통 반동 (내려앉음 · 튀어오름 · 세로 눌림) 은 덜컹과 같이 흔들림 설정을 따른다. 끄면 몸통은 제자리 · 부품은 그대로 움직임
+                float bodyOffset = thudEnabled ? clearRootOffsetY : 0f;
+                float bodyScaleY = thudEnabled ? clearScaleY : 1f;
+                root.anchoredPosition = restRootPosition + new Vector2(0f, thudOffset + bodyOffset);
+                root.localScale = new Vector3(restRootScale.x, restRootScale.y * bodyScaleY, restRootScale.z);
             }
         }
 

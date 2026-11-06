@@ -1,4 +1,4 @@
-%YAML 1.1
+﻿%YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
 --- !u!114 &11400000
 MonoBehaviour:
@@ -12,8 +12,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b844434a319edf7429d175506c63fe63, type: 3}
   m_Name: RunClearSettings
   m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.RunClearSettings
-  totalSeconds: 2
-  steamBursts: 3
-  steamInterval: 0.35
+  chargeSeconds: 1.4
+  needleJitterDegrees: 4
+  needleJitterHz: 18
+  chargeVolumeStart: 0.55
+  chargeVolumeEnd: 1
+  warmLight: {r: 1, g: 0.72, b: 0.3, a: 1}
+  goldLight: {r: 1, g: 0.85, b: 0.35, a: 1}
+  lightStrength:
+  - 1
+  - 0.55
+  - 0.3
+  holdSeconds: 0.18
+  sinkPixels: 8
+  squashY: 0.97
+  holdChargeVolume: 0.45
+  bouncePixels: 13
+  popY: 1.025
+  bodySettleSeconds: 0.32
+  gearDelay: 0.03
+  pistonDelay: 0.06
+  needleDelay: 0.09
+  needleWobbleDegrees: 3
+  needleWobbleSeconds: 0.45
+  steamSoundDelay: 0.22
+  afterBurstSeconds: 1.6
+  steamInterval: 0.33
+  steamScales:
+  - 1
+  - 0.7
+  - 0.45
+  bannerDelay: 0.1
   bannerPopSeconds: 0.3
   bannerText: "\uC804 \uB77C\uC778 \uD560\uB2F9\uB7C9 \uB2EC\uC131!"

@@ -26,6 +26,7 @@ namespace Overclock.Presentation
         private float effectsVolume = 1f;
         private float uiVolume = 1f;
         private float musicVolume = 1f;
+        private float chargeVolumeScale = 1f;
         private SoundChannel previewChannel = SoundChannel.Ui;
 
         private bool CanPlay => soundSet != null;
@@ -198,6 +199,8 @@ namespace Overclock.Presentation
 
         public void StartCharge()
         {
+            // 새 충전은 늘 제 크기로 시작한다 (클리어 연출이 줄여 둔 크기가 다음 SR 에 남지 않게)
+            chargeVolumeScale = 1f;
             if (!CanPlay || soundSet.SuperRareCharge == null)
             {
                 return;
@@ -206,6 +209,13 @@ namespace Overclock.Presentation
             chargeSource.clip = soundSet.SuperRareCharge;
             ApplySourceVolumes();
             chargeSource.Play();
+        }
+
+        /// <summary>충전음 크기 배율 (클리어 기 모으기에서 점점 키우고 버틸 때 눌러 줌 · 11/06). StartCharge 가 1 로 되돌린다.</summary>
+        public void SetChargeVolumeScale(float scale)
+        {
+            chargeVolumeScale = Mathf.Clamp01(scale);
+            ApplySourceVolumes();
         }
 
         public void StopCharge()
@@ -242,6 +252,16 @@ namespace Overclock.Presentation
             if (CanPlay)
             {
                 ScheduleAfterLast(soundSet.BreakthroughDelay, soundSet.Breakthrough, true);
+            }
+        }
+
+        /// <summary>돌파음을 예약 없이 바로 낸다 (클리어 연출 · 11/06). 시각은 부르는 쪽이 잡는다 —
+        /// 예약에 남지 않으니 연출을 건너뛰면 뒤늦게 나지 않고, 빠름 배율도 부르는 쪽 시간에 그대로 따른다.</summary>
+        public void PlayBreakthroughNow()
+        {
+            if (CanPlay)
+            {
+                PlayEffect(soundSet.Breakthrough);
             }
         }
 
@@ -368,7 +388,7 @@ namespace Overclock.Presentation
             }
 
             effectsSource.volume = effectsVolume;
-            chargeSource.volume = effectsVolume * (soundSet != null ? soundSet.ChargeVolume : 1f);
+            chargeSource.volume = effectsVolume * (soundSet != null ? soundSet.ChargeVolume : 1f) * chargeVolumeScale;
             uiSource.volume = uiVolume;
             previewSource.volume = previewChannel == SoundChannel.Effects ? effectsVolume : uiVolume;
         }

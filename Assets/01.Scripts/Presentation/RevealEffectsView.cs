@@ -147,6 +147,20 @@ namespace Overclock.Presentation
             revealSequence.OnComplete(OnRevealComplete);
         }
 
+        /// <summary>
+        /// 짧은 흔들림만 (클리어 분출 · 11/06). 플래시 · 아이콘 · 테두리는 건드리지 않는다 — 평소 SR 연출을 되풀이하지 않게.
+        /// 흔들림 끄기면 값을 넣지 않는다. timeMultiplier = 시간 배율 (빠름 0.5)
+        /// </summary>
+        public void PlayKick(float timeMultiplier)
+        {
+            KillRevealSequence();
+            shakeRoot.anchoredPosition = restShakePosition;
+            float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
+            revealSequence = DOTween.Sequence();
+            revealSequence.Insert(0f, DOTween.To(() => 0f, ApplyKick, 1f, settings.KickSeconds * multiplier));
+            revealSequence.OnComplete(OnRevealComplete);
+        }
+
         /// <summary>진행 중인 효과를 모두 멈추고 쉬는 상태로 돌린다 (새 연출 · 스킵 · 런 버림 · 모듈 선택 뒤).</summary>
         public void StopAll()
         {
