@@ -89,6 +89,9 @@ namespace Overclock.Presentation
             }
         }
 
+        /// <summary>바퀴가 도는 중인가 (따라가는 중 · 0000 으로 돌아가는 중). 런 실패 연출이 마지막 숫자를 기다릴 때 쓴다.</summary>
+        public bool IsMoving => resetting || shownValue != targetValue;
+
         /// <summary>
         /// 이 값까지 바퀴를 굴린다. 계수기는 뒤로 돌지 않는다 — 0 으로 돌아가면 바퀴를 앞으로 돌려 0000 에 멈추고,
         /// 0 이 아닌 작은 값 (이어하기) 이면 바로 맞춘다.

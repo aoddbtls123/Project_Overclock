@@ -7,6 +7,7 @@ namespace Overclock.Presentation
 {
     // 효과음 재생. 씬에 하나 두고 GrayBoxRunScreen · DrawRevealView 가 [SerializeField] 로 직접 부른다.
     // 소스 3개 (Awake 에서 만든다): 효과음 (PlayOneShot · 예약) / SR 충전 (중간에 멈춰야 해서 따로) / UI (일시정지 중에도 들리게 ignoreListenerPause).
+    // 런 실패 연출 (11/07) 은 소스 2개를 따로 쓴다 (짧은 소리 · 모터) — 스킵하면 그 연출의 소리만 멈출 수 있게. 크기는 효과음 볼륨을 따른다.
     // 무작위 변형은 이 클래스의 난수로 고른다. 게임 난수(RandomService)를 쓰면 같은 시드의 판이 달라진다.
     // 예약 소리의 시계는 Time.deltaTime 이라 일시정지(timeScale 0) 중에는 흐르지 않는다.
     // 순서는 시작 시각으로만 맞춘다. 앞 소리가 끝나기를 기다리지 않으므로 꼬리는 겹친다 (끝을 기다리면 SR 잔향 3초 동안 돌파음이 밀린다 · 10/29 결정)
@@ -21,6 +22,9 @@ namespace Overclock.Presentation
         private AudioSource chargeSource;
         private AudioSource uiSource;
         private AudioSource previewSource;
+        private AudioSource failSource;
+        private AudioSource failMotorSource;
+        private float failMotorVolumeScale = 1f;
         private float clock;
         private float lastPieceLandTime = float.NegativeInfinity;
         private float effectsVolume = 1f;
@@ -40,6 +44,8 @@ namespace Overclock.Presentation
             chargeSource = CreateSource(false);
             uiSource = CreateSource(true);
             previewSource = CreateSource(true);
+            failSource = CreateSource(false);
+            failMotorSource = CreateSource(false);
             ApplySourceVolumes();
         }
 
@@ -135,6 +141,7 @@ namespace Overclock.Presentation
             scheduled.Clear();
             chargeSource.Stop();
             effectsSource.Stop();
+            StopRunFailSounds();
         }
 
         public void PlayDrawLever()
@@ -281,6 +288,75 @@ namespace Overclock.Presentation
             }
         }
 
+        /// <summary>런 실패 연출 A — 출력 불안정 (짧은 버벅임). 빈 칸이면 소리 없음.</summary>
+        public void PlayRunFailStutter()
+        {
+            if (CanPlay)
+            {
+                PlayRunFail(soundSet.RunFailStutter);
+            }
+        }
+
+        /// <summary>런 실패 연출 B — 동력 차단 (차단기 하나).</summary>
+        public void PlayRunFailBreaker()
+        {
+            if (CanPlay)
+            {
+                PlayRunFail(soundSet.RunFailBreaker);
+            }
+        }
+
+        /// <summary>런 실패 연출 C 끝 — 멎으며 걸리는 작은 금속 소리.</summary>
+        public void PlayRunFailClank()
+        {
+            if (CanPlay)
+            {
+                PlayRunFail(soundSet.RunFailClank);
+            }
+        }
+
+        /// <summary>런 실패 연출 — 동력이 끊긴 뒤 모터가 멎는 소리 (런 실패 칸). 크기는 SetRunFailMotorVolumeScale 로 줄여 간다.</summary>
+        public void StartRunFailMotor()
+        {
+            failMotorVolumeScale = 1f;
+            if (!CanPlay || soundSet.RunFailed == null || failMotorSource == null)
+            {
+                return;
+            }
+
+            failMotorSource.clip = soundSet.RunFailed;
+            ApplySourceVolumes();
+            failMotorSource.Play();
+        }
+
+        /// <summary>모터 소리 크기 배율 (0~1). StartRunFailMotor 가 1 로 되돌린다.</summary>
+        public void SetRunFailMotorVolumeScale(float scale)
+        {
+            failMotorVolumeScale = Mathf.Clamp01(scale);
+            ApplySourceVolumes();
+        }
+
+        /// <summary>모터 소리만 멈춘다 (연출이 끝났을 때 · 짧은 소리의 꼬리는 남긴다).</summary>
+        public void StopRunFailMotor()
+        {
+            if (failMotorSource != null)
+            {
+                failMotorSource.Stop();
+            }
+        }
+
+        /// <summary>런 실패 연출의 소리를 모두 멈춘다 (스킵 · 런 이탈). 다른 효과음 · 예약은 그대로.</summary>
+        public void StopRunFailSounds()
+        {
+            // 씬을 내릴 때 RunFailView.OnDisable 이 부를 수 있다. 소스가 이미 없으면 할 일이 없다
+            if (failSource != null)
+            {
+                failSource.Stop();
+            }
+
+            StopRunFailMotor();
+        }
+
         public void PlayModuleEquip()
         {
             if (!CanPlay)
@@ -371,6 +447,14 @@ namespace Overclock.Presentation
             }
         }
 
+        private void PlayRunFail(AudioClip clip)
+        {
+            if (clip != null && failSource != null)
+            {
+                failSource.PlayOneShot(clip, soundSet.EffectsVolume);
+            }
+        }
+
         private void PlayUi(AudioClip clip)
         {
             if (clip != null)
@@ -391,6 +475,8 @@ namespace Overclock.Presentation
             chargeSource.volume = effectsVolume * (soundSet != null ? soundSet.ChargeVolume : 1f) * chargeVolumeScale;
             uiSource.volume = uiVolume;
             previewSource.volume = previewChannel == SoundChannel.Effects ? effectsVolume : uiVolume;
+            failSource.volume = effectsVolume;
+            failMotorSource.volume = effectsVolume * (soundSet != null ? soundSet.EffectsVolume : 1f) * failMotorVolumeScale;
         }
 
         private AudioSource CreateSource(bool ignoreListenerPause)

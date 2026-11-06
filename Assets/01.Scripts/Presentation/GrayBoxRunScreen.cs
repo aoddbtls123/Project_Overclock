@@ -61,6 +61,8 @@ namespace Overclock.Presentation
         [SerializeField] private GaugePanelView gaugePanel;
         [Tooltip("일반모드 클리어 마무리 연출 (11/06). 비어 있으면 바로 결과 창")]
         [SerializeField] private RunClearView runClear;
+        [Tooltip("런 실패 연출 (11/07 · 일반 · 무한 공통). 비어 있으면 예전처럼 실패 소리 예약 + 바로 결과 창")]
+        [SerializeField] private RunFailView runFail;
 
         private RunSaveFile saveFile;
         private BestRecordFile recordFile;
@@ -78,6 +80,7 @@ namespace Overclock.Presentation
         private int revealStartFrame;
         private DrawResult lastDrawResult;
         private bool ignoreDrawButtonClick;
+        private int resultShownFrame = -1;
         private int resumeFrame;
         private readonly PlaytestLog playtestLog = new PlaytestLog();
 
@@ -117,7 +120,7 @@ namespace Overclock.Presentation
             continueButton.onClick.AddListener(WithClickSound(ContinueSavedRun).Invoke);
             pauseMenu.Bind(WithClickSound(ResumeGame), WithClickSound(ReturnToTitle), WithClickSound(QuitGame));
             pauseMenu.Close();
-            resultPanel.Bind(WithClickSound(RetrySameMode), WithClickSound(ReturnToTitle));
+            resultPanel.Bind(IgnoreOnResultFrame(WithClickSound(RetrySameMode)), IgnoreOnResultFrame(WithClickSound(ReturnToTitle)));
             resultPanel.Hide();
             saveFile = new RunSaveFile(Application.persistentDataPath);
             recordFile = new BestRecordFile(Application.persistentDataPath);
@@ -223,6 +226,14 @@ namespace Overclock.Presentation
                 if (IsSkipPressed(keyboard, mouse))
                 {
                     runClear.Skip();
+                }
+            }
+            else if (runFail != null && runFail.IsPlaying)
+            {
+                // 실패 연출도 같은 스킵 입력으로 넘긴다 (멎은 모습 + 결과 창으로)
+                if (IsSkipPressed(keyboard, mouse))
+                {
+                    runFail.Skip();
                 }
             }
             else if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame && runManager.State == RunState.Drawing)
@@ -365,6 +376,12 @@ namespace Overclock.Presentation
                 runClear.Cancel();
             }
 
+            // 실패 연출 · 결과 창 뒤에 남은 멎은 모습 (어두운 색 · 멈춘 기어 · 내려앉은 몸통) 도 되돌린다
+            if (runFail != null)
+            {
+                runFail.Cancel();
+            }
+
             soundPlayer.StopRunSounds();
             if (gachaMachine != null)
             {
@@ -473,6 +490,11 @@ namespace Overclock.Presentation
         private void ApplySettings()
         {
             drawReveal.ApplySettings(settings);
+            if (runFail != null)
+            {
+                runFail.SetMotionOptions(settings.ShakeEnabled, settings.FlashEnabled);
+            }
+
             soundPlayer.ApplyVolumes(settings);
             titleSettingsMenu.Show(settings);
             pauseSettingsMenu.Show(settings);
@@ -719,12 +741,18 @@ namespace Overclock.Presentation
             }
             else if (runManager.State == RunState.RunFailed || runManager.State == RunState.RunCleared)
             {
-                if (runManager.State == RunState.RunFailed)
+                if (runManager.State == RunState.RunFailed && runFail != null)
+                {
+                    // 결과 · 기록은 뽑기 때 이미 저장됐다. 실패 연출 (라인 셧다운) 뒤에 결과 창만 늦게 띄운다.
+                    // 실패 소리는 연출이 낸다 (동력 차단부터 모터가 멎는 소리 · 즉시 속도면 소리 없음)
+                    runFail.Play(settings.RevealTimeMultiplier, ShowRunResult);
+                }
+                else if (runManager.State == RunState.RunFailed)
                 {
                     soundPlayer.PlayRunFailed();
+                    ShowRunResult();
                 }
-
-                if (runManager.State == RunState.RunCleared && runClear != null)
+                else if (runClear != null)
                 {
                     // 결과 · 기록은 뽑기 때 이미 저장됐다. 마무리 연출 뒤에 결과 창만 늦게 띄운다.
                     // 소리는 넣지 않는다 (클리어 소리는 소리 연결 때 · 10/29 소리 규칙 그대로)
@@ -739,7 +767,20 @@ namespace Overclock.Presentation
 
         private void ShowRunResult()
         {
+            // 연출을 스킵한 입력 (Space · 클릭) 이 같은 프레임에 결과 창 버튼까지 누르지 않게 이 프레임을 기억한다
+            resultShownFrame = Time.frameCount;
             resultPanel.Show(RecordText.ResultTitle(runManager.State), RecordText.ResultDetail(session, bestRecords, lastRunNewRecord));
+        }
+
+        private Action IgnoreOnResultFrame(Action action)
+        {
+            return () =>
+            {
+                if (Time.frameCount > resultShownFrame)
+                {
+                    action();
+                }
+            };
         }
 
         private void ShowModuleOffer()

@@ -60,11 +60,18 @@ namespace Overclock.Presentation
         [SerializeField] private AudioClip moduleEquip;
 
         [Header("런 끝")]
+        [Tooltip("런 실패. 실패 연출 (RunFailView) 이 있으면 동력 차단부터 모터가 멎는 소리로 쓰고 점점 작게 줄인다 · 없으면 마지막 공개 뒤 예약")]
         [SerializeField] private AudioClip runFailed;
         [Tooltip("마지막 공개음이 시작된 뒤 (3연속이 있으면 마지막 소리가 시작된 뒤) (초). 앞 소리가 끝나기를 기다리지 않는다")]
         [SerializeField, Min(0f)] private float runEndDelay = 0.2f;
         [Tooltip("자리만 — 아직 재생 코드 없음")]
         [SerializeField] private AudioClip runCleared;
+        [Tooltip("런 실패 연출 A — 출력이 불안정해질 때 (짧은 모터 버벅임 · 금속 떨림). 비어 있으면 소리 없음")]
+        [SerializeField] private AudioClip runFailStutter;
+        [Tooltip("런 실패 연출 B — 동력 차단 순간 (묵직한 차단기 하나). 비어 있으면 소리 없음")]
+        [SerializeField] private AudioClip runFailBreaker;
+        [Tooltip("런 실패 연출 C 끝 — 기어가 멎으며 걸리는 작은 금속 소리. 비어 있으면 소리 없음")]
+        [SerializeField] private AudioClip runFailClank;
 
         [Header("UI")]
         [Tooltip("일반 버튼 (뽑기 버튼 · 카드 선택은 자기 소리)")]
@@ -105,6 +112,9 @@ namespace Overclock.Presentation
         public AudioClip ModuleEquip => moduleEquip;
         public AudioClip RunFailed => runFailed;
         public float RunEndDelay => runEndDelay;
+        public AudioClip RunFailStutter => runFailStutter;
+        public AudioClip RunFailBreaker => runFailBreaker;
+        public AudioClip RunFailClank => runFailClank;
         public AudioClip UiClick => uiClick;
         public AudioClip UiOpen => uiOpen;
         public float EffectsVolume => effectsVolume;

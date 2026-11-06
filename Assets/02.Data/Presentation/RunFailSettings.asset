@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a29c51548d61d5549856dc3f039df430, type: 3}
+  m_Name: RunFailSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.RunFailSettings
+  maxSettleWait: 1.5
+  unstableSeconds: 0.4
+  strainGearSpeed: 5
+  gearDipDepth: 0.6
+  needleLiftDegrees: 7
+  needleJitterDegrees: 2
+  needleJitterHz: 14
+  flickerBrightness: 0.35
+  cutSeconds: 0.3
+  lightStagger: 0.07
+  lightFadeSeconds: 0.1
+  lightOffBrightness:
+  - 0.5
+  - 0.3
+  sinkPixels: 4
+  sinkSeconds: 0.12
+  leakDelay: 0.08
+  leakScale: 0.6
+  leakSeconds: 0.9
+  coastSeconds: 0.8
+  pistonSagPixels: 5
+  pistonDelay: 0.1
+  pistonSettleSeconds: 0.45
+  pistonRattlePixels: 3
+  needleDelay: 0.15
+  needleDropSeconds: 0.35
+  needleBounceDegrees: 2.5
+  needleBounceSeconds: 0.25
+  bodyDim: 0.7
+  clankAt: 0.72
+  clankGearDegrees: 4
+  clankGearSeconds: 0.06
+  stillSeconds: 0.5

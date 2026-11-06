@@ -8163,6 +8163,79 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &630374673
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 630374674}
+  - component: {fileID: 630374675}
+  m_Layer: 0
+  m_Name: RunFail
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &630374674
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 630374673}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1828357291}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &630374675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 630374673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b00d6ada87a1d047863b406bb40fb70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.RunFailView
+  settings: {fileID: 11400000, guid: 7162da91df26e4e429047be6695dcbf4, type: 2}
+  machine: {fileID: 2012098739}
+  sounds: {fileID: 82820156}
+  harvestTray: {fileID: 1304475578}
+  productionCounter: {fileID: 54879746}
+  mechanicalCounter: {fileID: 173353585}
+  lightStages:
+  - {fileID: 736887354}
+  - {fileID: 1948423767}
+  dimTargets:
+  - {fileID: 1628330445}
+  - {fileID: 2044218150}
+  - {fileID: 1961644874}
+  - {fileID: 60289089}
+  - {fileID: 1738045449}
+  - {fileID: 927420368}
+  - {fileID: 2087808956}
+  - {fileID: 1452691366}
+  - {fileID: 180045473}
+  - {fileID: 732970925}
+  - {fileID: 855490951}
+  - {fileID: 1862914047}
+  - {fileID: 192038111}
+  - {fileID: 473444917}
+  - {fileID: 1114200731}
 --- !u!1 &638366085
 GameObject:
   m_ObjectHideFlags: 0
@@ -14357,6 +14430,7 @@ MonoBehaviour:
   productionCounter: {fileID: 54879746}
   gaugePanel: {fileID: 1496419422}
   runClear: {fileID: 368630503}
+  runFail: {fileID: 630374675}
 --- !u!4 &1153221389
 Transform:
   m_ObjectHideFlags: 0
@@ -26500,6 +26574,7 @@ RectTransform:
   - {fileID: 1041345539}
   - {fileID: 1384175387}
   - {fileID: 368630502}
+  - {fileID: 630374674}
   - {fileID: 1544381317}
   - {fileID: 1740736293}
   m_Father: {fileID: 0}

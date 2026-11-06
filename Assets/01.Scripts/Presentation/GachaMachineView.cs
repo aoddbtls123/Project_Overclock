@@ -64,6 +64,12 @@ namespace Overclock.Presentation
         private float needleJitter;
         private float needleWobble;
         private readonly System.Collections.Generic.List<Tween> clearTweens = new System.Collections.Generic.List<Tween>();
+        // 런 실패 연출 전용 겹 (11/07 · 라인 셧다운). 값은 RunFailView 가 매 프레임 정해 넣고 여기서는 그리기만 한다.
+        // 기본값이면 모습이 그대로다 (기어 속도 배율 1 · 나머지 0). ResetAll 이 되돌린다
+        private float failGearSpeedScale = 1f;
+        private float failNeedleLift;
+        private float failPistonOffset;
+        private float failRootOffsetY;
         private float thudOffset;
         private bool thudEnabled = true;
         private bool leverBottomPending;
@@ -114,7 +120,8 @@ namespace Overclock.Presentation
         private void Update()
         {
             // 기어는 늘 돈다. 열이 오를수록 빨라진다 (처음엔 천천히, 끝에 갈수록 빠르게)
-            float speed = Mathf.Lerp(settings.IdleGearSpeed, settings.HeatGearSpeed, heat * heat);
+            // 런 실패 연출 중에는 속도 배율이 곱해진다 (힘겹게 돌다 동력이 끊기면 감속하며 멎는다 · 0 = 멈춤)
+            float speed = Mathf.Lerp(settings.IdleGearSpeed, settings.HeatGearSpeed, heat * heat) * failGearSpeedScale;
             // 값이 한없이 커지지 않게 되돌린다. 360 × 3600 이면 배율이 소수 둘째 자리까지일 때 되돌리는 순간에도 각도가 튀지 않는다
             gearAngle = Mathf.Repeat(gearAngle + speed * Time.deltaTime, 360f * 3600f);
             AdvanceThud();
@@ -482,6 +489,32 @@ namespace Overclock.Presentation
             needleWobble = 0f;
         }
 
+        /// <summary>
+        /// 런 실패 연출의 자세 (11/07). gearSpeedScale = 기어 속도 배율 (1 평소 · 0 멈춤) · needleLiftDegrees = 바늘이 무출력 자리에서
+        /// 출력 쪽으로 뜬 각도 · pistonSagPixels = 피스톤이 내려간 거리 · bodyOffsetY = 몸통 높이 (흔들림 끄기면 몸통은 제자리).
+        /// 값만 받고 시간은 부르는 쪽 (RunFailView) 이 잰다
+        /// </summary>
+        public void SetFailPose(float gearSpeedScale, float needleLiftDegrees, float pistonSagPixels, float bodyOffsetY)
+        {
+            failGearSpeedScale = Mathf.Max(0f, gearSpeedScale);
+            failNeedleLift = needleLiftDegrees;
+            failPistonOffset = pistonSagPixels;
+            failRootOffsetY = bodyOffsetY;
+            ApplyPose();
+        }
+
+        /// <summary>런 실패 자세를 평소대로 (런을 떠날 때 · 새 런).</summary>
+        public void ClearFailPose()
+        {
+            SetFailPose(1f, 0f, 0f, 0f);
+        }
+
+        /// <summary>약한 잔압 증기 한 번 (런 실패 · 동력 차단 뒤). scale = 작은 증기 대비 크기 배율 · seconds = 증기 시간.</summary>
+        public void PlayLeak(float scale, float seconds)
+        {
+            Puff(0, settings.SmallSteamScale * scale, 0f, Mathf.Max(0.01f, seconds));
+        }
+
         /// <summary>마지막 돌파 증기가 끝나는 시각 (호출 시점부터 · 초). 클리어 연출이 증기보다 먼저 끝나지 않게 쓴다.</summary>
         public float GetBreakthroughSeconds(float timeMultiplier)
         {
@@ -524,6 +557,10 @@ namespace Overclock.Presentation
             KillThud();
             leverAngle = 0f;
             thudOffset = 0f;
+            failGearSpeedScale = 1f;
+            failNeedleLift = 0f;
+            failPistonOffset = 0f;
+            failRootOffsetY = 0f;
             ClearGradeFrame();
             StopReactions();
         }
@@ -720,12 +757,14 @@ namespace Overclock.Presentation
 
             if (piston != null)
             {
-                piston.anchoredPosition = restPistonPosition + new Vector2(0f, -(pistonHeatOffset + pistonKick));
+                piston.anchoredPosition = restPistonPosition + new Vector2(0f, -(pistonHeatOffset + pistonKick + failPistonOffset));
             }
 
             if (needle != null)
             {
-                needle.localEulerAngles = new Vector3(0f, 0f, Mathf.Lerp(settings.NeedleRestAngle, settings.NeedleMaxAngle, needleHeat) + needleJitter + needleWobble);
+                // 실패 연출의 뜬 각도는 무출력 자리에서 출력 쪽으로 (설정의 각도 부호와 관계없이)
+                float failLift = Mathf.Sign(settings.NeedleMaxAngle - settings.NeedleRestAngle) * failNeedleLift;
+                needle.localEulerAngles = new Vector3(0f, 0f, Mathf.Lerp(settings.NeedleRestAngle, settings.NeedleMaxAngle, needleHeat) + needleJitter + needleWobble + failLift);
             }
 
             if (leverHandle != null)
@@ -735,8 +774,8 @@ namespace Overclock.Presentation
 
             if (root != null)
             {
-                // 클리어 몸통 반동 (내려앉음 · 튀어오름 · 세로 눌림) 은 덜컹과 같이 흔들림 설정을 따른다. 끄면 몸통은 제자리 · 부품은 그대로 움직임
-                float bodyOffset = thudEnabled ? clearRootOffsetY : 0f;
+                // 클리어 몸통 반동 (내려앉음 · 튀어오름 · 세로 눌림) · 실패 내려앉음은 덜컹과 같이 흔들림 설정을 따른다. 끄면 몸통은 제자리 · 부품은 그대로 움직임
+                float bodyOffset = thudEnabled ? clearRootOffsetY + failRootOffsetY : 0f;
                 float bodyScaleY = thudEnabled ? clearScaleY : 1f;
                 root.anchoredPosition = restRootPosition + new Vector2(0f, thudOffset + bodyOffset);
                 root.localScale = new Vector3(restRootScale.x, restRootScale.y * bodyScaleY, restRootScale.z);
