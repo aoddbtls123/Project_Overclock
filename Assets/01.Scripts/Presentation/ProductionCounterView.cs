@@ -15,24 +15,34 @@ namespace Overclock.Presentation
         [Tooltip("\"생산량 / 할당량\" 글자")]
         [SerializeField] private TMP_Text valueText;
         [SerializeField] private Slider gauge;
+        [Tooltip("할당량을 넘은 양 \"+n\" 글자 (11/05). 숫자와 같이 세어 올라가고 돌파 뽑기 끝에 등급 색으로 튄다. 비어 있으면 표시 없음")]
+        [SerializeField] private TMP_Text overflowText;
 
         private float shownProduction;
         private int targetProduction;
         private int quota;
         private Color restColor = Color.white;
+        private Color overflowRestColor = Color.white;
+        private Tween overflowTween;
         private Tween rollTween;
         private Tween punchTween;
         private bool counting;
         private Grade countGrade;
 
         /// <summary>세는 중이거나 튀는 중인가.</summary>
-        public bool IsAnimating => rollTween != null || punchTween != null || counting;
+        public bool IsAnimating => rollTween != null || punchTween != null || overflowTween != null || counting;
 
         private void Awake()
         {
             if (valueText != null)
             {
                 restColor = valueText.color;
+            }
+
+            if (overflowText != null)
+            {
+                overflowRestColor = overflowText.color;
+                overflowText.text = "";
             }
         }
 
@@ -132,6 +142,7 @@ namespace Overclock.Presentation
 
         private void Punch(Grade grade)
         {
+            PunchOverflow(grade);
             float peak = settings.GetPunchScale(grade);
             if (peak <= 1f || valueText == null)
             {
@@ -146,6 +157,32 @@ namespace Overclock.Presentation
                     punchTween = null;
                     ResetPunch();
                 });
+        }
+
+        private void PunchOverflow(Grade grade)
+        {
+            // 돌파시킨 부품의 등급 색으로 튄다 (금색은 SR 일 때만). 초과분이 크면 더 크게
+            int overflow = targetProduction - quota;
+            if (overflowText == null || overflow <= 0)
+            {
+                return;
+            }
+
+            overflowText.color = GradeStyle.GetColor(grade);
+            float peak = overflow >= quota * settings.BigOverflowRatio ? settings.BigOverflowPunchScale : settings.OverflowPunchScale;
+            overflowTween = DOTween.To(t => ScaleByBump(overflowText, peak, t), 0f, 1f, settings.PunchSeconds)
+                .OnComplete(() =>
+                {
+                    overflowTween = null;
+                    overflowText.rectTransform.localScale = Vector3.one;
+                });
+        }
+
+        private static void ScaleByBump(TMP_Text text, float peak, float t)
+        {
+            float bump = 1f - Mathf.Abs(2f * t - 1f);
+            float scale = 1f + (peak - 1f) * bump;
+            text.rectTransform.localScale = new Vector3(scale, scale, 1f);
         }
 
         private void ApplyPunch(float peak, float t)
@@ -165,6 +202,10 @@ namespace Overclock.Presentation
 
             valueText.rectTransform.localScale = Vector3.one;
             valueText.color = restColor;
+            if (overflowText != null)
+            {
+                overflowText.rectTransform.localScale = Vector3.one;
+            }
         }
 
         private void SetShown(float value)
@@ -186,6 +227,17 @@ namespace Overclock.Presentation
                 gauge.maxValue = quota;
                 gauge.value = Mathf.Min(shown, quota);
             }
+
+            if (overflowText != null)
+            {
+                // 보이는 숫자가 할당량을 넘은 만큼. 새 라운드 (생산량 0) · 실패 (미달) 면 빈 글자
+                int overflow = shown - quota;
+                overflowText.text = quota > 0 && overflow > 0 ? "+" + overflow : "";
+                if (overflow <= 0)
+                {
+                    overflowText.color = overflowRestColor;
+                }
+            }
         }
 
         private void KillTweens()
@@ -200,8 +252,14 @@ namespace Overclock.Presentation
                 punchTween.Kill();
             }
 
+            if (overflowTween != null && overflowTween.IsActive())
+            {
+                overflowTween.Kill();
+            }
+
             rollTween = null;
             punchTween = null;
+            overflowTween = null;
         }
     }
 }

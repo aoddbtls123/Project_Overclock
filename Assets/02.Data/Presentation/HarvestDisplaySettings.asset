@@ -76,3 +76,6 @@ MonoBehaviour:
   punchScaleR: 1.15
   punchScaleSR: 1.35
   punchSeconds: 0.25
+  overflowPunchScale: 1.4
+  bigOverflowRatio: 0.5
+  bigOverflowPunchScale: 1.8

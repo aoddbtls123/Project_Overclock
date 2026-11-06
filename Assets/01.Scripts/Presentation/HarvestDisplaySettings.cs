@@ -61,6 +61,13 @@ namespace Overclock.Presentation
         [Tooltip("튀었다 돌아오는 시간. 그동안 숫자가 등급 색이다")]
         [SerializeField, Min(0.01f)] private float punchSeconds = 0.25f;
 
+        [Header("할당량 초과분 +n (11/05)")]
+        [Tooltip("돌파 뽑기의 마지막 조각에서 +n 이 튀는 배율")]
+        [SerializeField, Min(1f)] private float overflowPunchScale = 1.4f;
+        [Tooltip("초과분이 할당량의 이 비율 이상이면 더 크게 튄다")]
+        [SerializeField, Min(0f)] private float bigOverflowRatio = 0.5f;
+        [SerializeField, Min(1f)] private float bigOverflowPunchScale = 1.8f;
+
         public int PileColumns => pileColumns;
         public int PileRows => pileRows;
         public float PileColumnSpacing => pileColumnSpacing;
@@ -78,6 +85,9 @@ namespace Overclock.Presentation
         public float DumpDistance => dumpDistance;
         public float DumpSeconds => dumpSeconds;
         public float PunchSeconds => punchSeconds;
+        public float OverflowPunchScale => overflowPunchScale;
+        public float BigOverflowRatio => bigOverflowRatio;
+        public float BigOverflowPunchScale => bigOverflowPunchScale;
 
         public float GetSlotTilt(int index) => Pick(slotTilts, index);
         public float GetSlotOffsetX(int index) => Pick(slotOffsetsX, index);
