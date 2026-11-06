@@ -59,6 +59,8 @@ namespace Overclock.Presentation
         [SerializeField] private ProductionCounterView productionCounter;
         [Tooltip("비어 있으면 확률을 세어 바꾸지 않고 바로 바꾼다 (gaugePanelText 를 직접 씀)")]
         [SerializeField] private GaugePanelView gaugePanel;
+        [Tooltip("일반모드 클리어 마무리 연출 (11/06). 비어 있으면 바로 결과 창")]
+        [SerializeField] private RunClearView runClear;
 
         private RunSaveFile saveFile;
         private BestRecordFile recordFile;
@@ -215,6 +217,14 @@ namespace Overclock.Presentation
                     playtestLog.Skipped(Time.time);
                 }
             }
+            else if (runClear != null && runClear.IsPlaying)
+            {
+                // 클리어 마무리 연출도 같은 스킵 입력으로 넘긴다 (결과 창으로)
+                if (IsSkipPressed(keyboard, mouse))
+                {
+                    runClear.Skip();
+                }
+            }
             else if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame && runManager.State == RunState.Drawing)
             {
                 OnDrawClicked();
@@ -350,6 +360,11 @@ namespace Overclock.Presentation
             // 연출 중에 런을 버리면, 남은 연출이 끝난 뒤 버린 런의 결과와 카드를 띄우지 않게 멈춘다 (Cancel 은 콜백을 부르지 않는다).
             // 버린 런의 소리(SR 충전 · 3연속 · 돌파 · 런 실패 예약)도 같이 멈춘다
             drawReveal.Cancel();
+            if (runClear != null)
+            {
+                runClear.Cancel();
+            }
+
             soundPlayer.StopRunSounds();
             if (gachaMachine != null)
             {
@@ -709,8 +724,22 @@ namespace Overclock.Presentation
                     soundPlayer.PlayRunFailed();
                 }
 
-                resultPanel.Show(RecordText.ResultTitle(runManager.State), RecordText.ResultDetail(session, bestRecords, lastRunNewRecord));
+                if (runManager.State == RunState.RunCleared && runClear != null)
+                {
+                    // 결과 · 기록은 뽑기 때 이미 저장됐다. 마무리 연출 뒤에 결과 창만 늦게 띄운다.
+                    // 소리는 넣지 않는다 (클리어 소리는 소리 연결 때 · 10/29 소리 규칙 그대로)
+                    runClear.Play(settings.RevealTimeMultiplier, ShowRunResult);
+                }
+                else
+                {
+                    ShowRunResult();
+                }
             }
+        }
+
+        private void ShowRunResult()
+        {
+            resultPanel.Show(RecordText.ResultTitle(runManager.State), RecordText.ResultDetail(session, bestRecords, lastRunNewRecord));
         }
 
         private void ShowModuleOffer()

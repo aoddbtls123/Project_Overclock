@@ -324,10 +324,28 @@ namespace Overclock.Presentation
         /// <summary>할당량 돌파 — 긴 증기 배출. 스킵 · 즉시여도 낸다 (10/30 결정: 공개가 아니라 라운드 사건).</summary>
         public void PlayBreakthrough()
         {
+            PlayBreakthrough(1f);
+        }
+
+        /// <summary>
+        /// 돌파 증기. timeMultiplier 가 간격 · 증기 시간에 곱해진다 (클리어 마무리 연출의 빠름 · 11/06).
+        /// 라운드 돌파는 위 PlayBreakthrough() = 배율 1 그대로 (연출 속도와 무관 · 10/30 결정).
+        /// </summary>
+        public void PlayBreakthrough(float timeMultiplier)
+        {
+            float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
             for (int i = 0; i < settings.BreakthroughSteamPuffs; i++)
             {
-                Puff(i, settings.BigSteamScale, i * settings.BreakthroughSteamInterval);
+                Puff(i, settings.BigSteamScale, i * settings.BreakthroughSteamInterval * multiplier, settings.SteamSeconds * multiplier);
             }
+        }
+
+        /// <summary>마지막 돌파 증기가 끝나는 시각 (호출 시점부터 · 초). 클리어 연출이 증기보다 먼저 끝나지 않게 쓴다.</summary>
+        public float GetBreakthroughSeconds(float timeMultiplier)
+        {
+            float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
+            int puffs = settings.BreakthroughSteamPuffs > 1 ? settings.BreakthroughSteamPuffs : 1;
+            return ((puffs - 1) * settings.BreakthroughSteamInterval + settings.SteamSeconds) * multiplier;
         }
 
         /// <summary>
@@ -459,6 +477,11 @@ namespace Overclock.Presentation
 
         private void Puff(int index, float endScale, float delay)
         {
+            Puff(index, endScale, delay, settings.SteamSeconds);
+        }
+
+        private void Puff(int index, float endScale, float delay, float seconds)
+        {
             if (steamPuffs.Length == 0 || steamVents.Length == 0)
             {
                 return;
@@ -480,7 +503,7 @@ namespace Overclock.Presentation
             puffStartPositions[slot] = puffRect.anchoredPosition + new Vector2(SpreadOffset(index / steamVents.Length), 0f);
             HidePuff(slot);
 
-            puffTweens[slot] = DOTween.To(t => ApplyPuff(slot, endScale, t), 0f, 1f, settings.SteamSeconds)
+            puffTweens[slot] = DOTween.To(t => ApplyPuff(slot, endScale, t), 0f, 1f, seconds)
                 .SetDelay(delay)
                 .SetEase(Ease.OutQuad)
                 .OnComplete(() =>

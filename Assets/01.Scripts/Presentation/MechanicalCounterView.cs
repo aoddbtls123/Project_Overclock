@@ -27,6 +27,7 @@ namespace Overclock.Presentation
         private Tween flashTween;
         private bool flashPending;
         private Grade pendingFlashGrade;
+        private bool flashLocked;
         private bool resetting;
         private float resetElapsed;
         private float[] resetStart;
@@ -145,10 +146,10 @@ namespace Overclock.Presentation
             ApplyWheels();
         }
 
-        /// <summary>테두리를 등급 색으로 바꿨다가 돌려놓는다. 바퀴가 아직 도는 중이면 멈춘 뒤에 켠다.</summary>
+        /// <summary>테두리를 등급 색으로 바꿨다가 돌려놓는다. 바퀴가 아직 도는 중이면 멈춘 뒤에 켠다. 잠겨 있으면 (클리어 연출) 무시한다.</summary>
         public void Flash(Grade grade)
         {
-            if (frame == null)
+            if (frame == null || flashLocked)
             {
                 return;
             }
@@ -161,6 +162,26 @@ namespace Overclock.Presentation
             }
 
             StartFlash(grade);
+        }
+
+        /// <summary>
+        /// 바퀴를 기다리지 않고 바로 번쩍인다 (클리어 연출 · 11/06). 기다리던 생산량 번쩍임은 버린다.
+        /// lockOthers = true 면 UnlockFlash 까지 생산량 쪽 Flash 를 받지 않는다 — 마지막 생산량의 등급 색이 금색을 덮지 않게
+        /// </summary>
+        public void FlashNow(Grade grade, bool lockOthers)
+        {
+            flashPending = false;
+            flashLocked = lockOthers;
+            if (frame != null)
+            {
+                StartFlash(grade);
+            }
+        }
+
+        /// <summary>FlashNow 의 잠금을 푼다 (클리어 연출 끝 · 취소).</summary>
+        public void UnlockFlash()
+        {
+            flashLocked = false;
         }
 
         private void StartFlash(Grade grade)
