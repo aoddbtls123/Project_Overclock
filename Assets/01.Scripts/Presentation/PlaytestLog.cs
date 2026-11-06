@@ -79,6 +79,16 @@ namespace Overclock.Presentation
             Write("모듈 R" + clearedRound + " 돌파 → " + module.Id);
         }
 
+        public void OfferRerolled(int clearedRound)
+        {
+            if (!running)
+            {
+                return;
+            }
+
+            Write("다시 받기 R" + clearedRound + " 돌파");
+        }
+
         public void SpeedChanged(RevealSpeed speed)
         {
             Write("연출 속도 " + speed + (running ? " (런 중 #" + drawCount + ")" : ""));

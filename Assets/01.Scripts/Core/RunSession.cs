@@ -17,6 +17,7 @@ namespace Overclock.Core
 
         private readonly RandomService randomService;
         private List<ModuleData> openOffer;
+        private bool offerRerolled;
 
         private RunSession(uint seed, RunMode mode, RandomService randomService, GachaEngine gachaEngine, RunManager runManager, ModuleOffer moduleOffer)
         {
@@ -36,6 +37,12 @@ namespace Overclock.Core
 
         /// <summary>열려 있는 제안 카드. 없으면 빈 목록.</summary>
         public IReadOnlyList<ModuleData> CurrentOffer => openOffer ?? (IReadOnlyList<ModuleData>)Array.Empty<ModuleData>();
+
+        /// <summary>열린 제안을 다시 받을 수 있는가. 돌파마다 1번 · 대가 없음 (11/06).</summary>
+        public bool CanRerollOffer => openOffer != null && !offerRerolled;
+
+        /// <summary>열린 제안을 이미 다시 받았는가. 모듈을 고르면 false 로 돌아간다.</summary>
+        public bool OfferRerolled => offerRerolled;
 
         public static RunSession Create(uint seed, IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules)
         {
@@ -81,6 +88,27 @@ namespace Overclock.Core
         }
 
         /// <summary>
+        /// 열린 제안을 버리고 새 카드를 받는다. 돌파마다 1번. 규칙은 처음 제안과 같다 (축이 겹치지 않음 · 같은 조합이 다시 나올 수 있음).
+        /// 공유 난수를 쓰므로 부른 뒤에는 저장해야 한다 — 저장하지 않고 껐다 켜면 처음 카드로 돌아가 다시 받을 수 있게 된다.
+        /// </summary>
+        public IReadOnlyList<ModuleData> RerollOffer()
+        {
+            if (openOffer == null)
+            {
+                throw new InvalidOperationException("열린 제안이 없습니다.");
+            }
+
+            if (offerRerolled)
+            {
+                throw new InvalidOperationException("이번 돌파에서 이미 다시 받았습니다.");
+            }
+
+            openOffer = ModuleOffer.CreateOffer();
+            offerRerolled = true;
+            return openOffer;
+        }
+
+        /// <summary>
         /// 열린 제안에서 고른 모듈을 장착하고 다음 라운드로 넘어간다.
         /// </summary>
         public void SelectModule(ModuleData module)
@@ -99,6 +127,7 @@ namespace Overclock.Core
             RunManager.EquipModule(module);
             RunManager.AdvanceRound();
             openOffer = null;
+            offerRerolled = false;
         }
 
         public RunSaveData CaptureSaveData()
@@ -122,6 +151,7 @@ namespace Overclock.Core
                 roundPartIds = RunManager.RoundPartsComplete ? ToIds(RunManager.RoundParts) : new string[0],
                 equippedModuleIds = ToIds(RunManager.EquippedModules),
                 offeredModuleIds = ToIds(CurrentOffer),
+                offerRerolled = offerRerolled,
             };
         }
 
@@ -184,6 +214,11 @@ namespace Overclock.Core
                 }
 
                 session.openOffer = offer;
+                session.offerRerolled = data.offerRerolled;
+            }
+            else if (data.offerRerolled)
+            {
+                throw new ArgumentException("제안 카드가 없는데 다시 받았다고 저장되어 있습니다.", nameof(data));
             }
 
             return session;

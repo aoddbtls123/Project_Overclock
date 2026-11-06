@@ -29,5 +29,7 @@ namespace Overclock.Core
         public string[] roundPartIds = new string[0];
         public string[] equippedModuleIds = new string[0];
         public string[] offeredModuleIds = new string[0];
+        // 열린 제안을 이미 다시 받았는가 (돌파마다 1번 · 11/06). 추가 전 세이브에는 없음 → false (= 아직 안 받음)
+        public bool offerRerolled;
     }
 }

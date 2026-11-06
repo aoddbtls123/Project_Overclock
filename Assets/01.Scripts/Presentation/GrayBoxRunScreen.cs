@@ -28,6 +28,9 @@ namespace Overclock.Presentation
         [SerializeField] private DrawRevealView drawReveal;
         [SerializeField] private GameObject moduleSelectPanel;
         [SerializeField] private ModuleCardView[] moduleCards;
+        [Tooltip("카드 3장 다시 받기 (돌파마다 1번 · 11/06). 비어 있으면 다시 받기 없이 진행한다")]
+        [SerializeField] private Button rerollButton;
+        [SerializeField] private TMP_Text rerollLabel;
         [SerializeField] private GameObject titlePanel;
         [SerializeField] private Button startButton;
         [SerializeField] private Button titleQuitButton;
@@ -94,6 +97,12 @@ namespace Overclock.Presentation
             }
 
             overclockButton.onClick.AddListener(OnOverclockClicked);
+            if (rerollButton != null)
+            {
+                // 새 카드가 나오면 카드 출현 소리를 낸다 (받아들여졌을 때만). 클릭 소리는 따로 내지 않는다
+                rerollButton.onClick.AddListener(OnRerollClicked);
+            }
+
             startButton.onClick.AddListener(WithOpenSound(ShowModeSelect).Invoke);
             titleSettingsButton.onClick.AddListener(WithOpenSound(ShowSettings).Invoke);
             titleQuitButton.onClick.AddListener(WithClickSound(QuitGame).Invoke);
@@ -713,6 +722,11 @@ namespace Overclock.Presentation
             // 기계 패널은 카드 영역 밖에서 오버레이 위에 그려지므로 고르는 동안에도 팝업을 쓸 수 있다
             moduleSelectPanel.SetActive(true);
             soundPlayer.PlayCardAppear();
+            ShowOfferCards(offer, nextQuota);
+        }
+
+        private void ShowOfferCards(IReadOnlyList<ModuleData> offer, int nextQuota)
+        {
             for (int i = 0; i < moduleCards.Length; i++)
             {
                 if (i < offer.Count)
@@ -725,6 +739,38 @@ namespace Overclock.Presentation
                     moduleCards[i].Hide();
                 }
             }
+
+            RefreshRerollButton();
+        }
+
+        private void RefreshRerollButton()
+        {
+            if (rerollButton == null)
+            {
+                return;
+            }
+
+            bool canReroll = session != null && session.CanRerollOffer;
+            rerollButton.interactable = canReroll;
+            if (rerollLabel != null)
+            {
+                rerollLabel.text = canReroll ? "카드 다시 받기 (1회)" : "다시 받기 사용함";
+            }
+        }
+
+        private void OnRerollClicked()
+        {
+            if (!IsRunInputAllowed() || runManager.State != RunState.RoundCleared || !session.CanRerollOffer)
+            {
+                return;
+            }
+
+            // 공유 난수를 썼으므로 바로 저장한다. 저장하지 않고 껐다 켜면 처음 카드로 돌아가 다시 받을 수 있게 된다
+            IReadOnlyList<ModuleData> offer = session.RerollOffer();
+            playtestLog.OfferRerolled(runManager.CurrentRound);
+            SaveRun();
+            soundPlayer.PlayCardAppear();
+            ShowOfferCards(offer, RunManager.QuotaFor(runManager.CurrentRound + 1));
         }
 
         private void OnModuleSelected(ModuleData module)
