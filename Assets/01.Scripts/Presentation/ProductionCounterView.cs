@@ -17,6 +17,8 @@ namespace Overclock.Presentation
         [SerializeField] private Slider gauge;
         [Tooltip("할당량을 넘은 양 \"+n\" 글자 (11/05). 숫자와 같이 세어 올라가고 돌파 뽑기 끝에 등급 색으로 튄다. 비어 있으면 표시 없음")]
         [SerializeField] private TMP_Text overflowText;
+        [Tooltip("기계 몸통의 계수기 창 (11/06). 보이는 생산량을 자리 바퀴로 굴린다. 비어 있으면 표시 없음")]
+        [SerializeField] private MechanicalCounterView mechanicalCounter;
 
         private float shownProduction;
         private int targetProduction;
@@ -66,6 +68,11 @@ namespace Overclock.Presentation
             shownProduction = production;
             ResetPunch();
             Apply();
+            // 0 으로 돌아가는 중인 계수기 바퀴 (새 라운드) 는 끊지 않는다. 그 밖에는 바로 맞춘다
+            if (mechanicalCounter != null)
+            {
+                mechanicalCounter.CompleteFollow();
+            }
         }
 
         /// <summary>
@@ -128,23 +135,34 @@ namespace Overclock.Presentation
         /// <summary>세는 중 · 튀는 중이면 바로 최종 값 · 평소 모습으로 (다음 뽑기 시작 · 런 이탈).</summary>
         public void CompleteNow()
         {
-            if (!IsAnimating)
+            if (IsAnimating)
             {
-                return;
+                KillTweens();
+                counting = false;
+                shownProduction = targetProduction;
+                ResetPunch();
+                Apply();
             }
 
-            KillTweens();
-            counting = false;
-            shownProduction = targetProduction;
-            ResetPunch();
-            Apply();
+            // 숫자 세기가 끝났어도 바퀴는 아직 따라가는 중일 수 있다
+            SnapMechanicalCounter();
         }
 
         private void Punch(Grade grade)
         {
             PunchOverflow(grade);
             float peak = settings.GetPunchScale(grade);
-            if (peak <= 1f || valueText == null)
+            if (peak <= 1f)
+            {
+                return;
+            }
+
+            if (mechanicalCounter != null)
+            {
+                mechanicalCounter.Flash(grade);
+            }
+
+            if (valueText == null)
             {
                 return;
             }
@@ -237,6 +255,20 @@ namespace Overclock.Presentation
                 {
                     overflowText.color = overflowRestColor;
                 }
+            }
+
+            if (mechanicalCounter != null)
+            {
+                // 반올림 전 값을 넘긴다 — 롤업 중에는 바퀴가 자리 사이에서 굴러간다
+                mechanicalCounter.SetTarget(shownProduction);
+            }
+        }
+
+        private void SnapMechanicalCounter()
+        {
+            if (mechanicalCounter != null)
+            {
+                mechanicalCounter.CompleteNow();
             }
         }
 

@@ -68,6 +68,16 @@ namespace Overclock.Presentation
         [SerializeField, Min(0f)] private float bigOverflowRatio = 0.5f;
         [SerializeField, Min(1f)] private float bigOverflowPunchScale = 1.8f;
 
+        [Header("기계식 카운터 창 (11/06)")]
+        [Tooltip("바퀴가 보이는 생산량을 따라가는 빠르기 (시간 상수 · 초). 남은 거리가 이 시간마다 약 37% 로 줄어든다 — 0.06 이면 한 칸이 약 0.28초에 멈춘다. 조각마다 1씩 오를 때도 바퀴가 끊기지 않고 굴러가게 한다")]
+        [SerializeField, Min(0.01f)] private float counterFollowSeconds = 0.06f;
+        [Tooltip("생산량이 0 으로 돌아갈 때 (새 라운드 · 새 런) 바퀴가 앞으로 돌아 0000 에 멈추는 시간. 일의 자리가 가장 늦게 멈춘다")]
+        [SerializeField, Min(0.01f)] private float counterResetSeconds = 0.7f;
+        [Tooltip("0 으로 돌아갈 때 바퀴마다 더 도는 바퀴 수 (0 이면 가장 가까운 0 까지만)")]
+        [SerializeField, Min(0)] private int counterResetTurns = 1;
+        [Tooltip("윗자리가 먼저 멈추는 정도 (0 = 다 같이 · 0.4 = 천의 자리가 시간의 60% 에서 멈춤)")]
+        [SerializeField, Range(0f, 0.9f)] private float counterResetStagger = 0.4f;
+
         public int PileColumns => pileColumns;
         public int PileRows => pileRows;
         public float PileColumnSpacing => pileColumnSpacing;
@@ -88,6 +98,10 @@ namespace Overclock.Presentation
         public float OverflowPunchScale => overflowPunchScale;
         public float BigOverflowRatio => bigOverflowRatio;
         public float BigOverflowPunchScale => bigOverflowPunchScale;
+        public float CounterFollowSeconds => counterFollowSeconds;
+        public float CounterResetSeconds => counterResetSeconds;
+        public int CounterResetTurns => counterResetTurns;
+        public float CounterResetStagger => counterResetStagger;
 
         public float GetSlotTilt(int index) => Pick(slotTilts, index);
         public float GetSlotOffsetX(int index) => Pick(slotOffsetsX, index);

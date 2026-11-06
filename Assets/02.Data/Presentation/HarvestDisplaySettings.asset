@@ -79,3 +79,7 @@ MonoBehaviour:
   overflowPunchScale: 1.4
   bigOverflowRatio: 0.5
   bigOverflowPunchScale: 1.8
+  counterFollowSeconds: 0.06
+  counterResetSeconds: 0.7
+  counterResetTurns: 1
+  counterResetStagger: 0.4
