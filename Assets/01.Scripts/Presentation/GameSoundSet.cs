@@ -63,6 +63,16 @@ namespace Overclock.Presentation
         [Tooltip("걸림 소리 크기 (효과음 음량에 곱한다)")]
         [SerializeField, Range(0f, 1f)] private float offerLatchVolume = 0.6f;
 
+        [Header("런 시작 등장 (11/07 · 새 런만 · 즉시 · 스킵이면 없음)")]
+        [Tooltip("첫 패널이 출발할 때 한 번 — 레일 마찰음 '촤르륵'. 마지막 패널이 부딪히는 순간에 줄여 멈춘다. 비어 있으면 소리 없음")]
+        [SerializeField] private AudioClip runIntroSlide;
+        [Tooltip("레일 소리 크기 (효과음 음량에 곱한다)")]
+        [SerializeField, Range(0f, 1f)] private float runIntroVolume = 0.7f;
+        [Tooltip("패널마다 최종 자리에 부딪히는 순간 — '덜컥'. 비어 있으면 소리 없음")]
+        [SerializeField] private AudioClip runIntroArrival;
+        [Tooltip("도착음 크기 (효과음 음량에 곱한다). 앞 도착음과 겹치면 RunIntroSettings 의 배율로 더 줄인다")]
+        [SerializeField, Range(0f, 1f)] private float runIntroArrivalVolume = 0.5f;
+
         [Header("런 끝")]
         [Tooltip("런 실패. 실패 연출 (RunFailView) 이 있으면 동력 차단부터 모터가 멎는 소리로 쓰고 점점 작게 줄인다 · 없으면 마지막 공개 뒤 예약")]
         [SerializeField] private AudioClip runFailed;
@@ -116,6 +126,10 @@ namespace Overclock.Presentation
         public AudioClip ModuleEquip => moduleEquip;
         public AudioClip OfferLatch => offerLatch;
         public float OfferLatchVolume => offerLatchVolume;
+        public AudioClip RunIntroSlide => runIntroSlide;
+        public float RunIntroVolume => runIntroVolume;
+        public AudioClip RunIntroArrival => runIntroArrival;
+        public float RunIntroArrivalVolume => runIntroArrivalVolume;
         public AudioClip RunFailed => runFailed;
         public float RunEndDelay => runEndDelay;
         public AudioClip RunFailStutter => runFailStutter;

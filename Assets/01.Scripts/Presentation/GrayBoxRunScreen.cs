@@ -36,6 +36,8 @@ namespace Overclock.Presentation
         [SerializeField] private Color rerollUsedLabelColor = new Color(0.6627451f, 0.6901961f, 0.7294118f, 1f);
         [Tooltip("다시 받기 카드 회전 (11/07). 비어 있으면 돌지 않고 바로 새 카드를 보여 준다")]
         [SerializeField] private OfferFlipView offerFlip;
+        [Tooltip("새 런 시작 등장 연출 (11/07 · 정보 패널이 펼쳐진다). 비어 있으면 바로 최종 화면")]
+        [SerializeField] private RunIntroView runIntro;
         [SerializeField] private GameObject titlePanel;
         [SerializeField] private Button startButton;
         [SerializeField] private Button titleQuitButton;
@@ -87,6 +89,7 @@ namespace Overclock.Presentation
         private bool ignoreDrawButtonClick;
         private bool ignoreCardClick;
         private int offerFlipEndFrame = -1;
+        private int introEndFrame = -1;
         private int resultShownFrame = -1;
         private int resumeFrame;
         private readonly PlaytestLog playtestLog = new PlaytestLog();
@@ -243,6 +246,14 @@ namespace Overclock.Presentation
                     runFail.Skip();
                 }
             }
+            else if (IsIntroPlaying)
+            {
+                // 런 시작 등장도 같은 스킵 입력으로 넘긴다 (모든 패널을 최종 모습으로). 이 입력으로 뽑기까지 하지 않는다
+                if (IsSkipPressed(keyboard, mouse))
+                {
+                    runIntro.Skip();
+                }
+            }
             else if (IsOfferFlipping)
             {
                 // 다시 받기 회전도 같은 스킵 입력으로 넘긴다 (이미 확정된 새 카드를 바로 정면으로)
@@ -268,7 +279,7 @@ namespace Overclock.Presentation
             // 연출 중에 시작된 누름은 공개 뒤에 떼도 뽑기가 되지 않게 한다. 다음 누름이 시작되면 다시 판단한다
             if (mouse.leftButton.wasPressedThisFrame)
             {
-                ignoreDrawButtonClick = drawReveal.IsPlaying;
+                ignoreDrawButtonClick = drawReveal.IsPlaying || IsIntroPlaying;
 
                 // 카드 회전 중에 시작된 누름도 같다. 회전이 끝난 뒤에 떼도 새 카드를 고르지 않는다
                 ignoreCardClick = IsOfferFlipping;
@@ -318,6 +329,8 @@ namespace Overclock.Presentation
 
         private bool IsOfferFlipping => offerFlip != null && offerFlip.IsPlaying;
 
+        private bool IsIntroPlaying => runIntro != null && runIntro.IsPlaying;
+
         private bool CanPause()
         {
             // 런 화면에서만 연다 (결과 창이 떠 있어도 런 화면이다). 타이틀로 갈 때는 런을 버리므로(runManager = null) 타이틀 · 모드 선택에서는 열리지 않는다
@@ -340,7 +353,9 @@ namespace Overclock.Presentation
             // 슬라이더를 키보드로 바꿨거나 놓는 순간을 놓쳤어도 창을 닫을 때 저장한다
             SaveVolumeIfDirty();
             pauseMenu.Close();
-            machinePanel.SetInteractable(true);
+
+            // 등장 연출 중에 멈췄다 이으면 기계 패널은 등장이 끝날 때 연다
+            machinePanel.SetInteractable(!IsIntroPlaying);
             Time.timeScale = 1f;
             soundPlayer.SetPaused(false);
             resumeFrame = Time.frameCount;
@@ -394,6 +409,12 @@ namespace Overclock.Presentation
             if (runClear != null)
             {
                 runClear.Cancel();
+            }
+
+            // 등장 중이던 패널은 최종 자리 · 다 열린 모습으로 (다음 시작에 가린 채 남지 않게) · 등장 소리만 멈춘다
+            if (runIntro != null)
+            {
+                runIntro.Cancel();
             }
 
             // 돌던 카드도 콜백 없이 멈추고 정면 자세로 되돌린다 (다음 카드 표시 때 각도 · 앞뒷면이 남지 않게)
@@ -519,6 +540,12 @@ namespace Overclock.Presentation
             if (runFail != null)
             {
                 runFail.SetMotionOptions(settings.ShakeEnabled, settings.FlashEnabled);
+            }
+
+            // 흔들림 끄기 = 런 시작 패널은 들어오기만 하고 지나침 · 되돌아옴 없음
+            if (runIntro != null)
+            {
+                runIntro.SetMotionOptions(settings.ShakeEnabled);
             }
 
             soundPlayer.ApplyVolumes(settings);
@@ -651,7 +678,26 @@ namespace Overclock.Presentation
                 gaugePanel.CompleteNow();
             }
 
+            // 새 런만 등장 연출. 이어하기는 최종 화면 그대로 (StopReveal 이 이미 최종 모습으로 맞췄다).
+            // 값은 아래 Refresh 가 실제 시작 상태로 바로 넣는다 (0 부터 세어 올리지 않는다)
+            if (runIntro != null && !continued)
+            {
+                // 런을 시작한 클릭 · 제출 (버튼을 뗀 순간) 이 같은 프레임에 등장 스킵으로 잡히지 않게 한다
+                revealStartFrame = Time.frameCount;
+                machinePanel.SetInteractable(false);
+                runIntro.Play(settings.RevealTimeMultiplier, OnIntroFinished);
+            }
+
             Refresh();
+        }
+
+        private void OnIntroFinished()
+        {
+            // 준비 끝 — 기존 조건대로 입력을 연다. 이 프레임의 입력 (스킵한 클릭 · Space) 은 뽑기 · 오버클럭에 쓰지 않는다
+            introEndFrame = Time.frameCount;
+            machinePanel.SetInteractable(!pauseMenu.IsOpen);
+            drawButton.interactable = runManager.State == RunState.Drawing;
+            RefreshOverclock();
         }
 
         private void OnDrawButtonClicked()
@@ -673,6 +719,11 @@ namespace Overclock.Presentation
                 return;
             }
 
+            if (IsIntroPlaying || Time.frameCount <= introEndFrame)
+            {
+                return;
+            }
+
             soundPlayer.PlayUiClick();
             runManager.ActivateOverclock();
             playtestLog.OverclockActivated(runManager, runManager.RoundParts.Count);
@@ -688,6 +739,12 @@ namespace Overclock.Presentation
         {
             // 연출 중에도 State 는 Drawing 이다. 막지 않으면 공개 전에 다음 뽑기가 실행된다
             if (runManager == null || drawReveal.IsPlaying || runManager.State != RunState.Drawing)
+            {
+                return;
+            }
+
+            // 등장 연출 중 · 등장이 끝난 프레임에는 뽑지 않는다 (버튼은 꺼 두지만 Space 와 씬 배치가 바뀐 경우까지)
+            if (IsIntroPlaying || Time.frameCount <= introEndFrame)
             {
                 return;
             }
@@ -981,7 +1038,7 @@ namespace Overclock.Presentation
             drawsText.text = "남은 뽑기 " + runManager.DrawsRemaining;
             ShowGauge();
 
-            drawButton.interactable = state == RunState.Drawing;
+            drawButton.interactable = state == RunState.Drawing && !IsIntroPlaying;
             RefreshOverclock();
 
             if (state == RunState.RunFailed)
@@ -1047,7 +1104,7 @@ namespace Overclock.Presentation
 
         private void RefreshOverclock()
         {
-            overclockButton.interactable = runManager.CanActivateOverclock && !drawReveal.IsPlaying;
+            overclockButton.interactable = runManager.CanActivateOverclock && !drawReveal.IsPlaying && !IsIntroPlaying;
             if (runManager.OverclockDrawsLeft > 0)
             {
                 overclockLabel.text = "오버클럭 가동 중\n" + runManager.OverclockDrawsLeft + "회 남음";

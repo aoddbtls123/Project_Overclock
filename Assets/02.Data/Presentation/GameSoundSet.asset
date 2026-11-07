@@ -45,6 +45,10 @@ MonoBehaviour:
   moduleEquip: {fileID: 8300000, guid: 0bed14581d108bc4eb420ac86776b2aa, type: 3}
   offerLatch: {fileID: 8300000, guid: 1a5e2ed469eb62545a222e32be7fd8b6, type: 3}
   offerLatchVolume: 0.6
+  runIntroSlide: {fileID: 8300000, guid: 645d81534c937d948a76b1668a5ae439, type: 3}
+  runIntroVolume: 0.7
+  runIntroArrival: {fileID: 8300000, guid: f7fde4d11f47af742a4762cd63980a4b, type: 3}
+  runIntroArrivalVolume: 0.5
   runFailed: {fileID: 8300000, guid: 46180df7594a07341a8e328fac88c0d5, type: 3}
   runEndDelay: 0.2
   runCleared: {fileID: 0}

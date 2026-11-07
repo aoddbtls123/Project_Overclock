@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72f70f9a753da5d49a7091a7e1ba9bf3, type: 3}
+  m_Name: RunIntroSettings
+  m_EditorClassIdentifier: Assembly-CSharp::Overclock.Presentation.RunIntroSettings
+  firstDelaySeconds: 0.08
+  staggerSeconds: 0.14
+  travelSeconds: 0.65
+  pullTimeFraction: 0.45
+  pullDistanceFraction: 0.12
+  overshootSeconds: 0.08
+  settleSeconds: 0.16
+  offscreenMargin: 16
+  clearanceMargin: 4
+  guideFadeSeconds: 0.2
+  slideSoundFadeSeconds: 0.12
+  arrivalOverlapSeconds: 0.3
+  arrivalOverlapVolume: 0.7

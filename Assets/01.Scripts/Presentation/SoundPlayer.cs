@@ -24,6 +24,9 @@ namespace Overclock.Presentation
         private AudioSource previewSource;
         private AudioSource failSource;
         private AudioSource failMotorSource;
+        private AudioSource introSource;
+        private AudioSource introSlideSource;
+        private float introSlideVolumeScale = 1f;
         private float failMotorVolumeScale = 1f;
         private float clock;
         private float lastPieceLandTime = float.NegativeInfinity;
@@ -46,6 +49,8 @@ namespace Overclock.Presentation
             previewSource = CreateSource(true);
             failSource = CreateSource(false);
             failMotorSource = CreateSource(false);
+            introSource = CreateSource(false);
+            introSlideSource = CreateSource(false);
             ApplySourceVolumes();
         }
 
@@ -370,6 +375,56 @@ namespace Overclock.Presentation
             PlayEffect(soundSet.ModuleEquip);
         }
 
+        public void StartRunIntroSlide()
+        {
+            // 런 시작 등장 전용 소스 2개 (11/07): 레일 소리 (클립이 연출보다 길어 크기를 줄이다 마지막 도착에 멈춘다) · 도착음.
+            // 스킵 · 취소 때 이 둘만 멈춘다 (다른 효과음 · 예약은 그대로)
+            introSlideVolumeScale = 1f;
+            if (!CanPlay || soundSet.RunIntroSlide == null || introSlideSource == null)
+            {
+                return;
+            }
+
+            introSlideSource.Stop();
+            introSlideSource.clip = soundSet.RunIntroSlide;
+            ApplySourceVolumes();
+            introSlideSource.Play();
+        }
+
+        /// <summary>슬라이드 소리 크기 배율 (1 → 0). 등장이 끝나기 직전에 줄여 걸림 소리 전에 사라지게 한다.</summary>
+        public void SetRunIntroSlideVolumeScale(float scale)
+        {
+            introSlideVolumeScale = Mathf.Clamp01(scale);
+            ApplySourceVolumes();
+        }
+
+        public void StopRunIntroSlide()
+        {
+            if (introSlideSource != null)
+            {
+                introSlideSource.Stop();
+            }
+        }
+
+        /// <summary>패널이 최종 자리에 부딪히는 '덜컥'. scale = 앞 도착음과 겹칠 때 줄이는 배율.</summary>
+        public void PlayRunIntroArrival(float scale)
+        {
+            if (CanPlay && soundSet.RunIntroArrival != null && introSource != null)
+            {
+                introSource.PlayOneShot(soundSet.RunIntroArrival, soundSet.RunIntroArrivalVolume * Mathf.Clamp01(scale));
+            }
+        }
+
+        public void StopRunIntroSounds()
+        {
+            // 씬을 내릴 때 RunIntroView.OnDisable 이 부를 수 있다. 소스가 이미 없으면 할 일이 없다
+            StopRunIntroSlide();
+            if (introSource != null)
+            {
+                introSource.Stop();
+            }
+        }
+
         public void PlayOfferLatch()
         {
             // 다시 받기 회전 끝 (자연히 · 스킵 · 즉시). 예약하지 않고 바로 낸다 — 런 이탈로 회전이 취소되면 부르지 않는다
@@ -486,6 +541,8 @@ namespace Overclock.Presentation
             previewSource.volume = previewChannel == SoundChannel.Effects ? effectsVolume : uiVolume;
             failSource.volume = effectsVolume;
             failMotorSource.volume = effectsVolume * (soundSet != null ? soundSet.EffectsVolume : 1f) * failMotorVolumeScale;
+            introSource.volume = effectsVolume * (soundSet != null ? soundSet.EffectsVolume : 1f);
+            introSlideSource.volume = effectsVolume * (soundSet != null ? soundSet.EffectsVolume * soundSet.RunIntroVolume : 1f) * introSlideVolumeScale;
         }
 
         private AudioSource CreateSource(bool ignoreListenerPause)
