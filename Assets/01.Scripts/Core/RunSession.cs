@@ -130,6 +130,19 @@ namespace Overclock.Core
             offerRerolled = false;
         }
 
+        // 하네스 전용: 열린 제안에서 아무것도 고르지 않고 다음 라운드로 넘어간다 (화면에는 이 길이 없다)
+        internal void DeclineOffer()
+        {
+            if (openOffer == null)
+            {
+                throw new InvalidOperationException("열린 제안이 없습니다.");
+            }
+
+            RunManager.AdvanceRound();
+            openOffer = null;
+            offerRerolled = false;
+        }
+
         public RunSaveData CaptureSaveData()
         {
             return new RunSaveData
