@@ -24,6 +24,14 @@ MonoBehaviour:
   superRareReveal:
   - {fileID: 8300000, guid: c9fcec9673df21b46ae058e7bbc5c7b1, type: 3}
   superRareCharge: {fileID: 8300000, guid: 04c53051c34aaad4a89677f89a9d690b, type: 3}
+  ratchetStop: {fileID: 0}
+  trayLand: {fileID: 0}
+  pieceLand: {fileID: 0}
+  pieceLandInterval: 0.03
+  shutterClose: {fileID: 0}
+  shutterOpen: {fileID: 0}
+  shutterOpenSuperRare: {fileID: 0}
+  ratchetTick: {fileID: 0}
   streakHits:
   - {fileID: 8300000, guid: 1a5e2ed469eb62545a222e32be7fd8b6, type: 3}
   - {fileID: 8300000, guid: 1a5e2ed469eb62545a222e32be7fd8b6, type: 3}
@@ -35,9 +43,14 @@ MonoBehaviour:
   cardAppear: {fileID: 8300000, guid: 1017b4fc3e751134cbd18b70c45e1529, type: 3}
   cardAppearDelay: 0.35
   moduleEquip: {fileID: 8300000, guid: 0bed14581d108bc4eb420ac86776b2aa, type: 3}
+  offerLatch: {fileID: 8300000, guid: 1a5e2ed469eb62545a222e32be7fd8b6, type: 3}
+  offerLatchVolume: 0.6
   runFailed: {fileID: 8300000, guid: 46180df7594a07341a8e328fac88c0d5, type: 3}
   runEndDelay: 0.2
   runCleared: {fileID: 0}
+  runFailStutter: {fileID: 0}
+  runFailBreaker: {fileID: 0}
+  runFailClank: {fileID: 0}
   uiClick: {fileID: 8300000, guid: 9f77b8aa9cfcd1f48975951459963b32, type: 3}
   uiOpen: {fileID: 8300000, guid: 5a7c56ebc906c564795dfc68c3d8e2ba, type: 3}
   effectsVolume: 1

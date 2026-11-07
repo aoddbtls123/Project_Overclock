@@ -58,6 +58,10 @@ namespace Overclock.Presentation
         [SerializeField, Min(0f)] private float cardAppearDelay = 0.35f;
         [Tooltip("카드를 골라 장착할 때")]
         [SerializeField] private AudioClip moduleEquip;
+        [Tooltip("다시 받기 회전이 끝나 카드가 정면에 멎을 때 (작은 금속 걸림 · 세 장이 멎을 때 한 번). 비어 있으면 소리 없음")]
+        [SerializeField] private AudioClip offerLatch;
+        [Tooltip("걸림 소리 크기 (효과음 음량에 곱한다)")]
+        [SerializeField, Range(0f, 1f)] private float offerLatchVolume = 0.6f;
 
         [Header("런 끝")]
         [Tooltip("런 실패. 실패 연출 (RunFailView) 이 있으면 동력 차단부터 모터가 멎는 소리로 쓰고 점점 작게 줄인다 · 없으면 마지막 공개 뒤 예약")]
@@ -110,6 +114,8 @@ namespace Overclock.Presentation
         public AudioClip CardAppear => cardAppear;
         public float CardAppearDelay => cardAppearDelay;
         public AudioClip ModuleEquip => moduleEquip;
+        public AudioClip OfferLatch => offerLatch;
+        public float OfferLatchVolume => offerLatchVolume;
         public AudioClip RunFailed => runFailed;
         public float RunEndDelay => runEndDelay;
         public AudioClip RunFailStutter => runFailStutter;

@@ -31,6 +31,11 @@ namespace Overclock.Presentation
         [Tooltip("카드 3장 다시 받기 (돌파마다 1번 · 11/06). 비어 있으면 다시 받기 없이 진행한다")]
         [SerializeField] private Button rerollButton;
         [SerializeField] private TMP_Text rerollLabel;
+        [Tooltip("다시 받기 글자색 — 쓸 수 있을 때 / 쓴 뒤 (버튼은 꺼진 색으로 어두워지고, 글자는 읽히게 조금만 낮춘다)")]
+        [SerializeField] private Color rerollReadyLabelColor = new Color(0.9098039f, 0.91764706f, 0.92941177f, 1f);
+        [SerializeField] private Color rerollUsedLabelColor = new Color(0.6627451f, 0.6901961f, 0.7294118f, 1f);
+        [Tooltip("다시 받기 카드 회전 (11/07). 비어 있으면 돌지 않고 바로 새 카드를 보여 준다")]
+        [SerializeField] private OfferFlipView offerFlip;
         [SerializeField] private GameObject titlePanel;
         [SerializeField] private Button startButton;
         [SerializeField] private Button titleQuitButton;
@@ -80,6 +85,8 @@ namespace Overclock.Presentation
         private int revealStartFrame;
         private DrawResult lastDrawResult;
         private bool ignoreDrawButtonClick;
+        private bool ignoreCardClick;
+        private int offerFlipEndFrame = -1;
         private int resultShownFrame = -1;
         private int resumeFrame;
         private readonly PlaytestLog playtestLog = new PlaytestLog();
@@ -236,6 +243,14 @@ namespace Overclock.Presentation
                     runFail.Skip();
                 }
             }
+            else if (IsOfferFlipping)
+            {
+                // 다시 받기 회전도 같은 스킵 입력으로 넘긴다 (이미 확정된 새 카드를 바로 정면으로)
+                if (IsSkipPressed(keyboard, mouse))
+                {
+                    offerFlip.Skip();
+                }
+            }
             else if (keyboard != null && keyboard.spaceKey.wasPressedThisFrame && runManager.State == RunState.Drawing)
             {
                 OnDrawClicked();
@@ -254,6 +269,9 @@ namespace Overclock.Presentation
             if (mouse.leftButton.wasPressedThisFrame)
             {
                 ignoreDrawButtonClick = drawReveal.IsPlaying;
+
+                // 카드 회전 중에 시작된 누름도 같다. 회전이 끝난 뒤에 떼도 새 카드를 고르지 않는다
+                ignoreCardClick = IsOfferFlipping;
             }
         }
 
@@ -297,6 +315,8 @@ namespace Overclock.Presentation
             // 모드 선택 화면에는 런이 없고(runManager = null), 일시정지 중에는 창이 열려 있다
             return runManager != null && !pauseMenu.IsOpen;
         }
+
+        private bool IsOfferFlipping => offerFlip != null && offerFlip.IsPlaying;
 
         private bool CanPause()
         {
@@ -374,6 +394,12 @@ namespace Overclock.Presentation
             if (runClear != null)
             {
                 runClear.Cancel();
+            }
+
+            // 돌던 카드도 콜백 없이 멈추고 정면 자세로 되돌린다 (다음 카드 표시 때 각도 · 앞뒷면이 남지 않게)
+            if (offerFlip != null)
+            {
+                offerFlip.Cancel();
             }
 
             // 실패 연출 · 결과 창 뒤에 남은 멎은 모습 (어두운 색 · 멈춘 기어 · 내려앉은 몸통) 도 되돌린다
@@ -797,20 +823,33 @@ namespace Overclock.Presentation
 
         private void ShowOfferCards(IReadOnlyList<ModuleData> offer, int nextQuota)
         {
+            // 돌다가 패널이 꺼졌던 회전이 남아 있으면 먼저 정리한다 (뒤늦게 옛 내용을 덮어쓰지 않게)
+            if (offerFlip != null)
+            {
+                offerFlip.Cancel();
+            }
+
             for (int i = 0; i < moduleCards.Length; i++)
             {
-                if (i < offer.Count)
-                {
-                    ModulePreview preview = runManager.PreviewModule(offer[i]);
-                    moduleCards[i].Show(offer[i], ModulePreviewFormatter.Format(preview, parts, nextQuota), OnModuleSelected);
-                }
-                else
-                {
-                    moduleCards[i].Hide();
-                }
+                moduleCards[i].ResetFlip();
+                moduleCards[i].SetSelectable(true);
+                CreateCardContent(moduleCards[i], offer, i, nextQuota)();
             }
 
             RefreshRerollButton();
+        }
+
+        private Action CreateCardContent(ModuleCardView card, IReadOnlyList<ModuleData> offer, int index, int nextQuota)
+        {
+            if (index >= offer.Count)
+            {
+                return card.Hide;
+            }
+
+            // 미리보기 문구는 지금 만든다 (회전이 끝날 때 계산하지 않는다). PreviewModule 은 복제본으로만 계산해 상태 · 난수가 그대로다
+            ModuleData module = offer[index];
+            string preview = ModulePreviewFormatter.Format(runManager.PreviewModule(module), parts, nextQuota);
+            return () => card.Show(module, preview, OnModuleSelected);
         }
 
         private void RefreshRerollButton()
@@ -821,31 +860,78 @@ namespace Overclock.Presentation
             }
 
             bool canReroll = session != null && session.CanRerollOffer;
-            rerollButton.interactable = canReroll;
+            rerollButton.interactable = canReroll && !IsOfferFlipping;
             if (rerollLabel != null)
             {
+                // 글자 크기는 씬에서 고정 (28 · 자동 크기 끔). 두 문구가 같은 크기로 보이게 여기서는 글자 · 색만 바꾼다
                 rerollLabel.text = canReroll ? "카드 다시 받기 (1회)" : "다시 받기 사용함";
+                rerollLabel.color = canReroll ? rerollReadyLabelColor : rerollUsedLabelColor;
             }
         }
 
         private void OnRerollClicked()
         {
-            if (!IsRunInputAllowed() || runManager.State != RunState.RoundCleared || !session.CanRerollOffer)
+            if (!IsRunInputAllowed() || IsOfferFlipping || runManager.State != RunState.RoundCleared || !session.CanRerollOffer)
             {
                 return;
             }
 
-            // 공유 난수를 썼으므로 바로 저장한다. 저장하지 않고 껐다 켜면 처음 카드로 돌아가 다시 받을 수 있게 된다
+            // 공유 난수를 썼으므로 바로 저장한다. 저장하지 않고 껐다 켜면 처음 카드로 돌아가 다시 받을 수 있게 된다.
+            // 새 제안은 여기서 한 번만 정한다. 회전 · 스킵 · 일시정지는 화면만 늦추므로 다시 뽑거나 난수를 더 쓰지 않는다
             IReadOnlyList<ModuleData> offer = session.RerollOffer();
             playtestLog.OfferRerolled(runManager.CurrentRound);
             SaveRun();
-            soundPlayer.PlayCardAppear();
-            ShowOfferCards(offer, RunManager.QuotaFor(runManager.CurrentRound + 1));
+            int nextQuota = RunManager.QuotaFor(runManager.CurrentRound + 1);
+            if (offerFlip == null)
+            {
+                soundPlayer.PlayCardAppear();
+                ShowOfferCards(offer, nextQuota);
+                return;
+            }
+
+            // 누른 입력 (버튼을 뗀 순간) 이 같은 프레임에 회전 스킵으로 잡히지 않게 한다
+            revealStartFrame = Time.frameCount;
+            // 카드 선택 잠금은 OfferFlipView 가 건다 (Play) · 푼다 (끝 · 스킵 · 취소 · 꺼짐 복구)
+            Action[] showNewContent = new Action[moduleCards.Length];
+            for (int i = 0; i < moduleCards.Length; i++)
+            {
+                showNewContent[i] = CreateCardContent(moduleCards[i], offer, i, nextQuota);
+            }
+
+            // 다시 받기는 이미 썼다 — 글자는 바로 '사용함' (크기는 같음), 버튼은 꺼짐
+            RefreshRerollButton();
+            offerFlip.Play(moduleCards, showNewContent, settings.RevealTimeMultiplier, OnOfferFlipFinished);
+        }
+
+        private void OnOfferFlipFinished()
+        {
+            // 세 장이 모두 정면에 멎은 뒤에만 고를 수 있다 (선택 버튼은 OfferFlipView 가 이미 켰다).
+            // 이 프레임의 입력 (스킵한 클릭) 은 카드 선택으로 쓰지 않는다
+            offerFlipEndFrame = Time.frameCount;
+            RefreshRerollButton();
+
+            // 걸림 소리는 정면에 멎을 때만 (자연히 끝남 · 즉시). 스킵은 남은 연출 소리를 내지 않는다
+            if (!offerFlip.LastFinishSkipped)
+            {
+                soundPlayer.PlayOfferLatch();
+            }
         }
 
         private void OnModuleSelected(ModuleData module)
         {
             if (!IsRunInputAllowed() || runManager.State != RunState.RoundCleared)
+            {
+                return;
+            }
+
+            // 버튼을 꺼 두지만, 씬 배치 · 키보드 제출이 바뀌어도 회전 중 · 회전이 끝난 프레임에는 고르지 않게 코드에서도 막는다
+            if (IsOfferFlipping || Time.frameCount <= offerFlipEndFrame)
+            {
+                return;
+            }
+
+            Mouse mouse = Mouse.current;
+            if (ignoreCardClick && mouse != null && mouse.leftButton.wasReleasedThisFrame)
             {
                 return;
             }

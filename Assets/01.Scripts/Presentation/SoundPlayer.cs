@@ -370,6 +370,15 @@ namespace Overclock.Presentation
             PlayEffect(soundSet.ModuleEquip);
         }
 
+        public void PlayOfferLatch()
+        {
+            // 다시 받기 회전 끝 (자연히 · 스킵 · 즉시). 예약하지 않고 바로 낸다 — 런 이탈로 회전이 취소되면 부르지 않는다
+            if (CanPlay && soundSet.OfferLatch != null)
+            {
+                effectsSource.PlayOneShot(soundSet.OfferLatch, soundSet.EffectsVolume * soundSet.OfferLatchVolume);
+            }
+        }
+
         public void PlayUiClick()
         {
             if (CanPlay)
