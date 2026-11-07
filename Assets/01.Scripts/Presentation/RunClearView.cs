@@ -140,7 +140,8 @@ namespace Overclock.Presentation
             float elapsed = 0f;
             // 이번 반복에서 시간이 흘렀는가. 일시정지 (deltaTime 0) 중에는 밀린 증기도 새로 내지 않는다 (교차검토 #41)
             bool timeMoved = true;
-            while (true)
+            // 스킵은 반복을 시작할 때 본다. 스킵한 프레임에 시간이 분출 · 증기음 시각을 넘어도 그 효과를 새로 내지 않는다 (교차검토 #43)
+            while (!skipRequested)
             {
                 if (elapsed < charge)
                 {
@@ -195,7 +196,7 @@ namespace Overclock.Presentation
 
                 SetBannerScale(bannerShown ? Mathf.Clamp01((elapsed - bannerAt) / bannerPop) : 0f);
                 bool steamDone = burstsDone >= settings.SteamBursts && elapsed >= lastSteamEnd;
-                if ((elapsed >= total && steamDone) || skipRequested)
+                if (elapsed >= total && steamDone)
                 {
                     break;
                 }
