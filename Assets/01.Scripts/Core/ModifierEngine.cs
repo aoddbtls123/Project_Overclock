@@ -104,22 +104,33 @@ namespace Overclock.Core
         /// <summary>오버클럭 중 생산량. N 은 0 (고정 · 연속 보너스 포함), R · SR 은 배수 증가분 +1 (×8 상한 안).</summary>
         public int CalculateOverclockedOutput(PartData part, bool streakTriggered)
         {
+            return CalculateOverclockedOutput(part, streakTriggered, OverclockMultiplierBonus);
+        }
+
+        /// <summary>배수 증가분을 바꾼 오버클럭 생산량 (상점 과급기 · 11/08). N 은 그대로 0.</summary>
+        public int CalculateOverclockedOutput(PartData part, bool streakTriggered, double multiplierBonus)
+        {
             if (part == null)
             {
                 throw new ArgumentNullException(nameof(part));
             }
 
-            return CalculateOverclockedOutput(part.Grade, part.Tag, part.BaseOutput, streakTriggered);
+            return CalculateOverclockedOutput(part.Grade, part.Tag, part.BaseOutput, streakTriggered, multiplierBonus);
         }
 
         internal int CalculateOverclockedOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered)
+        {
+            return CalculateOverclockedOutput(grade, tag, baseOutput, streakTriggered, OverclockMultiplierBonus);
+        }
+
+        internal int CalculateOverclockedOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered, double multiplierBonus)
         {
             if (grade == Grade.N)
             {
                 return 0;
             }
 
-            return CalculateOutput(grade, tag, baseOutput, streakTriggered, OverclockMultiplierBonus);
+            return CalculateOutput(grade, tag, baseOutput, streakTriggered, multiplierBonus);
         }
 
         internal int CalculateOutput(Grade grade, PartTag tag, int baseOutput, bool streakTriggered)

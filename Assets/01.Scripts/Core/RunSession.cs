@@ -15,16 +15,19 @@ namespace Overclock.Core
         private const double BaseR = 0.25;
         private const double BaseSR = 0.03;
 
-        private const int CoolerOverclockUses = 2;
+        // 과급기: 오버클럭 중 R · SR 배수 증가분 +1 → +2 (11/08 사용자)
+        private const double SuperchargedOverclockBonus = 2.0;
 
         private readonly RandomService randomService;
         private readonly ShopSettings shop;
         private List<ModuleData> openOffer;
         private bool offerRerolled;
         private bool shopOpen;
-        private bool hasCooler;
-        private int reserveRerolls;
+        private bool hasSupercharger;
+        private int spareCards;
+        private bool wideOffer;
         private bool decomposedThisVisit;
+        private List<ModuleData> replacementOffer;
 
         private RunSession(uint seed, RunMode mode, RandomService randomService, GachaEngine gachaEngine, RunManager runManager, ModuleOffer moduleOffer, ShopSettings shop)
         {
@@ -54,10 +57,10 @@ namespace Overclock.Core
         /// <summary>열려 있는 제안 카드. 없으면 빈 목록.</summary>
         public IReadOnlyList<ModuleData> CurrentOffer => openOffer ?? (IReadOnlyList<ModuleData>)Array.Empty<ModuleData>();
 
-        /// <summary>열린 제안을 다시 받을 수 있는가. 돌파마다 무료 1번 (11/06) + 예비 다시 받기 (상점) 보유 수만큼.</summary>
-        public bool CanRerollOffer => openOffer != null && (!offerRerolled || reserveRerolls > 0);
+        /// <summary>열린 제안을 다시 받을 수 있는가. 돌파마다 1번 · 대가 없음 (11/06).</summary>
+        public bool CanRerollOffer => openOffer != null && !offerRerolled;
 
-        /// <summary>열린 제안에서 무료 다시 받기를 이미 썼는가. 모듈을 고르면 false 로 돌아간다.</summary>
+        /// <summary>열린 제안을 이미 다시 받았는가. 모듈을 고르면 false 로 돌아간다.</summary>
         public bool OfferRerolled => offerRerolled;
 
         /// <summary>이 세션에 상점이 있는가 (ShopSettings 를 넘겨 만들었는가).</summary>
@@ -67,9 +70,18 @@ namespace Overclock.Core
         public bool IsShopOpen => shopOpen;
 
         public IReadOnlyList<ShopItemData> ShopItems => shop != null ? shop.Items : Array.Empty<ShopItemData>();
-        public bool HasCooler => hasCooler;
-        public int ReserveRerolls => reserveRerolls;
+        public bool HasSupercharger => hasSupercharger;
+
+        /// <summary>가진 예비 카드 수. 다음 제안을 열 때 1개를 써서 카드 4장으로 연다.</summary>
+        public int SpareCards => spareCards;
+
+        /// <summary>열린 제안이 예비 카드로 연 4장짜리인가 (다시 받아도 4장).</summary>
+        public bool IsWideOffer => wideOffer;
         public bool DecomposedThisVisit => decomposedThisVisit;
+
+        /// <summary>분해 뒤 고를 대체 제안. 고르기 전에는 상점에서 다른 일을 할 수 없다.</summary>
+        public IReadOnlyList<ModuleData> ReplacementOffer => replacementOffer ?? (IReadOnlyList<ModuleData>)Array.Empty<ModuleData>();
+        public bool IsChoosingReplacement => replacementOffer != null;
 
         public static RunSession Create(uint seed, IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules)
         {
@@ -104,6 +116,7 @@ namespace Overclock.Core
 
         /// <summary>
         /// 돌파했을 때 제안 카드를 연다. 이미 열려 있으면 같은 카드를 돌려준다 (난수를 더 쓰지 않는다).
+        /// 예비 카드가 있으면 1개를 써서 4장 (축마다 하나) 으로 연다.
         /// </summary>
         public IReadOnlyList<ModuleData> OpenOffer()
         {
@@ -121,14 +134,22 @@ namespace Overclock.Core
             // 다시 뽑으면 공유 난수를 더 소비해 같은 시드의 판이 달라진다. 세이브 후 다시 열어도 카드가 바뀌면 안 된다
             if (openOffer == null)
             {
-                openOffer = ModuleOffer.CreateOffer();
+                wideOffer = spareCards > 0;
+                if (wideOffer)
+                {
+                    spareCards--;
+                }
+
+                openOffer = ModuleOffer.CreateOffer(CurrentOfferSize);
             }
 
             return openOffer;
         }
 
+        private int CurrentOfferSize => wideOffer ? ModuleOffer.WideOfferSize : ModuleOffer.OfferSize;
+
         /// <summary>
-        /// 열린 제안을 버리고 새 카드를 받는다. 무료 1번을 먼저 쓰고, 그다음부터 예비 다시 받기를 1개씩 쓴다. 규칙은 처음 제안과 같다 (축이 겹치지 않음 · 같은 조합이 다시 나올 수 있음).
+        /// 열린 제안을 버리고 새 카드를 받는다. 돌파마다 1번. 규칙 · 장수는 처음 제안과 같다 (축이 겹치지 않음 · 같은 조합이 다시 나올 수 있음).
         /// 공유 난수를 쓰므로 부른 뒤에는 저장해야 한다 — 저장하지 않고 껐다 켜면 처음 카드로 돌아가 다시 받을 수 있게 된다.
         /// </summary>
         public IReadOnlyList<ModuleData> RerollOffer()
@@ -138,21 +159,13 @@ namespace Overclock.Core
                 throw new InvalidOperationException("열린 제안이 없습니다.");
             }
 
-            if (offerRerolled && reserveRerolls == 0)
+            if (offerRerolled)
             {
                 throw new InvalidOperationException("이번 돌파에서 이미 다시 받았습니다.");
             }
 
-            openOffer = ModuleOffer.CreateOffer();
-            if (!offerRerolled)
-            {
-                offerRerolled = true;
-            }
-            else
-            {
-                reserveRerolls--;
-            }
-
+            openOffer = ModuleOffer.CreateOffer(CurrentOfferSize);
+            offerRerolled = true;
             return openOffer;
         }
 
@@ -187,11 +200,12 @@ namespace Overclock.Core
             CloseOfferAndContinue();
         }
 
-        // 짝수 라운드 돌파 (일반 R2 · R4 · R6 · 무한은 계속) 면 다음 라운드 전에 상점을 연다. 상점에서 바꾼 것 (분해 · 냉각기) 이 다음 라운드부터 바로 적용된다
+        // 짝수 라운드 돌파 (일반 R2 · R4 · R6 · 무한은 계속) 면 다음 라운드 전에 상점을 연다. 상점에서 바꾼 것 (분해 · 과급기) 이 다음 라운드부터 바로 적용된다
         private void CloseOfferAndContinue()
         {
             openOffer = null;
             offerRerolled = false;
+            wideOffer = false;
             if (shop != null && RunManager.CurrentRound % 2 == 0)
             {
                 shopOpen = true;
@@ -205,6 +219,7 @@ namespace Overclock.Core
         public void LeaveShop()
         {
             RequireShopOpen();
+            RequireNoReplacement();
             // 닫힌 상점의 분해 기록이 남으면 그 뒤 세이브를 Restore 가 거부한다
             shopOpen = false;
             decomposedThisVisit = false;
@@ -216,8 +231,8 @@ namespace Overclock.Core
             RequireShopItem(item);
             switch (item.Effect)
             {
-                case ShopItemEffect.Cooler:
-                    if (hasCooler)
+                case ShopItemEffect.Supercharger:
+                    if (hasSupercharger)
                     {
                         return ShopItemStatus.SoldOut;
                     }
@@ -240,10 +255,11 @@ namespace Overclock.Core
             return Wallet.CanAfford(item.Price) ? ShopItemStatus.Available : ShopItemStatus.NotEnoughCredits;
         }
 
-        /// <summary>냉각기 · 예비 다시 받기를 산다 (모듈 분해는 DecomposeModule). 난수를 쓰지 않는다. 산 뒤에는 저장해야 한다.</summary>
+        /// <summary>과급기 · 예비 카드를 산다 (모듈 분해는 DecomposeModule). 난수를 쓰지 않는다. 산 뒤에는 저장해야 한다.</summary>
         public void BuyItem(ShopItemData item)
         {
             RequireShopOpen();
+            RequireNoReplacement();
             RequireShopItem(item);
             if (item.Effect == ShopItemEffect.Decompose)
             {
@@ -252,21 +268,25 @@ namespace Overclock.Core
 
             RequireAvailable(item);
             Wallet.TrySpend(item.Price);
-            if (item.Effect == ShopItemEffect.Cooler)
+            if (item.Effect == ShopItemEffect.Supercharger)
             {
-                hasCooler = true;
-                RunManager.SetOverclockUsesPerRound(CoolerOverclockUses);
+                hasSupercharger = true;
+                RunManager.SetOverclockMultiplierBonus(SuperchargedOverclockBonus);
             }
             else
             {
-                reserveRerolls++;
+                spareCards++;
             }
         }
 
-        /// <summary>장착 모듈 하나를 빼고 환급받는다 (가격을 내고 환급액을 받음). 방문마다 1번. 난수를 쓰지 않는다. 산 뒤에는 저장해야 한다.</summary>
+        /// <summary>
+        /// 장착 모듈 하나를 빼고 환급받은 뒤 (가격을 내고 환급액을 받음) 바로 대체 제안 3장을 연다 (SelectReplacement 로 1개 장착). 방문마다 1번.
+        /// 대체 제안은 제안 카드와 같은 공유 난수를 쓴다 → 부른 뒤에는 저장해야 한다.
+        /// </summary>
         public ModuleData DecomposeModule(int equippedIndex)
         {
             RequireShopOpen();
+            RequireNoReplacement();
             ShopItemData item = FindShopItem(ShopItemEffect.Decompose);
             if (item == null)
             {
@@ -283,7 +303,33 @@ namespace Overclock.Core
             ModuleData removed = RunManager.RemoveModule(equippedIndex);
             Wallet.Earn(item.Refund);
             decomposedThisVisit = true;
+            replacementOffer = ModuleOffer.CreateOffer();
             return removed;
+        }
+
+        /// <summary>분해 뒤 대체 제안에서 고른 모듈을 장착한다.</summary>
+        public void SelectReplacement(ModuleData module)
+        {
+            if (replacementOffer == null)
+            {
+                throw new InvalidOperationException("대체 제안이 없습니다.");
+            }
+
+            if (!replacementOffer.Contains(module))
+            {
+                throw new ArgumentException("대체 제안에 없는 모듈입니다.", nameof(module));
+            }
+
+            RunManager.EquipModule(module);
+            replacementOffer = null;
+        }
+
+        private void RequireNoReplacement()
+        {
+            if (replacementOffer != null)
+            {
+                throw new InvalidOperationException("대체 모듈을 먼저 고른다.");
+            }
         }
 
         public ShopItemData FindShopItem(ShopItemEffect effect)
@@ -364,9 +410,11 @@ namespace Overclock.Core
                 offerRerolled = offerRerolled,
                 credits = Wallet.Balance,
                 shopOpen = shopOpen,
-                hasCooler = hasCooler,
-                reserveRerolls = reserveRerolls,
+                hasSupercharger = hasSupercharger,
+                spareCards = spareCards,
+                wideOffer = wideOffer,
                 decomposedThisVisit = decomposedThisVisit,
+                replacementModuleIds = ToIds(ReplacementOffer),
             };
         }
 
@@ -430,7 +478,7 @@ namespace Overclock.Core
                     throw new ArgumentException("돌파 상태가 아닌데 제안 카드가 저장되어 있습니다: " + data.state, nameof(data));
                 }
 
-                if (!session.ModuleOffer.IsPossibleOffer(offer))
+                if (!session.ModuleOffer.IsPossibleOffer(offer, data.wideOffer ? ModuleOffer.WideOfferSize : ModuleOffer.OfferSize))
                 {
                     throw new ArgumentException("제안 카드 조합이 규칙에 맞지 않습니다: " + string.Join(",", data.offeredModuleIds), nameof(data));
                 }
@@ -438,14 +486,26 @@ namespace Overclock.Core
                 session.openOffer = offer;
                 session.offerRerolled = data.offerRerolled;
             }
-            else if (data.offerRerolled)
+            else if (data.offerRerolled || data.wideOffer)
             {
-                throw new ArgumentException("제안 카드가 없는데 다시 받았다고 저장되어 있습니다.", nameof(data));
+                throw new ArgumentException("제안 카드가 없는데 다시 받았다 / 4장이라고 저장되어 있습니다.", nameof(data));
             }
 
+            session.wideOffer = data.wideOffer;
             if (data.shopOpen && offer.Count > 0)
             {
                 throw new ArgumentException("상점이 열렸는데 제안 카드가 저장되어 있습니다.", nameof(data));
+            }
+
+            List<ModuleData> replacement = FindAll(data.replacementModuleIds, modulesById);
+            if (replacement.Count > 0)
+            {
+                if (!data.shopOpen || !data.decomposedThisVisit || !session.ModuleOffer.IsPossibleOffer(replacement))
+                {
+                    throw new ArgumentException("분해하지 않았는데 대체 제안이 있거나 조합이 규칙에 맞지 않습니다.", nameof(data));
+                }
+
+                session.replacementOffer = replacement;
             }
 
             return session;
@@ -467,17 +527,18 @@ namespace Overclock.Core
             return data.overclockUseCount == 0 && data.overclockUsed ? 1 : data.overclockUseCount;
         }
 
-        // RestoreProgress 다음 · RestoreOverclock 전에 부른다 (냉각기가 오버클럭 한도를 정한다). 게임이 만들 수 있는 값만 받는다
+        // RestoreProgress 다음에 부른다. 게임이 만들 수 있는 값만 받는다
         private static void RestoreShop(RunSession session, RunSaveData data)
         {
-            if (data.credits < 0 || data.reserveRerolls < 0)
+            if (data.credits < 0 || data.spareCards < 0)
             {
-                throw new ArgumentException("크레딧 · 예비 다시 받기가 음수입니다: " + data.credits + " / " + data.reserveRerolls, nameof(data));
+                throw new ArgumentException("크레딧 · 예비 카드가 음수입니다: " + data.credits + " / " + data.spareCards, nameof(data));
             }
 
             if (session.shop == null)
             {
-                if (data.credits != 0 || data.shopOpen || data.hasCooler || data.reserveRerolls != 0 || data.decomposedThisVisit)
+                bool hasReplacement = data.replacementModuleIds != null && data.replacementModuleIds.Length > 0;
+                if (data.credits != 0 || data.shopOpen || data.hasSupercharger || data.spareCards != 0 || data.wideOffer || data.decomposedThisVisit || hasReplacement)
                 {
                     throw new ArgumentException("상점이 없는 세션에 상점 값이 저장되어 있습니다.", nameof(data));
                 }
@@ -485,9 +546,9 @@ namespace Overclock.Core
                 return;
             }
 
-            if (data.hasCooler && session.FindShopItem(ShopItemEffect.Cooler) == null)
+            if (data.hasSupercharger && session.FindShopItem(ShopItemEffect.Supercharger) == null)
             {
-                throw new ArgumentException("냉각기를 파는 상점이 아닌데 냉각기가 있습니다.", nameof(data));
+                throw new ArgumentException("과급기를 파는 상점이 아닌데 과급기가 있습니다.", nameof(data));
             }
 
             RunManager runManager = session.RunManager;
@@ -504,11 +565,11 @@ namespace Overclock.Core
             session.Wallet.Restore(data.credits);
             session.shopOpen = data.shopOpen;
             session.decomposedThisVisit = data.decomposedThisVisit;
-            session.reserveRerolls = data.reserveRerolls;
-            session.hasCooler = data.hasCooler;
-            if (data.hasCooler)
+            session.spareCards = data.spareCards;
+            session.hasSupercharger = data.hasSupercharger;
+            if (data.hasSupercharger)
             {
-                runManager.SetOverclockUsesPerRound(CoolerOverclockUses);
+                runManager.SetOverclockMultiplierBonus(SuperchargedOverclockBonus);
             }
         }
 

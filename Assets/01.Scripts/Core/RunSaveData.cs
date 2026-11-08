@@ -22,7 +22,7 @@ namespace Overclock.Core
         public int streakCount;
         // 오버클럭 추가 전 세이브에는 없는 값 → false / 0 (= 이번 라운드 안 켬) 으로 읽힌다
         public bool overclockUsed;
-        // 이번 라운드에 켠 횟수 (냉각기 · 11/08). 추가 전 세이브에는 없음 → 0 · overclockUsed 가 true 면 1회로 읽는다
+        // 이번 라운드에 켠 횟수 (0 또는 1 · 11/08). 추가 전 세이브에는 없음 → 0 · overclockUsed 가 true 면 1회로 읽는다
         public int overclockUseCount;
         public int overclockDrawsLeft;
         // 이번 라운드에 뽑은 부품 id (뽑은 순서 · 수확물 더미 복원용) 와, 그 목록이 라운드 처음부터 빠짐없는지.
@@ -36,8 +36,12 @@ namespace Overclock.Core
         // 상점 (11/08). 추가 전 세이브 · 상점 없는 세션은 전부 0 / false
         public int credits;
         public bool shopOpen;
-        public bool hasCooler;
-        public int reserveRerolls;
+        public bool hasSupercharger;
+        public int spareCards;
+        // 열린 제안이 예비 카드로 연 4장짜리인가
+        public bool wideOffer;
         public bool decomposedThisVisit;
+        // 분해 뒤 아직 고르지 않은 대체 제안
+        public string[] replacementModuleIds = new string[0];
     }
 }

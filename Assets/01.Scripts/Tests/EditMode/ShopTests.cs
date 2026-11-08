@@ -7,13 +7,13 @@ using UnityEngine;
 
 namespace Overclock.Tests
 {
-    // 상점 · 화폐 최소판 (11/08): 돌파마다 기본급 + 초과분 1:1 · 짝수 라운드 모듈 선택 뒤 상점 · 품목 3 (냉각기 · 예비 다시 받기 · 모듈 분해) · 난수 미사용.
+    // 상점 · 화폐 최소판 (11/08): 돌파마다 기본급 + 초과분 1:1 · 짝수 라운드 모듈 선택 뒤 상점 · 품목 3 (과급기 · 예비 카드 · 모듈 분해 + 대체 제안) · 안 사면 난수 미사용.
     // 기대값은 기획 숫자 리터럴로 쓴다 (할당량 R1 8 · R2 12 · R3 17 · R4 24 · R5 35 · R6 51 · R7 74 · R8 108)
     public class ShopTests
     {
         private const int Wage = 5;
-        private const int CoolerPrice = 20;
-        private const int ReservePrice = 4;
+        private const int SuperchargerPrice = 20;
+        private const int SparePrice = 4;
         private const int DecomposePrice = 3;
         private const int DecomposeRefund = 10;
 
@@ -26,8 +26,8 @@ namespace Overclock.Tests
         private PartData[] mixedParts;
         private ModuleData[] realModules;
         private ShopSettings shop;
-        private ShopItemData cooler;
-        private ShopItemData reserve;
+        private ShopItemData supercharger;
+        private ShopItemData spare;
         private ShopItemData decompose;
 
         [SetUp]
@@ -65,11 +65,11 @@ namespace Overclock.Tests
                 CreateModule("carry", ModuleAxis.Draws, ModifierType.CarryOverDraws, 5f),
             };
 
-            cooler = CreateItem("cooler", ShopItemKind.Part, ShopItemEffect.Cooler, CoolerPrice, 0);
-            reserve = CreateItem("reserve_reroll", ShopItemKind.Service, ShopItemEffect.ReserveReroll, ReservePrice, 0);
+            supercharger = CreateItem("supercharger", ShopItemKind.Part, ShopItemEffect.Supercharger, SuperchargerPrice, 0);
+            spare = CreateItem("spare_card", ShopItemKind.Service, ShopItemEffect.SpareCard, SparePrice, 0);
             decompose = CreateItem("decompose", ShopItemKind.Service, ShopItemEffect.Decompose, DecomposePrice, DecomposeRefund);
             shop = ScriptableObject.CreateInstance<ShopSettings>();
-            shop.InitializeForTests(Wage, cooler, reserve, decompose);
+            shop.InitializeForTests(Wage, supercharger, spare, decompose);
             createdObjects.Add(shop);
         }
 
@@ -228,107 +228,100 @@ namespace Overclock.Tests
         // ── 품목 ──
 
         [Test]
-        public void Cooler_AllowsSecondOverclockOnlyAfterFirstEnds()
+        public void Supercharger_RaisesOverclockMultiplierBonusToTwo()
         {
-            RunManager run = CreateFixedGradeRun(1.0, 0.0, 0.0, 20, out _);
-            run.SetOverclockUsesPerRound(2);
-            run.ActivateOverclock();
-            Assert.IsFalse(run.CanActivateOverclock, "걸려 있는 동안은 겹쳐 켜지 않음");
-            run.Draw();
-            run.Draw();
-            Assert.IsFalse(run.CanActivateOverclock);
-            run.Draw();
-            Assert.AreEqual(0, run.OverclockDrawsLeft);
-            Assert.IsTrue(run.CanActivateOverclock, "첫 번째 3회가 끝난 뒤 두 번째");
-            run.ActivateOverclock();
-            Assert.AreEqual(3, run.OverclockDrawsLeft, "늘리지 않고 새로 3회");
-            Assert.AreEqual(2, run.OverclockUseCount);
-            run.Draw();
-            run.Draw();
-            run.Draw();
-            Assert.IsFalse(run.CanActivateOverclock, "라운드당 2번까지");
-            Assert.Throws<InvalidOperationException>(() => run.ActivateOverclock());
+            RunManager rare = CreateFixedGradeRun(0.0, 1.0, 0.0, 10, out _, 3);
+            rare.SetOverclockMultiplierBonus(2.0);
+            rare.ActivateOverclock();
+            Assert.AreEqual(9, rare.Draw().Output, "3 × (1 + 2)");
+            Assert.IsFalse(rare.CanActivateOverclock, "라운드당 1번은 그대로");
+
+            RunManager normal = CreateFixedGradeRun(1.0, 0.0, 0.0, 10, out _, 3);
+            normal.SetOverclockMultiplierBonus(2.0);
+            normal.ActivateOverclock();
+            Assert.AreEqual(0, normal.Draw().Output, "N 은 그대로 0");
+
+            var engine = new ModifierEngine(0.72, 0.25, 0.03);
+            engine.Equip(CreateModule("big", ModuleAxis.Multiplier, ModifierType.OutputMultiplier, 7f));
+            Assert.AreEqual(24, engine.CalculateOverclockedOutput(CreatePart("r3", Grade.R, 3), false, 2.0), "3 × min(1 + 7 + 2, 8)");
+            Assert.Throws<ArgumentOutOfRangeException>(() => rare.SetOverclockMultiplierBonus(0.5));
         }
 
         [Test]
-        public void WithoutCooler_OnlyOneOverclockPerRound()
-        {
-            RunManager run = CreateFixedGradeRun(1.0, 0.0, 0.0, 20, out _);
-            run.ActivateOverclock();
-            run.Draw();
-            run.Draw();
-            run.Draw();
-            Assert.IsFalse(run.CanActivateOverclock);
-            Assert.AreEqual(1, run.OverclockUseCount);
-        }
-
-        [Test]
-        public void Cooler_BoughtOnceThenSoldOut_LastsForRestOfRun()
+        public void Supercharger_BoughtOnceThenSoldOut_LastsForRestOfRun()
         {
             RunSession session = OpenShopWithCredits(4, out _);
             Assert.AreEqual(47, session.Wallet.Balance, "(전제) R4 상점 크레딧");
-            Assert.AreEqual(ShopItemStatus.Available, session.GetItemStatus(cooler));
-            session.BuyItem(cooler);
-            Assert.AreEqual(47 - CoolerPrice, session.Wallet.Balance);
-            Assert.IsTrue(session.HasCooler);
-            Assert.AreEqual(ShopItemStatus.SoldOut, session.GetItemStatus(cooler));
-            Assert.Throws<InvalidOperationException>(() => session.BuyItem(cooler));
+            Assert.AreEqual(1.0, session.RunManager.OverclockMultiplierBonus, "(전제) 기본 +1");
+            Assert.AreEqual(ShopItemStatus.Available, session.GetItemStatus(supercharger));
+            session.BuyItem(supercharger);
+            Assert.AreEqual(47 - SuperchargerPrice, session.Wallet.Balance);
+            Assert.IsTrue(session.HasSupercharger);
+            Assert.AreEqual(ShopItemStatus.SoldOut, session.GetItemStatus(supercharger));
+            Assert.Throws<InvalidOperationException>(() => session.BuyItem(supercharger));
 
             session.LeaveShop();
-            Assert.AreEqual(2, session.RunManager.OverclockUsesPerRound, "다음 라운드부터 바로");
+            Assert.AreEqual(2.0, session.RunManager.OverclockMultiplierBonus, "다음 라운드부터 바로");
             DrawUntilNotDrawing(session);
             session.OpenOffer();
             session.SelectModule(session.CurrentOffer[0]);
-            Assert.AreEqual(2, session.RunManager.OverclockUsesPerRound, "다음 라운드에도");
+            Assert.AreEqual(2.0, session.RunManager.OverclockMultiplierBonus, "다음 라운드에도");
         }
 
         [Test]
-        public void ReserveReroll_BuyAsManyAsAffordable_FreeUsedFirst_KeptAcrossBreakthroughs()
+        public void SpareCard_BuyAsManyAsAffordable_EachOpensOneFourCardOffer()
         {
             RunSession session = OpenShopWithCredits(2, out _);
             Assert.AreEqual(23, session.Wallet.Balance, "(전제) R2 상점 크레딧");
-            session.BuyItem(reserve);
-            session.BuyItem(reserve);
-            session.BuyItem(reserve);
-            Assert.AreEqual(3, session.ReserveRerolls, "한 방문에 여러 개");
-            Assert.AreEqual(23 - 3 * ReservePrice, session.Wallet.Balance);
+            session.BuyItem(spare);
+            session.BuyItem(spare);
+            session.BuyItem(spare);
+            Assert.AreEqual(3, session.SpareCards, "한 방문에 여러 개");
+            Assert.AreEqual(23 - 3 * SparePrice, session.Wallet.Balance);
             session.LeaveShop();
 
             DrawUntilNotDrawing(session);
-            session.OpenOffer();
-            session.RerollOffer();
-            Assert.IsTrue(session.OfferRerolled);
-            Assert.AreEqual(3, session.ReserveRerolls, "무료를 먼저");
-            session.RerollOffer();
-            session.RerollOffer();
-            Assert.AreEqual(1, session.ReserveRerolls, "한 돌파에서 여러 번");
+            IReadOnlyList<ModuleData> wide = session.OpenOffer();
+            Assert.AreEqual(4, wide.Count, "축 4개에서 하나씩");
+            AssertDistinctAxes(wide);
+            Assert.IsTrue(session.IsWideOffer);
+            Assert.AreEqual(2, session.SpareCards, "제안 1번에 1개");
+            Assert.AreSame(wide, session.OpenOffer(), "다시 열어도 같은 카드 · 예비 카드도 그대로");
+            Assert.AreEqual(2, session.SpareCards);
+            Assert.AreEqual(4, session.RerollOffer().Count, "다시 받아도 4장");
+            Assert.IsFalse(session.CanRerollOffer, "다시 받기는 돌파마다 1번 그대로");
             session.SelectModule(session.CurrentOffer[0]);
+            Assert.IsFalse(session.IsWideOffer);
 
-            Assert.AreEqual(4, session.RunManager.CurrentRound);
             DrawUntilNotDrawing(session);
-            session.OpenOffer();
-            session.RerollOffer();
-            session.RerollOffer();
-            Assert.AreEqual(0, session.ReserveRerolls, "남은 1개는 다음 돌파로 이월");
-            Assert.IsFalse(session.CanRerollOffer);
-            Assert.Throws<InvalidOperationException>(() => session.RerollOffer());
+            Assert.AreEqual(4, session.OpenOffer().Count);
+            Assert.AreEqual(1, session.SpareCards);
+            session.SelectModule(session.CurrentOffer[0]);
+            session.LeaveShop();
+            DrawUntilNotDrawing(session);
+            Assert.AreEqual(4, session.OpenOffer().Count);
+            Assert.AreEqual(0, session.SpareCards);
+            session.SelectModule(session.CurrentOffer[0]);
+            DrawUntilNotDrawing(session);
+            Assert.AreEqual(3, session.OpenOffer().Count, "예비 카드가 없으면 3장");
+            Assert.IsFalse(session.IsWideOffer);
         }
 
         [Test]
-        public void ReserveReroll_NotEnoughCredits()
+        public void SpareCard_NotEnoughCredits()
         {
-            ShopSettings poor = CreateShop(0, CreateItem("cheap_cooler", ShopItemKind.Part, ShopItemEffect.Cooler, 0, 0), CreateItem("rich_reserve", ShopItemKind.Service, ShopItemEffect.ReserveReroll, 1000, 0));
+            ShopSettings poor = CreateShop(0, CreateItem("cheap_super", ShopItemKind.Part, ShopItemEffect.Supercharger, 0, 0), CreateItem("rich_spare", ShopItemKind.Service, ShopItemEffect.SpareCard, 1000, 0));
             RunSession session = RunSession.Create(1, flatParts, zeroModules, RunMode.Normal, poor);
             AdvanceSelecting(session, 2);
-            ShopItemData expensive = session.FindShopItem(ShopItemEffect.ReserveReroll);
+            ShopItemData expensive = session.FindShopItem(ShopItemEffect.SpareCard);
             Assert.AreEqual(ShopItemStatus.NotEnoughCredits, session.GetItemStatus(expensive));
             Assert.Throws<InvalidOperationException>(() => session.BuyItem(expensive));
-            Assert.AreEqual(0, session.ReserveRerolls);
+            Assert.AreEqual(0, session.SpareCards);
             Assert.AreEqual(13, session.Wallet.Balance, "기본급 0 · 초과분 3 + 10");
         }
 
         [Test]
-        public void Decompose_RemovesChosenModule_RefundsAndOncePerVisit()
+        public void Decompose_RemovesChosenModule_RefundsThenReplacementMustBeChosen()
         {
             RunSession session = OpenShopWithCredits(2, out _);
             Assert.AreEqual(2, session.RunManager.EquippedModules.Count);
@@ -342,6 +335,23 @@ namespace Overclock.Tests
             Assert.AreSame(kept, session.RunManager.EquippedModules[0]);
             Assert.AreEqual(23 - DecomposePrice + DecomposeRefund, session.Wallet.Balance);
             Assert.IsTrue(session.DecomposedThisVisit);
+
+            Assert.IsTrue(session.IsChoosingReplacement);
+            Assert.AreEqual(3, session.ReplacementOffer.Count, "대체 제안 3장");
+            AssertDistinctAxes(session.ReplacementOffer);
+            Assert.Throws<InvalidOperationException>(() => session.LeaveShop(), "고르기 전에는 못 나감");
+            Assert.Throws<InvalidOperationException>(() => session.BuyItem(spare));
+            Assert.Throws<InvalidOperationException>(() => session.DecomposeModule(0));
+            ModuleData notOffered = NotIn(session.ReplacementOffer);
+            Assert.Throws<ArgumentException>(() => session.SelectReplacement(notOffered));
+
+            ModuleData chosen = session.ReplacementOffer[2];
+            session.SelectReplacement(chosen);
+            Assert.IsFalse(session.IsChoosingReplacement);
+            Assert.AreEqual(0, session.ReplacementOffer.Count);
+            Assert.AreEqual(2, session.RunManager.EquippedModules.Count);
+            Assert.AreSame(chosen, session.RunManager.EquippedModules[1]);
+            Assert.Throws<InvalidOperationException>(() => session.SelectReplacement(chosen), "한 번만");
             Assert.AreEqual(ShopItemStatus.SoldOut, session.GetItemStatus(decompose), "방문마다 1번");
             Assert.Throws<InvalidOperationException>(() => session.DecomposeModule(0));
             Assert.Throws<InvalidOperationException>(() => session.BuyItem(decompose), "분해는 BuyItem 으로 안 함");
@@ -446,23 +456,29 @@ namespace Overclock.Tests
         }
 
         [Test]
-        public void ShopActions_DoNotUseRandom()
+        public void Purchases_DoNotUseRandom_DecomposeUsesExactlyOneOffer()
         {
-            RunSession session = OpenShopWithCredits(4, out _);
+            RunSession session = OpenShopWithCredits(4, out uint seed);
+            RunSession mirror = OpenShopWithCredits(4, out _);
             uint before = session.CaptureSaveData().randomState;
-            session.GetItemStatus(cooler);
-            session.BuyItem(cooler);
-            session.BuyItem(reserve);
+            session.GetItemStatus(supercharger);
+            session.BuyItem(supercharger);
+            session.BuyItem(spare);
+            Assert.AreEqual(before, session.CaptureSaveData().randomState, "과급기 · 예비 카드는 난수 안 씀");
+
             session.DecomposeModule(0);
-            Assert.AreEqual(before, session.CaptureSaveData().randomState);
+            mirror.ModuleOffer.CreateOffer();
+            Assert.AreEqual(mirror.CaptureSaveData().randomState, session.CaptureSaveData().randomState, "분해 = 대체 제안 1번 만큼");
+            uint afterOffer = session.CaptureSaveData().randomState;
+            session.SelectReplacement(session.ReplacementOffer[0]);
             session.LeaveShop();
-            Assert.AreEqual(before, session.CaptureSaveData().randomState, "나가기도");
+            Assert.AreEqual(afterOffer, session.CaptureSaveData().randomState, "고르기 · 나가기는 안 씀");
         }
 
         // ── 세이브 ──
 
         [Test]
-        public void SaveInShop_RestoresShopAndPlaysOnIdentically()
+        public void SaveInShop_WhileChoosingReplacement_RestoresAndPlaysOnIdentically()
         {
             for (uint seed = 1; seed <= 300; seed++)
             {
@@ -473,21 +489,24 @@ namespace Overclock.Tests
                 }
 
                 session.Wallet.Earn(100);
-                session.BuyItem(cooler);
-                session.BuyItem(reserve);
+                session.BuyItem(supercharger);
+                session.BuyItem(spare);
                 session.DecomposeModule(0);
                 string json = JsonUtility.ToJson(session.CaptureSaveData(), true);
                 RunSession restored = RunSession.Restore(JsonUtility.FromJson<RunSaveData>(json), mixedParts, realModules, shop);
 
                 Assert.IsTrue(restored.IsShopOpen);
                 Assert.AreEqual(session.Wallet.Balance, restored.Wallet.Balance);
-                Assert.IsTrue(restored.HasCooler);
-                Assert.AreEqual(2, restored.RunManager.OverclockUsesPerRound);
-                Assert.AreEqual(1, restored.ReserveRerolls);
+                Assert.IsTrue(restored.HasSupercharger);
+                Assert.AreEqual(2.0, restored.RunManager.OverclockMultiplierBonus);
+                Assert.AreEqual(1, restored.SpareCards);
                 Assert.IsTrue(restored.DecomposedThisVisit);
-                Assert.AreEqual(ShopItemStatus.SoldOut, restored.GetItemStatus(decompose));
+                Assert.IsTrue(restored.IsChoosingReplacement);
+                CollectionAssert.AreEqual(session.ReplacementOffer, restored.ReplacementOffer);
                 CollectionAssert.AreEqual(session.RunManager.EquippedModules, restored.RunManager.EquippedModules);
 
+                session.SelectReplacement(session.ReplacementOffer[0]);
+                restored.SelectReplacement(restored.ReplacementOffer[0]);
                 session.LeaveShop();
                 restored.LeaveShop();
                 for (int i = 0; i < 30 && session.RunManager.State == RunState.Drawing; i++)
@@ -496,6 +515,11 @@ namespace Overclock.Tests
                 }
 
                 Assert.AreEqual(session.Wallet.Balance, restored.Wallet.Balance, "돌파 지급도 같게");
+                if (session.RunManager.State == RunState.RoundCleared)
+                {
+                    CollectionAssert.AreEqual(session.OpenOffer(), restored.OpenOffer(), "예비 카드 4장 제안도 같게");
+                }
+
                 return;
             }
 
@@ -507,6 +531,7 @@ namespace Overclock.Tests
         {
             RunSession session = OpenShopWithCredits(2, out _);
             session.DecomposeModule(0);
+            session.SelectReplacement(session.ReplacementOffer[0]);
             session.LeaveShop();
             RunSaveData data = session.CaptureSaveData();
             Assert.IsFalse(data.shopOpen);
@@ -517,22 +542,25 @@ namespace Overclock.Tests
         }
 
         [Test]
-        public void SaveWithOverclockCount_RoundTripsSecondUse()
+        public void SaveWithWideOffer_RestoresFourCardsAndRerollsFour()
         {
-            RunSession session = OpenShopWithCredits(4, out _);
-            session.BuyItem(cooler);
+            RunSession session = OpenShopWithCredits(2, out _);
+            session.BuyItem(spare);
+            session.BuyItem(spare);
             session.LeaveShop();
-            session.RunManager.ActivateOverclock();
-            session.RunManager.Draw();
+            DrawUntilNotDrawing(session);
+            session.OpenOffer();
             RunSaveData data = session.CaptureSaveData();
-            Assert.IsTrue(data.overclockUsed);
-            Assert.AreEqual(1, data.overclockUseCount);
+            Assert.IsTrue(data.wideOffer);
+            Assert.AreEqual(4, data.offeredModuleIds.Length);
+            Assert.AreEqual(1, data.spareCards);
 
-            data.overclockUseCount = 2;
-            data.overclockDrawsLeft = 0;
-            RunSession restored = RunSession.Restore(data, flatParts, zeroModules, shop);
-            Assert.AreEqual(2, restored.RunManager.OverclockUseCount);
-            Assert.IsFalse(restored.RunManager.CanActivateOverclock);
+            RunSession restored = RunSession.Restore(Clone(data), flatParts, zeroModules, shop);
+            Assert.IsTrue(restored.IsWideOffer);
+            CollectionAssert.AreEqual(session.CurrentOffer, restored.CurrentOffer);
+            Assert.AreEqual(1, restored.SpareCards);
+            CollectionAssert.AreEqual(session.RerollOffer(), restored.RerollOffer());
+            Assert.AreEqual(4, restored.CurrentOffer.Count);
         }
 
         [Test]
@@ -542,7 +570,7 @@ namespace Overclock.Tests
             session.RunManager.ActivateOverclock();
             string json = JsonUtility.ToJson(session.CaptureSaveData(), true);
             string old = json;
-            foreach (string field in new[] { "overclockUseCount", "credits", "shopOpen", "hasCooler", "reserveRerolls", "decomposedThisVisit" })
+            foreach (string field in new[] { "overclockUseCount", "credits", "shopOpen", "hasSupercharger", "spareCards", "wideOffer", "decomposedThisVisit", "replacementModuleIds" })
             {
                 old = Regex.Replace(old, ",\\s*\"" + field + "\"\\s*:\\s*[^,}\\s]+", "");
             }
@@ -558,7 +586,7 @@ namespace Overclock.Tests
 
             RunSession withShop = RunSession.Restore(JsonUtility.FromJson<RunSaveData>(old), flatParts, zeroModules, shop);
             Assert.AreEqual(0, withShop.Wallet.Balance, "상점판으로 옛 세이브를 이어도 0 에서");
-            Assert.AreEqual(0, withShop.ReserveRerolls);
+            Assert.AreEqual(0, withShop.SpareCards);
         }
 
         [Test]
@@ -569,11 +597,13 @@ namespace Overclock.Tests
             RunSession.Restore(Clone(valid), flatParts, zeroModules, shop);
 
             AssertRejected(valid, d => d.credits = -1, shop, "음수 크레딧");
-            AssertRejected(valid, d => d.reserveRerolls = -1, shop, "음수 예비");
+            AssertRejected(valid, d => d.spareCards = -1, shop, "음수 예비 카드");
+            AssertRejected(valid, d => d.replacementModuleIds = new[] { "p0", "m0", "c0" }, shop, "분해 안 했는데 대체 제안");
+            AssertRejected(valid, d => { d.decomposedThisVisit = true; d.replacementModuleIds = new[] { "p0", "m0", "c0", "d0" }; }, shop, "대체 제안 4장");
             AssertRejected(valid, d => { }, null, "상점 없는 세션에 상점 값");
             AssertRejected(valid, d => d.offeredModuleIds = new[] { "p0", "m0", "c0" }, shop, "상점이 열렸는데 제안 카드");
             AssertRejected(valid, d => d.overclockUseCount = 1, shop, "안 썼는데 횟수");
-            AssertRejected(valid, d => { d.overclockUsed = true; d.overclockUseCount = 2; }, shop, "냉각기 없이 2회");
+            AssertRejected(valid, d => { d.overclockUsed = true; d.overclockUseCount = 2; }, shop, "라운드당 2회");
             AssertRejected(valid, d => d.overclockUseCount = -1, shop, "음수 횟수");
 
             RunSession oddRound = RunSession.Create(1, flatParts, zeroModules, RunMode.Normal, shop);
@@ -581,6 +611,13 @@ namespace Overclock.Tests
             RunSaveData r1 = oddRound.CaptureSaveData();
             AssertRejected(r1, d => d.shopOpen = true, shop, "홀수 라운드에 상점");
             AssertRejected(r1, d => d.decomposedThisVisit = true, shop, "상점 밖 분해 기록");
+            AssertRejected(r1, d => d.wideOffer = true, shop, "제안 없이 4장 표시");
+            AssertRejected(r1, d => d.offeredModuleIds = new[] { "p0", "m0", "c0", "d0" }, shop, "4장인데 4장 표시 없음");
+            AssertRejected(r1, d => { d.offeredModuleIds = new[] { "p0", "m0", "c0" }; d.wideOffer = true; }, shop, "4장 표시인데 3장");
+            RunSaveData wideR1 = Clone(r1);
+            wideR1.offeredModuleIds = new[] { "p0", "m0", "c0", "d0" };
+            wideR1.wideOffer = true;
+            Assert.IsTrue(RunSession.Restore(wideR1, flatParts, zeroModules, shop).IsWideOffer, "4장 + 표시는 게임이 만들 수 있음");
 
             RunSession drawing = RunSession.Create(1, flatParts, zeroModules, RunMode.Normal, shop);
             AdvanceSelecting(drawing, 1);
@@ -590,19 +627,19 @@ namespace Overclock.Tests
             Assert.AreEqual(RunState.Drawing, r3Drawing.state, "(전제)");
             AssertRejected(r3Drawing, d => { d.round = 2; d.shopOpen = true; }, shop, "뽑기 중 상점");
 
-            ShopSettings noCooler = CreateShop(Wage, CreateItem("only_reserve", ShopItemKind.Service, ShopItemEffect.ReserveReroll, 1, 0));
-            RunSaveData withCooler = Clone(valid);
-            withCooler.hasCooler = true;
-            withCooler.shopOpen = false;
-            Assert.Catch<ArgumentException>(() => RunSession.Restore(withCooler, flatParts, zeroModules, noCooler), "냉각기 안 파는 상점");
+            ShopSettings noSupercharger = CreateShop(Wage, CreateItem("only_spare", ShopItemKind.Service, ShopItemEffect.SpareCard, 1, 0));
+            RunSaveData withSupercharger = Clone(valid);
+            withSupercharger.hasSupercharger = true;
+            withSupercharger.shopOpen = false;
+            Assert.Catch<ArgumentException>(() => RunSession.Restore(withSupercharger, flatParts, zeroModules, noSupercharger), "과급기 안 파는 상점");
         }
 
         [Test]
         public void ShopSettings_RejectsDuplicateEffectsAndEmptySlots()
         {
-            ShopSettings duplicated = CreateShop(Wage, cooler, CreateItem("cooler2", ShopItemKind.Part, ShopItemEffect.Cooler, 1, 0));
+            ShopSettings duplicated = CreateShop(Wage, supercharger, CreateItem("super2", ShopItemKind.Part, ShopItemEffect.Supercharger, 1, 0));
             Assert.Throws<ArgumentException>(() => RunSession.Create(1, flatParts, zeroModules, RunMode.Normal, duplicated));
-            ShopSettings empty = CreateShop(Wage, cooler, null);
+            ShopSettings empty = CreateShop(Wage, supercharger, null);
             Assert.Throws<ArgumentException>(() => RunSession.Create(1, flatParts, zeroModules, RunMode.Normal, empty));
         }
 
@@ -610,7 +647,7 @@ namespace Overclock.Tests
         public void ShopItems_RejectItemFromAnotherShop()
         {
             RunSession session = OpenShopWithCredits(2, out _);
-            ShopItemData stranger = CreateItem("reserve_reroll", ShopItemKind.Service, ShopItemEffect.ReserveReroll, ReservePrice, 0);
+            ShopItemData stranger = CreateItem("spare_card", ShopItemKind.Service, ShopItemEffect.SpareCard, SparePrice, 0);
             Assert.Throws<ArgumentException>(() => session.BuyItem(stranger));
             Assert.Throws<ArgumentNullException>(() => session.BuyItem(null));
         }
@@ -634,6 +671,41 @@ namespace Overclock.Tests
 
             Assert.IsTrue(session.IsShopOpen, "(전제) R" + round + " 상점");
             return session;
+        }
+
+        private static void AssertDistinctAxes(IReadOnlyList<ModuleData> offer)
+        {
+            var axes = new HashSet<ModuleAxis>();
+            foreach (ModuleData module in offer)
+            {
+                Assert.IsTrue(axes.Add(module.Axis), "축 겹침 " + module.Axis);
+            }
+        }
+
+        private ModuleData NotIn(IReadOnlyList<ModuleData> offer)
+        {
+            foreach (ModuleData module in zeroModules)
+            {
+                if (!Contains(offer, module))
+                {
+                    return module;
+                }
+            }
+
+            return CreateModule("stranger", ModuleAxis.Probability, ModifierType.SuperRareChance, 0f);
+        }
+
+        private static bool Contains(IReadOnlyList<ModuleData> offer, ModuleData module)
+        {
+            foreach (ModuleData m in offer)
+            {
+                if (m == module)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void AdvanceSelecting(RunSession session, int breakthroughs)

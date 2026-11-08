@@ -6,6 +6,8 @@ namespace Overclock.Core
     public sealed class ModuleOffer
     {
         public const int OfferSize = 3;
+        // 예비 카드 (상점) 를 쓴 제안
+        public const int WideOfferSize = 4;
 
         private readonly RandomService randomService;
         private readonly List<ModuleData>[] modulesByAxis;
@@ -49,6 +51,16 @@ namespace Overclock.Core
 
         public List<ModuleData> CreateOffer()
         {
+            return CreateOffer(OfferSize);
+        }
+
+        public List<ModuleData> CreateOffer(int size)
+        {
+            if (size < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size));
+            }
+
             var remainingAxes = new List<int>();
             for (int i = 0; i < modulesByAxis.Length; i++)
             {
@@ -60,7 +72,7 @@ namespace Overclock.Core
 
             // 축을 먼저 뽑고 그 축에서 모듈을 뽑는다 → 카드끼리 축이 겹치지 않는다. 카드 1장당 난수 2개
             var offer = new List<ModuleData>();
-            while (offer.Count < OfferSize && remainingAxes.Count > 0)
+            while (offer.Count < size && remainingAxes.Count > 0)
             {
                 int axisSlot = (int)(randomService.NextDouble() * remainingAxes.Count);
                 List<ModuleData> candidates = modulesByAxis[remainingAxes[axisSlot]];
@@ -73,8 +85,13 @@ namespace Overclock.Core
             return offer;
         }
 
-        // 세이브에서 읽은 카드가 CreateOffer 가 만들 수 있는 조합인지. 카드 수 = min(3, 모듈이 있는 축 수), 축은 서로 다르다
+        // 세이브에서 읽은 카드가 CreateOffer 가 만들 수 있는 조합인지. 카드 수 = min(size, 모듈이 있는 축 수), 축은 서로 다르다
         internal bool IsPossibleOffer(IReadOnlyList<ModuleData> offer)
+        {
+            return IsPossibleOffer(offer, OfferSize);
+        }
+
+        internal bool IsPossibleOffer(IReadOnlyList<ModuleData> offer, int size)
         {
             int axesWithModules = 0;
             foreach (List<ModuleData> candidates in modulesByAxis)
@@ -85,7 +102,7 @@ namespace Overclock.Core
                 }
             }
 
-            if (offer.Count != Math.Min(OfferSize, axesWithModules))
+            if (offer.Count != Math.Min(size, axesWithModules))
             {
                 return false;
             }
