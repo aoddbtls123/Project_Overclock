@@ -14,7 +14,10 @@ namespace Overclock.Core
         private readonly PartCatalog partCatalog;
         private readonly int roundCount;
         private readonly int drawsPerRound;
-        private readonly ModifierEngine modifierEngine;
+        private readonly double baseN;
+        private readonly double baseR;
+        private readonly double baseSR;
+        private ModifierEngine modifierEngine;
         private readonly List<ModuleData> equippedModules = new List<ModuleData>();
         private readonly List<PartData> roundParts = new List<PartData>(ModifierEngine.MaxDrawsPerRound);
 
@@ -24,7 +27,8 @@ namespace Overclock.Core
         private RunState state;
         private Grade streakGrade;
         private int streakCount;
-        private bool overclockUsed;
+        private int overclockUseCount;
+        private int overclockUsesPerRound = 1;
         private bool roundPartsComplete = true;
         private int overclockDrawsLeft;
 
@@ -54,10 +58,11 @@ namespace Overclock.Core
             this.partCatalog = partCatalog;
             this.roundCount = roundCount;
             this.drawsPerRound = drawsPerRound;
-            modifierEngine = new ModifierEngine(
-                gachaEngine.GetProbability(Grade.N),
-                gachaEngine.GetProbability(Grade.R),
-                gachaEngine.GetProbability(Grade.SR));
+            // 모듈 분해 때 처음부터 다시 계산하려면 모듈 없는 기본표가 필요하다 (GachaEngine 의 값은 장착하면 바뀐다)
+            baseN = gachaEngine.GetProbability(Grade.N);
+            baseR = gachaEngine.GetProbability(Grade.R);
+            baseSR = gachaEngine.GetProbability(Grade.SR);
+            modifierEngine = new ModifierEngine(baseN, baseR, baseSR);
             StartRound(1, 0);
         }
 
@@ -79,13 +84,25 @@ namespace Overclock.Core
         internal Grade StreakGrade => streakGrade;
         internal int StreakCount => streakCount;
 
-        /// <summary>이번 라운드에 오버클럭을 이미 켰는가. 라운드가 바뀌면 다시 false.</summary>
-        public bool OverclockUsed => overclockUsed;
+        /// <summary>이번 라운드에 오버클럭을 한 번이라도 켰는가. 라운드가 바뀌면 다시 false.</summary>
+        public bool OverclockUsed => overclockUseCount > 0;
+
+        /// <summary>이번 라운드에 오버클럭을 켠 횟수. 라운드가 바뀌면 0.</summary>
+        public int OverclockUseCount => overclockUseCount;
+
+        /// <summary>라운드마다 켤 수 있는 횟수 (기본 1 · 냉각기 2).</summary>
+        public int OverclockUsesPerRound => overclockUsesPerRound;
+
+        /// <summary>
+        /// 돌파 순간 (RoundCleared · RunCleared 가 된 뽑기) 에 초과분 (생산량 − 할당량) 을 넘긴다. 크레딧 지급은 RunSession 이 한다.
+        /// </summary>
+        internal Action<int> BreakthroughReached;
 
         /// <summary>오버클럭이 걸려 있는 남은 뽑기 수 (0 = 꺼짐).</summary>
         public int OverclockDrawsLeft => overclockDrawsLeft;
 
-        public bool CanActivateOverclock => state == RunState.Drawing && !overclockUsed;
+        // 걸려 있는 횟수가 끝나야 다음 오버클럭을 켤 수 있다 (겹치거나 늘리지 않음 · 11/08)
+        public bool CanActivateOverclock => state == RunState.Drawing && overclockDrawsLeft == 0 && overclockUseCount < overclockUsesPerRound;
 
         public static int QuotaFor(int round)
         {
@@ -138,21 +155,42 @@ namespace Overclock.Core
                 overclockDrawsLeft = 0;
             }
 
+            if (state == RunState.RoundCleared || state == RunState.RunCleared)
+            {
+                BreakthroughReached?.Invoke(production - Quota);
+            }
+
             return new DrawResult(part, output, streakTriggered, overclocked);
         }
 
         /// <summary>
-        /// 오버클럭을 켠다. 라운드마다 1번 · 다음 뽑기부터 3회 (남은 뽑기가 적으면 그만큼). 난수는 쓰지 않는다.
+        /// 오버클럭을 켠다. 라운드마다 OverclockUsesPerRound 번 · 다음 뽑기부터 3회 (남은 뽑기가 적으면 그만큼). 난수는 쓰지 않는다.
         /// </summary>
         public void ActivateOverclock()
         {
             if (!CanActivateOverclock)
             {
-                throw new InvalidOperationException("오버클럭을 켤 수 없습니다: " + state + (overclockUsed ? " (이번 라운드 사용함)" : ""));
+                throw new InvalidOperationException("오버클럭을 켤 수 없습니다: " + state + " 사용 " + overclockUseCount + "/" + overclockUsesPerRound + " 남은 " + overclockDrawsLeft);
             }
 
-            overclockUsed = true;
+            overclockUseCount++;
             overclockDrawsLeft = Math.Min(OverclockDraws, drawsRemaining);
+        }
+
+        // 냉각기 (상점 부품) 가 부른다. 이번 라운드 사용 횟수는 그대로 둔다
+        internal void SetOverclockUsesPerRound(int uses)
+        {
+            if (uses < 1 || uses > 2)
+            {
+                throw new ArgumentOutOfRangeException(nameof(uses));
+            }
+
+            if (uses < overclockUseCount)
+            {
+                throw new InvalidOperationException("이번 라운드에 이미 " + overclockUseCount + "번 켰습니다.");
+            }
+
+            overclockUsesPerRound = uses;
         }
 
         public void EquipModule(ModuleData module)
@@ -168,6 +206,36 @@ namespace Overclock.Core
             // GachaEngine 은 새로 만들지 않는다. 보증 카운터가 런 전체에서 이어져야 한다
             modifierEngine.GetProbabilities(out double n, out double r, out double sr);
             gachaEngine.SetProbabilities(n, r, sr);
+        }
+
+        /// <summary>
+        /// 장착 모듈 하나를 뺀다 (상점 모듈 분해). 남은 모듈로 확률표를 처음부터 다시 계산한다. 뽑기 수는 다음 라운드 시작 때 반영된다.
+        /// </summary>
+        public ModuleData RemoveModule(int equippedIndex)
+        {
+            if (state != RunState.Drawing && state != RunState.RoundCleared)
+            {
+                throw new InvalidOperationException("런이 끝났습니다: " + state);
+            }
+
+            if (equippedIndex < 0 || equippedIndex >= equippedModules.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(equippedIndex));
+            }
+
+            ModuleData removed = equippedModules[equippedIndex];
+            equippedModules.RemoveAt(equippedIndex);
+
+            // 효과를 하나씩 빼지 않고 다시 만든다. 장착과 같은 계산 길 하나만 남기기 위해서다
+            modifierEngine = new ModifierEngine(baseN, baseR, baseSR);
+            foreach (ModuleData module in equippedModules)
+            {
+                modifierEngine.Equip(module);
+            }
+
+            modifierEngine.GetProbabilities(out double n, out double r, out double sr);
+            gachaEngine.SetProbabilities(n, r, sr);
+            return removed;
         }
 
         public ModulePreview PreviewModule(ModuleData module)
@@ -254,20 +322,25 @@ namespace Overclock.Core
             this.streakCount = streakCount;
         }
 
-        // 세이브 복원 전용. RestoreProgress 다음에 부른다. ActivateOverclock 과 Draw 가 만들 수 있는 값만 받는다
-        internal void RestoreOverclock(bool used, int drawsLeft)
+        // 세이브 복원 전용. RestoreProgress · SetOverclockUsesPerRound 다음에 부른다. ActivateOverclock 과 Draw 가 만들 수 있는 값만 받는다
+        internal void RestoreOverclock(int useCount, int drawsLeft)
         {
+            if (useCount < 0 || useCount > overclockUsesPerRound)
+            {
+                throw new ArgumentOutOfRangeException(nameof(useCount));
+            }
+
             if (drawsLeft < 0 || drawsLeft > OverclockDraws)
             {
                 throw new ArgumentOutOfRangeException(nameof(drawsLeft));
             }
 
-            if (drawsLeft > 0 && (!used || state != RunState.Drawing || drawsLeft > drawsRemaining))
+            if (drawsLeft > 0 && (useCount == 0 || state != RunState.Drawing || drawsLeft > drawsRemaining))
             {
-                throw new ArgumentException("오버클럭 상태가 진행과 맞지 않습니다: 사용 " + used + " 남은 " + drawsLeft + " " + state + " 남은 뽑기 " + drawsRemaining);
+                throw new ArgumentException("오버클럭 상태가 진행과 맞지 않습니다: 사용 " + useCount + " 남은 " + drawsLeft + " " + state + " 남은 뽑기 " + drawsRemaining);
             }
 
-            overclockUsed = used;
+            overclockUseCount = useCount;
             overclockDrawsLeft = drawsLeft;
         }
 
@@ -362,7 +435,7 @@ namespace Overclock.Core
             roundPartsComplete = true;
             drawsRemaining = modifierEngine.DrawsForNextRound(drawsPerRound, carriedOverDraws);
             streakCount = 0;
-            overclockUsed = false;
+            overclockUseCount = 0;
             overclockDrawsLeft = 0;
             state = RunState.Drawing;
         }
