@@ -14,6 +14,8 @@ namespace Overclock.Presentation
         [SerializeField, Min(0)] private int seed;
         [SerializeField] private PartData[] parts;
         [SerializeField] private ModuleData[] modules;
+        [SerializeField] private ShopSettings shopSettings;
+        [SerializeField] private ShopView shopView;
 
         [SerializeField] private TMP_Text roundText;
         [SerializeField] private TMP_Text quotaText;
@@ -222,6 +224,12 @@ namespace Overclock.Presentation
                 return;
             }
 
+            if (session.IsShopOpen)
+            {
+                if (shopView != null && shopView.IsPlaying && Time.frameCount > shopView.ReactionStartFrame && IsSkipPressed(keyboard, mouse)) shopView.Skip();
+                return;
+            }
+
             if (drawReveal.IsPlaying)
             {
                 if (IsSkipPressed(keyboard, mouse))
@@ -355,7 +363,7 @@ namespace Overclock.Presentation
             pauseMenu.Close();
 
             // 등장 연출 중에 멈췄다 이으면 기계 패널은 등장이 끝날 때 연다
-            machinePanel.SetInteractable(!IsIntroPlaying);
+            machinePanel.SetInteractable(!IsIntroPlaying && !session.IsShopOpen);
             Time.timeScale = 1f;
             soundPlayer.SetPaused(false);
             resumeFrame = Time.frameCount;
@@ -403,6 +411,7 @@ namespace Overclock.Presentation
 
         private void StopReveal()
         {
+            if (shopView != null) shopView.Hide();
             // 연출 중에 런을 버리면, 남은 연출이 끝난 뒤 버린 런의 결과와 카드를 띄우지 않게 멈춘다 (Cancel 은 콜백을 부르지 않는다).
             // 버린 런의 소리(SR 충전 · 3연속 · 돌파 · 런 실패 예약)도 같이 멈춘다
             drawReveal.Cancel();
@@ -588,7 +597,7 @@ namespace Overclock.Presentation
             {
                 continueLabel.text = "이어하기 (저장된 판 없음)";
             }
-            else if (saveFile.TryLoad(parts, modules, out RunSession loaded, out string error))
+            else if (saveFile.TryLoad(parts, modules, shopSettings, out RunSession loaded, out string error))
             {
                 savedSession = loaded;
                 continueLabel.text = "이어하기";
@@ -616,7 +625,7 @@ namespace Overclock.Presentation
                 }
             }
 
-            BeginRun(RunSession.Create(runSeed, parts, modules, mode), qaSeed != 0 ? " (QA 시드)" : "", false);
+            BeginRun(RunSession.Create(runSeed, parts, modules, mode, shopSettings), qaSeed != 0 ? " (QA 시드)" : "", false);
             SaveRun();
         }
 
@@ -632,7 +641,11 @@ namespace Overclock.Presentation
             BeginRun(restored, " (이어하기)", true);
 
             // 돌파 직후에 꺼진 판. 저장된 난수 상태에서 카드를 열므로 끄기 전과 같은 카드가 나온다
-            if (runManager.State == RunState.RoundCleared)
+            if (session.IsShopOpen)
+            {
+                ShowShop(true);
+            }
+            else if (runManager.State == RunState.RoundCleared)
             {
                 ShowModuleOffer();
             }
@@ -868,8 +881,10 @@ namespace Overclock.Presentation
 
         private void ShowModuleOffer()
         {
-            // 여기서는 저장하지 않는다. 돌파 직후(카드를 열기 전) 저장된 난수 상태에서 다시 열면 같은 카드가 나온다
+            // 제안이 이미 열려 있으면 난수를 더 쓰지 않고 같은 카드를 표시한다.
             IReadOnlyList<ModuleData> offer = session.OpenOffer();
+            // 예비 카드 소모와 4장 제안을 같은 저장에 남긴다.
+            SaveRun();
             int nextQuota = RunManager.QuotaFor(runManager.CurrentRound + 1);
 
             // 기계 패널은 카드 영역 밖에서 오버레이 위에 그려지므로 고르는 동안에도 팝업을 쓸 수 있다
@@ -886,6 +901,7 @@ namespace Overclock.Presentation
                 offerFlip.Cancel();
             }
 
+            LayoutOfferCards(offer.Count);
             for (int i = 0; i < moduleCards.Length; i++)
             {
                 moduleCards[i].ResetFlip();
@@ -894,6 +910,19 @@ namespace Overclock.Presentation
             }
 
             RefreshRerollButton();
+        }
+
+        private void LayoutOfferCards(int count)
+        {
+            // 원래 세 장은 오른쪽부터 450px 간격. 네 장도 글자 크기는 유지한다.
+            float scale = 1f;
+            float spacing = count > 3 ? 430f : 450f;
+            for (int i = 0; i < moduleCards.Length; i++)
+            {
+                RectTransform rect = (RectTransform)moduleCards[i].transform;
+                rect.localScale = Vector3.one * scale;
+                rect.anchoredPosition = new Vector2(((count - 1) * 0.5f - i) * spacing, 0f);
+            }
         }
 
         private Action CreateCardContent(ModuleCardView card, IReadOnlyList<ModuleData> offer, int index, int nextQuota)
@@ -976,7 +1005,7 @@ namespace Overclock.Presentation
 
         private void OnModuleSelected(ModuleData module)
         {
-            if (!IsRunInputAllowed() || runManager.State != RunState.RoundCleared)
+            if (!IsRunInputAllowed() || session.IsShopOpen || runManager.State != RunState.RoundCleared)
             {
                 return;
             }
@@ -1000,6 +1029,25 @@ namespace Overclock.Presentation
             soundPlayer.PlayModuleEquip();
 
             moduleSelectPanel.SetActive(false);
+            if (session.IsShopOpen)
+            {
+                ShowShop(false);
+                return;
+            }
+            FinishRoundTransition();
+        }
+
+        private void ShowShop(bool restored)
+        {
+            moduleSelectPanel.SetActive(false);
+            machinePanel.SetInteractable(false);
+            revealStartFrame = Time.frameCount;
+            shopView.Show(session, settings, SaveRun, FinishRoundTransition,
+                () => IsRunInputAllowed() && Time.frameCount > resumeFrame, restored);
+        }
+
+        private void FinishRoundTransition()
+        {
             machinePanel.Show(runManager.EquippedModules);
             machinePanel.SetInteractable(true);
             drawReveal.ShowIdle();
@@ -1051,7 +1099,7 @@ namespace Overclock.Presentation
             }
             else if (state == RunState.RoundCleared)
             {
-                resultText.text = "할당량 돌파 — 모듈 선택";
+                resultText.text = session.IsShopOpen ? "정비소" : "할당량 돌파 — 모듈 선택";
             }
             else
             {

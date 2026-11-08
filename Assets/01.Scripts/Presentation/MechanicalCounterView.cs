@@ -21,6 +21,7 @@ namespace Overclock.Presentation
         [Tooltip("계수기 테두리. 다 세었을 때 등급 색으로 잠깐 바뀐다 (튀는 등급만). 비어 있으면 색 변화 없음")]
         [SerializeField] private Image frame;
 
+        private float playbackSpeed = 1f;
         private float shownValue;
         private float targetValue;
         private Color frameRestColor = Color.white;
@@ -57,7 +58,7 @@ namespace Overclock.Presentation
         {
             if (resetting)
             {
-                resetElapsed += Time.deltaTime;
+                resetElapsed += Time.deltaTime * playbackSpeed;
                 ApplyResetWheels();
                 if (resetElapsed >= ResetSeconds)
                 {
@@ -74,7 +75,7 @@ namespace Overclock.Presentation
 
             // 남은 거리의 일정 비율씩 따라간다 — 멀면 빨리, 가까우면 천천히 멈춘다
             float follow = settings != null ? settings.CounterFollowSeconds : 0.06f;
-            float step = 1f - Mathf.Exp(-Time.deltaTime / follow);
+            float step = 1f - Mathf.Exp(-Time.deltaTime * playbackSpeed / follow);
             shownValue += (targetValue - shownValue) * step;
             if (Mathf.Abs(targetValue - shownValue) < 0.01f)
             {
@@ -90,6 +91,12 @@ namespace Overclock.Presentation
         }
 
         /// <summary>바퀴가 도는 중인가 (따라가는 중 · 0000 으로 돌아가는 중). 런 실패 연출이 마지막 숫자를 기다릴 때 쓴다.</summary>
+        public void SetPlaybackSpeed(float speed)
+        {
+            playbackSpeed = Mathf.Max(0f, speed);
+            if (playbackSpeed == 0f) CompleteNow();
+        }
+
         public bool IsMoving => resetting || shownValue != targetValue;
 
         /// <summary>

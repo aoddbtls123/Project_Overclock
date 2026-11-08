@@ -60,12 +60,18 @@ namespace Overclock.Core
         /// </summary>
         public bool TryLoad(IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules, out RunSession session, out string error)
         {
+            return TryLoad(parts, modules, null, out session, out error);
+        }
+
+        public bool TryLoad(IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules,
+            ShopSettings shop, out RunSession session, out string error)
+        {
             session = null;
             try
             {
                 // 빈 파일이면 null 이 온다. Restore 가 null 을 ArgumentNullException 으로 거부한다
                 RunSaveData data = JsonUtility.FromJson<RunSaveData>(File.ReadAllText(FilePath));
-                session = RunSession.Restore(data, parts, modules);
+                session = RunSession.Restore(data, parts, modules, shop);
                 error = null;
                 return true;
             }

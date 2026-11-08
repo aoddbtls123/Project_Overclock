@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f17b4db24eefb8e4fa78c565744a3fcd, type: 3}
+  m_Name: spare_card
+  m_EditorClassIdentifier: Overclock.Core::Overclock.Core.ShopItemData
+  id: spare_card
+  displayName: "\uC608\uBE44 \uCE74\uB4DC"
+  description: "\uB2E4\uC74C \uBAA8\uB4C8 \uC81C\uC548\uC774 3\uC7A5 \u2192 4\uC7A5.
+    \uC81C\uC548\uC744 \uC5F4 \uB54C 1\uAC1C \uC18C\uBAA8."
+  kind: 1
+  effect: 1
+  price: 5
+  refund: 0
