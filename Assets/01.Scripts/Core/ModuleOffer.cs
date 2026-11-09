@@ -9,8 +9,9 @@ namespace Overclock.Core
 
         private readonly RandomService randomService;
         private readonly List<ModuleData>[] modulesByAxis;
+        private readonly Func<ModuleData, bool> canOffer;
 
-        public ModuleOffer(IReadOnlyList<ModuleData> pool, RandomService randomService)
+        public ModuleOffer(IReadOnlyList<ModuleData> pool, RandomService randomService, Func<ModuleData, bool> canOffer = null)
         {
             if (pool == null)
             {
@@ -28,6 +29,7 @@ namespace Overclock.Core
             }
 
             this.randomService = randomService;
+            this.canOffer = canOffer;
 
             int axisCount = Enum.GetValues(typeof(ModuleAxis)).Length;
             modulesByAxis = new List<ModuleData>[axisCount];
@@ -49,10 +51,11 @@ namespace Overclock.Core
 
         public List<ModuleData> CreateOffer()
         {
+            List<ModuleData>[] eligible = EligibleModules();
             var remainingAxes = new List<int>();
             for (int i = 0; i < modulesByAxis.Length; i++)
             {
-                if (modulesByAxis[i].Count > 0)
+                if (eligible[i].Count > 0)
                 {
                     remainingAxes.Add(i);
                 }
@@ -63,7 +66,7 @@ namespace Overclock.Core
             while (offer.Count < OfferSize && remainingAxes.Count > 0)
             {
                 int axisSlot = (int)(randomService.NextDouble() * remainingAxes.Count);
-                List<ModuleData> candidates = modulesByAxis[remainingAxes[axisSlot]];
+                List<ModuleData> candidates = eligible[remainingAxes[axisSlot]];
                 remainingAxes.RemoveAt(axisSlot);
 
                 int moduleSlot = (int)(randomService.NextDouble() * candidates.Count);
@@ -73,10 +76,23 @@ namespace Overclock.Core
             return offer;
         }
 
-        // 세이브에서 읽은 카드가 CreateOffer 가 만들 수 있는 조합인지. 카드 수 = min(3, 모듈이 있는 축 수), 축은 서로 다르다
+        private List<ModuleData>[] EligibleModules()
+        {
+            if (canOffer == null) return modulesByAxis;
+            var eligible = new List<ModuleData>[modulesByAxis.Length];
+            for (int i = 0; i < modulesByAxis.Length; i++)
+                eligible[i] = modulesByAxis[i].FindAll(module => canOffer(module));
+            return eligible;
+        }
+
+        // 이미 열린 옛 제안은 효과가 없어져도 보존. 원래 카드 수 또는 현재 필터 후 카드 수만 허용한다.
+        // 축 중복/풀 밖 카드는 거부하며, 복원할 때 난수나 다시 뽑기를 사용하지 않는다.
         internal bool IsPossibleOffer(IReadOnlyList<ModuleData> offer)
         {
             int axesWithModules = 0;
+            int eligibleAxes = 0;
+            foreach (List<ModuleData> candidates in EligibleModules())
+                if (candidates.Count > 0) eligibleAxes++;
             foreach (List<ModuleData> candidates in modulesByAxis)
             {
                 if (candidates.Count > 0)
@@ -85,7 +101,7 @@ namespace Overclock.Core
                 }
             }
 
-            if (offer.Count != Math.Min(OfferSize, axesWithModules))
+            if (offer.Count != Math.Min(OfferSize, axesWithModules) && offer.Count != Math.Min(OfferSize, eligibleAxes))
             {
                 return false;
             }
@@ -94,7 +110,7 @@ namespace Overclock.Core
             foreach (ModuleData module in offer)
             {
                 int axis = (int)module.Axis;
-                if (usedAxes[axis])
+                if (usedAxes[axis] || !modulesByAxis[axis].Contains(module))
                 {
                     return false;
                 }

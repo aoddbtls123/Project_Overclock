@@ -78,6 +78,15 @@ namespace Overclock.Core
             this.drawsWithoutSuperRare = drawsWithoutSuperRare;
         }
 
+        // v1 세이브 전용: 50회 천장에서 이미 누적한 횟수는 잃지 않는다.
+        // Draw는 현재 임계값 이상이면 SR을 확정하고 카운터를 0으로 되돌린다.
+        internal void RestoreLegacyPityCounter(int counter)
+        {
+            if (counter < 0 || counter > 50)
+                throw new ArgumentOutOfRangeException(nameof(counter));
+            drawsWithoutSuperRare = counter;
+        }
+
         public Grade Draw()
         {
             Grade grade = drawsWithoutSuperRare >= pityThreshold

@@ -1067,7 +1067,7 @@ namespace Overclock.Presentation
                     GradeStyle.Colorize(Grade.N, "N  " + FormatPercent(gachaEngine.GetProbability(Grade.N))) + "\n" +
                     GradeStyle.Colorize(Grade.R, "R  " + FormatPercent(gachaEngine.GetProbability(Grade.R))) + "\n" +
                     GradeStyle.Colorize(Grade.SR, "SR " + FormatPercent(gachaEngine.GetProbability(Grade.SR))) + "\n" +
-                    "천장 " + gachaEngine.DrawsWithoutSuperRare + " / " + gachaEngine.PityThreshold;
+                    GaugePanelView.FormatPity(gachaEngine.DrawsWithoutSuperRare, gachaEngine.PityThreshold);
                 return;
             }
 
@@ -1115,7 +1115,7 @@ namespace Overclock.Presentation
             }
             else
             {
-                overclockLabel.text = "오버클럭\n3회 동안 R·SR 배수 +1 / N 0";
+                overclockLabel.text = "오버클럭\n3회 동안 R·SR 배수 +3 / N 0";
             }
         }
 

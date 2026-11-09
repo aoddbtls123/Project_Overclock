@@ -10,7 +10,7 @@ namespace Overclock.Core
         public const double MaxOutputMultiplier = 8.0;
         public const int MaxDrawsPerRound = 20;
         // 오버클럭 중 R · SR 배수 증가분. 모듈 배수와 더해서 합치고 ×8 상한 안에서만 (N 은 0)
-        public const double OverclockMultiplierBonus = 1.0;
+        public const double OverclockMultiplierBonus = 3.0;
 
         private readonly double baseN;
         private readonly double baseR;
@@ -101,7 +101,7 @@ namespace Overclock.Core
             return CalculateOutput(part.Grade, part.Tag, part.BaseOutput, streakTriggered);
         }
 
-        /// <summary>오버클럭 중 생산량. N 은 0 (고정 · 연속 보너스 포함), R · SR 은 배수 증가분 +1 (×8 상한 안).</summary>
+        /// <summary>오버클럭 중 생산량. N 은 0 (고정 · 연속 보너스 포함), R · SR 은 배수 증가분 +3 (모듈 없으면 ×4, ×8 상한 안).</summary>
         public int CalculateOverclockedOutput(PartData part, bool streakTriggered)
         {
             if (part == null)

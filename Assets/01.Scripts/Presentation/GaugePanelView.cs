@@ -190,7 +190,14 @@ namespace Overclock.Presentation
                 text += GradeStyle.Colorize(Grades[i], Labels[i] + FormatNumber(shown[i]) + "%") + marks[i] + "\n";
             }
 
-            panelText.text = text + "천장 " + pityDraws + " / " + pityThreshold;
+            panelText.text = text + FormatPity(pityDraws, pityThreshold);
+        }
+
+        public static string FormatPity(int drawsWithoutSuperRare, int threshold)
+        {
+            return drawsWithoutSuperRare >= threshold
+                ? "다음 뽑기 SR 확정"
+                : "SR 보장까지 " + (threshold - drawsWithoutSuperRare + 1) + "회";
         }
 
         private bool IsSameAsTarget(double normal, double rare, double superRare)

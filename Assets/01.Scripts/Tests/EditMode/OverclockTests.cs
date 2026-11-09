@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Overclock.Tests
 {
-    // 오버클럭 (A2): 라운드마다 1번 · 켠 뒤 3회 · N 0 · R · SR 배수 증가분 +1 (×8 상한 안) · 천장 영향 없음 · 난수 미사용.
+    // 오버클럭: 라운드마다 1번 · 켠 뒤 3회 · N 0 · R · SR 배수 증가분 +3 (×8 상한 안) · 천장 영향 없음 · 난수 미사용.
     // 기대값은 기획 숫자 리터럴로 쓴다 (구현 상수 OverclockDraws · OverclockMultiplierBonus 를 쓰지 않는다)
     public class OverclockTests
     {
@@ -88,13 +88,14 @@ namespace Overclock.Tests
         }
 
         [Test]
-        public void Rare_DoublesWithoutModules()
+        public void Rare_QuadruplesWithoutModules()
         {
             RunManager run = CreateFixedGradeRun(0.0, 1.0, 0.0, 10);
+            run.RestoreProgress(6, 0, 10, RunState.Drawing, Grade.N, 0);
             run.ActivateOverclock();
 
             DrawResult first = run.Draw();
-            Assert.AreEqual(6, first.Output);
+            Assert.AreEqual(12, first.Output);
             Assert.IsTrue(first.Overclocked);
             Assert.AreEqual(2, run.OverclockDrawsLeft);
         }
@@ -108,7 +109,7 @@ namespace Overclock.Tests
             Assert.AreEqual(13, run.Draw().Output, "켜기 전 10 × 1.3");
             run.AdvanceRound();
             run.ActivateOverclock();
-            Assert.AreEqual(23, run.Draw().Output, "10 × (1 + 0.3 + 1)");
+            Assert.AreEqual(43, run.Draw().Output, "10 × (1 + 0.3 + 3)");
         }
 
         [Test]
@@ -118,7 +119,7 @@ namespace Overclock.Tests
             run.EquipModule(CreateModule("big", ModuleAxis.Multiplier, ModifierType.OutputMultiplier, GradeFilter.Any, 7f));
             run.ActivateOverclock();
 
-            Assert.AreEqual(24, run.Draw().Output, "3 × min(1 + 7 + 1, 8)");
+            Assert.AreEqual(24, run.Draw().Output, "3 × min(1 + 7 + 3, 8)");
         }
 
         [Test]
@@ -152,9 +153,8 @@ namespace Overclock.Tests
             Assert.Throws<InvalidOperationException>(() => run.ActivateOverclock());
 
             run.Draw();
-            run.Draw();
-            Assert.AreEqual(RunState.RoundCleared, run.State, "6 + 6 ≥ 8");
-            Assert.AreEqual(0, run.OverclockDrawsLeft, "돌파하면 남은 1회는 사라진다");
+            Assert.AreEqual(RunState.RoundCleared, run.State, "12 ≥ 8");
+            Assert.AreEqual(0, run.OverclockDrawsLeft, "돌파하면 남은 2회는 사라진다");
             Assert.IsFalse(run.CanActivateOverclock, "돌파 상태에서는 못 켠다");
             Assert.Throws<InvalidOperationException>(() => run.ActivateOverclock());
 

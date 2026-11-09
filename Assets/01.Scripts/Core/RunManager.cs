@@ -170,6 +170,27 @@ namespace Overclock.Core
             gachaEngine.SetProbabilities(n, r, sr);
         }
 
+        // 확률만 올리는 카드 중 장착 전후 확률이 완전히 같은 카드만 새 제안에서 제외.
+        // 다른 효과가 섞였거나 R/SR 어느 한쪽이라도 남은 효과가 있으면 유지한다.
+        public bool CanOfferModule(ModuleData module)
+        {
+            if (module == null) throw new ArgumentNullException(nameof(module));
+            if (module.EffectCount == 0) return true;
+            for (int i = 0; i < module.EffectCount; i++)
+            {
+                ModifierType type = module.GetEffect(i).Type;
+                if (type != ModifierType.RareChance && type != ModifierType.SuperRareChance)
+                    return true;
+            }
+
+            ModifierEngine after = modifierEngine.Clone();
+            after.Equip(module);
+            modifierEngine.GetProbabilities(out double n, out double r, out double sr);
+            after.GetProbabilities(out double nextN, out double nextR, out double nextSR);
+            const double tolerance = 1e-9;
+            return Math.Abs(n - nextN) > tolerance || Math.Abs(r - nextR) > tolerance || Math.Abs(sr - nextSR) > tolerance;
+        }
+
         public ModulePreview PreviewModule(ModuleData module)
         {
             // 실제 엔진은 건드리지 않는다. 전/후 모두 복제본으로 계산

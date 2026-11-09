@@ -5,7 +5,8 @@ namespace Overclock.Core
 {
     public sealed class RunSession
     {
-        private const int PityThreshold = 50;
+        // 19회 연속 SR 미획득 뒤, 늦어도 20번째 뽑기는 SR 확정.
+        private const int PityThreshold = 19;
         // 일반모드 라운드 수. 최고 기록 검사(BestRecords)도 이 값을 쓴다
         public const int NormalRoundCount = 8;
         // 무한모드에는 마지막 라운드가 없다. 클리어 판정(현재 라운드 == 라운드 수)에 닿지 않는 값을 넘긴다
@@ -64,7 +65,7 @@ namespace Overclock.Core
             var gachaEngine = new GachaEngine(randomService, PityThreshold, BaseN, BaseR, BaseSR);
             var partCatalog = new PartCatalog(parts, randomService);
             var runManager = new RunManager(gachaEngine, partCatalog, roundCount, DrawsPerRound);
-            var moduleOffer = new ModuleOffer(modules, randomService);
+            var moduleOffer = new ModuleOffer(modules, randomService, runManager.CanOfferModule);
             return new RunSession(seed, mode, randomService, gachaEngine, runManager, moduleOffer);
         }
 
@@ -139,6 +140,7 @@ namespace Overclock.Core
                 seed = Seed,
                 randomState = randomService.State,
                 drawsWithoutSuperRare = GachaEngine.DrawsWithoutSuperRare,
+                legacyPityPending = GachaEngine.DrawsWithoutSuperRare > GachaEngine.PityThreshold,
                 round = RunManager.CurrentRound,
                 production = RunManager.Production,
                 drawsRemaining = RunManager.DrawsRemaining,
@@ -165,7 +167,7 @@ namespace Overclock.Core
                 throw new ArgumentNullException(nameof(data));
             }
 
-            if (data.version != RunSaveData.CurrentVersion)
+            if (data.version != 1 && data.version != RunSaveData.CurrentVersion)
             {
                 throw new ArgumentException("지원하지 않는 세이브 버전입니다: " + data.version, nameof(data));
             }
@@ -184,7 +186,22 @@ namespace Overclock.Core
 
             runManager.RestoreProgress(data.round, data.production, data.drawsRemaining, data.state, data.streakGrade, data.streakCount);
             runManager.RestoreOverclock(data.overclockUsed, data.overclockDrawsLeft);
-            session.GachaEngine.RestorePityCounter(data.drawsWithoutSuperRare);
+            // 옛 런의 누적 횟수와 부품 기록을 그대로 보존한다. 새 임계값을 넘었다면
+            // 다음 뽑기가 즉시 SR이며, 그 전에 다시 저장/복원해도 이 권리를 유지한다.
+            if (data.version == 1)
+            {
+                session.GachaEngine.RestoreLegacyPityCounter(data.drawsWithoutSuperRare);
+            }
+            else if (data.legacyPityPending)
+            {
+                if (data.drawsWithoutSuperRare <= PityThreshold)
+                    throw new ArgumentException("이전 천장 대기 표시와 누적 횟수가 맞지 않습니다.", nameof(data));
+                session.GachaEngine.RestoreLegacyPityCounter(data.drawsWithoutSuperRare);
+            }
+            else
+            {
+                session.GachaEngine.RestorePityCounter(data.drawsWithoutSuperRare);
+            }
             List<PartData> roundParts = FindParts(data.roundPartIds, parts);
             if (data.roundPartsRecorded)
             {

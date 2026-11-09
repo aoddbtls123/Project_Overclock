@@ -118,9 +118,9 @@ namespace Overclock.Tests
                 RunRecord record = RunSimulator.Simulate(seed, parts, modules, strategy);
 
                 var random = new RandomService(seed);
-                var engine = new GachaEngine(random, 50, 0.72, 0.25, 0.03);
+                var engine = new GachaEngine(random, 19, 0.72, 0.25, 0.03);
                 var run = new RunManager(engine, new PartCatalog(parts, random), 8, 10);
-                var offer = new ModuleOffer(modules, random);
+                var offer = new ModuleOffer(modules, random, run.CanOfferModule);
                 var equipped = new List<ModuleData>();
                 while (run.State == RunState.Drawing || run.State == RunState.RoundCleared)
                 {
@@ -172,9 +172,9 @@ namespace Overclock.Tests
 
                 var random = new RandomService(seed);
                 var choiceRandom = new RandomService(seed ^ 0x2545F491u);
-                var engine = new GachaEngine(random, 50, 0.72, 0.25, 0.03);
+                var engine = new GachaEngine(random, 19, 0.72, 0.25, 0.03);
                 var run = new RunManager(engine, new PartCatalog(parts, random), 8, 10);
-                var offer = new ModuleOffer(modules, random);
+                var offer = new ModuleOffer(modules, random, run.CanOfferModule);
                 var equipped = new List<ModuleData>();
                 while (run.State == RunState.Drawing || run.State == RunState.RoundCleared)
                 {
@@ -387,14 +387,15 @@ namespace Overclock.Tests
         [Test]
         public void NoModuleStrategy_RoundPassRatesMatchAnalysis()
         {
-            // 지표 ① 의 근거. 해석값 R2 96.26 · R3 44.14 · R4 13.36 (%) — 그 라운드에 도달한 런 기준
+            // N1/R3/SR10 테스트 부품·20번째 천장·10회·즉시 돌파의 독립 확률 DP 해석값.
+            // 런 전체 천장 카운트를 라운드 사이에 전달한다. 실제 에셋 R5/SR18의 밸런스 기준은 아님.
             List<RunRecord> records = RunSimulator.SimulateMany(1, 20000, parts, modules, new NoModuleStrategy());
             var summary = new SimulationSummary(records);
 
             Assert.AreEqual(20000, summary.ReachedCount(1));
             Assert.AreEqual(0.9626, summary.PassRate(2), 0.01);
-            Assert.AreEqual(0.4414, summary.PassRate(3), 0.01);
-            Assert.AreEqual(0.1336, summary.PassRate(4), 0.01);
+            Assert.AreEqual(0.8170, summary.PassRate(3), 0.01);
+            Assert.AreEqual(0.1547, summary.PassRate(4), 0.01);
         }
     }
 }

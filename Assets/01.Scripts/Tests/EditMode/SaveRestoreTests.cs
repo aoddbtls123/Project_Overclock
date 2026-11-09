@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using Overclock.Core;
@@ -103,7 +103,7 @@ namespace Overclock.Tests
                         checkpointsWithStreak++;
                     }
 
-                    if (data.drawsWithoutSuperRare >= 40)
+                    if (data.drawsWithoutSuperRare >= 15)
                     {
                         checkpointsAtPity++;
                     }
@@ -115,7 +115,7 @@ namespace Overclock.Tests
             // 저장 시점이 실제로 덮였는지 확인한다. 이 값이 0 이면 그 상태의 복원은 검사되지 않은 것이다
             Assert.GreaterOrEqual(checkpointsWithOpenOffer, 50, "카드가 열린 상태 저장");
             Assert.GreaterOrEqual(checkpointsWithStreak, 200, "연속 진행 중 저장");
-            Assert.GreaterOrEqual(checkpointsAtPity, 20, "보증 40 이상에서 저장");
+            Assert.GreaterOrEqual(checkpointsAtPity, 20, "보증 15 이상에서 저장");
             Assert.GreaterOrEqual(checkpoints, 1000, "저장 횟수");
         }
 
@@ -133,7 +133,7 @@ namespace Overclock.Tests
             RunSaveData data = session.CaptureSaveData();
 
             Assert.AreEqual(RunSaveData.CurrentVersion, data.version);
-            Assert.AreEqual(1, data.version);
+            Assert.AreEqual(2, data.version);
             Assert.AreEqual(RunMode.Normal, data.mode);
             Assert.AreEqual(7u, data.seed);
             Assert.AreEqual(2, data.round);
@@ -333,7 +333,7 @@ namespace Overclock.Tests
             var cases = new List<KeyValuePair<string, Action<RunSaveData>>>
             {
                 Case("버전 0", d => d.version = 0),
-                Case("버전 2", d => d.version = 2),
+                Case("버전 3", d => d.version = 3),
                 Case("모드 범위 밖", d => d.mode = (RunMode)5),
                 Case("시드 uint 최댓값", d => d.seed = uint.MaxValue),
                 Case("난수 상태 0", d => d.randomState = 0),

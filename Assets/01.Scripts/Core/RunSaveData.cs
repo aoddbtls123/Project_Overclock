@@ -7,13 +7,15 @@ namespace Overclock.Core
     [Serializable]
     public sealed class RunSaveData
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int version;
         public RunMode mode;
         public uint seed;
         public uint randomState;
         public int drawsWithoutSuperRare;
+        // v1의 20~50회 누적을 보존한 채 v2로 다시 저장한 경우. 다음 SR에서 해제된다.
+        public bool legacyPityPending;
         public int round;
         public int production;
         public int drawsRemaining;

@@ -16,5 +16,5 @@ MonoBehaviour:
   displayName: "\uD68C\uB85C\uAE30\uD310"
   grade: 1
   tag: 1
-  baseOutput: 3
+  baseOutput: 5
   icon: {fileID: 21300000, guid: 3f2406ddac38dea4182c0dbec67789bf, type: 3}

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using NUnit.Framework;
 using Overclock.Core;
 using UnityEngine;
@@ -69,7 +69,7 @@ namespace Overclock.Tests
             Assert.AreEqual(0.72, session.GachaEngine.GetProbability(Grade.N), Tolerance);
             Assert.AreEqual(0.25, session.GachaEngine.GetProbability(Grade.R), Tolerance);
             Assert.AreEqual(0.03, session.GachaEngine.GetProbability(Grade.SR), Tolerance);
-            Assert.AreEqual(50, session.GachaEngine.PityThreshold);
+            Assert.AreEqual(19, session.GachaEngine.PityThreshold);
             Assert.AreEqual(8, session.RunManager.RoundCount);
             Assert.AreEqual(1, session.RunManager.CurrentRound);
             Assert.AreEqual(10, session.RunManager.DrawsRemaining);
@@ -85,9 +85,9 @@ namespace Overclock.Tests
                 RunSession session = RunSession.Create(seed, parts, modules);
 
                 var mirrorRandom = new RandomService(seed);
-                var mirrorEngine = new GachaEngine(mirrorRandom, 50, 0.72, 0.25, 0.03);
+                var mirrorEngine = new GachaEngine(mirrorRandom, 19, 0.72, 0.25, 0.03);
                 var mirrorRun = new RunManager(mirrorEngine, new PartCatalog(parts, mirrorRandom), 8, 10);
-                var mirrorOffer = new ModuleOffer(modules, mirrorRandom);
+                var mirrorOffer = new ModuleOffer(modules, mirrorRandom, mirrorRun.CanOfferModule);
 
                 RunManager run = session.RunManager;
                 while (run.State == RunState.Drawing || run.State == RunState.RoundCleared)
