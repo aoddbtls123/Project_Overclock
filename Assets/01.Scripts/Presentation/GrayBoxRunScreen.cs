@@ -41,6 +41,8 @@ namespace Overclock.Presentation
         [SerializeField] private OfferFlipView offerFlip;
         [Tooltip("새 런 시작 등장 연출 (11/07 · 정보 패널이 펼쳐진다). 비어 있으면 바로 최종 화면")]
         [SerializeField] private RunIntroView runIntro;
+        [Tooltip("배경 방 조명 (11/16). 비어 있으면 배경 연출 없음")]
+        [SerializeField] private RoomLightView roomLight;
         [SerializeField] private GameObject titlePanel;
         [SerializeField] private Button startButton;
         [SerializeField] private Button titleQuitButton;
@@ -263,6 +265,10 @@ namespace Overclock.Presentation
                 if (IsSkipPressed(keyboard, mouse))
                 {
                     runIntro.Skip();
+                    if (roomLight != null)
+                    {
+                        roomLight.ShowLit();
+                    }
                 }
             }
             else if (IsOfferFlipping)
@@ -461,6 +467,11 @@ namespace Overclock.Presentation
         {
             // 설정 창 '뒤로' · 일시정지 '처음으로' 모두 여기를 지난다
             SaveVolumeIfDirty();
+            if (roomLight != null)
+            {
+                roomLight.ShowDark();
+            }
+
             // 화면은 패널을 켜고 끄기만 한다. RunScreen 오브젝트는 끄지 않는다 (10/26 화면 전환 규칙)
             moduleSelectPanel.SetActive(false);
             modeSelectPanel.SetActive(false);
@@ -691,6 +702,19 @@ namespace Overclock.Presentation
 
             // 새 런만 등장 연출. 이어하기는 최종 화면 그대로 (StopReveal 이 이미 최종 모습으로 맞췄다).
             // 값은 아래 Refresh 가 실제 시작 상태로 바로 넣는다 (0 부터 세어 올리지 않는다)
+            // 방 조명: 새 런은 암전 → 전등 켜짐 (패널 등장과 같이 흐른다) · 이어하기는 바로 밝은 방
+            if (roomLight != null)
+            {
+                if (runIntro != null && !continued)
+                {
+                    roomLight.PlayLightsOn(settings.RevealTimeMultiplier);
+                }
+                else
+                {
+                    roomLight.ShowLit();
+                }
+            }
+
             if (runIntro != null && !continued)
             {
                 // 런을 시작한 클릭 · 제출 (버튼을 뗀 순간) 이 같은 프레임에 등장 스킵으로 잡히지 않게 한다
