@@ -27,13 +27,13 @@ MonoBehaviour:
   superRareJitterPixels: 2
   jitterFrequency: 40
   gapPuffOffsetsX:
-  - -120
-  - 90
-  - -40
-  - 150
-  - 20
-  - -160
-  - 60
+  - -68
+  - 51
+  - -23
+  - 85
+  - 11
+  - -90
+  - 34
   gapPuffSeconds: 0.35
   gapPuffRise: 25
   gapPuffStartScale: 0.2

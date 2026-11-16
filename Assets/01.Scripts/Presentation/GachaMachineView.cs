@@ -84,6 +84,8 @@ namespace Overclock.Presentation
         private float thudPixels;
         private Tween[] puffTweens;
         private Vector2[] puffStartPositions;
+        // 증기 그림은 오른쪽 배관에서 나오는 모양으로 그려져 있다. 왼쪽 구멍에서 낼 때는 좌우를 뒤집는다
+        private bool[] puffFlipped;
         private int nextPuff;
         private int nextHeatSteam;
 
@@ -103,6 +105,7 @@ namespace Overclock.Presentation
 
             puffTweens = new Tween[steamPuffs.Length];
             puffStartPositions = new Vector2[steamPuffs.Length];
+            puffFlipped = new bool[steamPuffs.Length];
             for (int i = 0; i < steamPuffs.Length; i++)
             {
                 // 증기는 투명해도 클릭을 막는다. 씬 설정과 관계없이 클릭을 통과시킨다 (레버가 증기 뒤에 있을 수 있음)
@@ -703,6 +706,7 @@ namespace Overclock.Presentation
             // 위치는 차례로만 정한다 — 난수 없음
             RectTransform puffRect = steamPuffs[slot].rectTransform;
             puffRect.position = vent.position;
+            puffFlipped[slot] = vent.anchoredPosition.x < 0f;
             puffStartPositions[slot] = puffRect.anchoredPosition + new Vector2(SpreadOffset(index / steamVents.Length), 0f);
             HidePuff(slot);
 
@@ -728,7 +732,8 @@ namespace Overclock.Presentation
         {
             Image puff = steamPuffs[slot];
             float scale = Mathf.Lerp(settings.SteamStartScale, endScale, t);
-            puff.rectTransform.localScale = new Vector3(scale, scale, 1f);
+            float sideScale = puffFlipped[slot] ? -scale : scale;
+            puff.rectTransform.localScale = new Vector3(sideScale, scale, 1f);
             puff.rectTransform.anchoredPosition = puffStartPositions[slot] + new Vector2(0f, settings.SteamRise * t);
             Color color = settings.SteamColor;
             color.a *= 1f - t;
