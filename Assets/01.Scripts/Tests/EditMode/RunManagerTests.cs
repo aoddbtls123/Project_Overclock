@@ -193,7 +193,7 @@ namespace Overclock.Tests
 
             while (run.State == RunState.Drawing)
             {
-                // GachaEngine.Draw 가 등급 추첨에 난수 1개를 먼저 쓴다
+                // GachaEngine.Draw 가 등급 추첨에 난수 1개를 먼저 씀
                 mirrorRandom.NextDouble();
                 PartData expected = catalog.Select(Grade.N, mirrorRandom.NextDouble());
 

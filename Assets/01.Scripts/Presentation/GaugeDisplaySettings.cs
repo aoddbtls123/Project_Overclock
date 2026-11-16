@@ -6,7 +6,7 @@ namespace Overclock.Presentation
     [CreateAssetMenu(fileName = "GaugeDisplaySettings", menuName = "Overclock/Gauge Display Settings")]
     public sealed class GaugeDisplaySettings : ScriptableObject
     {
-        [Tooltip("모듈을 단 뒤 확률 숫자가 이전 값에서 새 값으로 바뀌는 시간. 연출 속도 배율이 곱해진다 (즉시 = 바로 바뀜)")]
+        [Tooltip("모듈을 단 뒤 확률 숫자가 이전 값에서 새 값으로 바뀌는 시간. 연출 속도 배율이 곱해짐 (즉시 = 바로 바뀜)")]
         [SerializeField, Min(0f)] private float rollSeconds = 0.6f;
         [Tooltip("바뀐 줄 옆 ▲▼ 와 변화량이 남아 있는 시간 (숫자가 다 바뀐 뒤부터)")]
         [SerializeField, Min(0f)] private float markSeconds = 2.5f;

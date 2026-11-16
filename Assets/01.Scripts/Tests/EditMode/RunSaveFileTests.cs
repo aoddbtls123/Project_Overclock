@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Overclock.Tests
 {
-    // 실제 JsonUtility 와 파일 입출력을 쓴다. 임시 폴더에서만 읽고 쓴다
+    // 실제 JsonUtility 와 파일 입출력을 씀. 임시 폴더에서만 읽고 씀
     public class RunSaveFileTests
     {
         private readonly List<UnityEngine.Object> createdObjects = new List<UnityEngine.Object>();
@@ -68,7 +68,7 @@ namespace Overclock.Tests
             return module;
         }
 
-        // 파일을 거쳐도 메모리 복원과 똑같이 이어지는지. 카드가 열린 상태 · 무한모드 · 장착 모듈이 있는 상태를 지난다
+        // 파일을 거쳐도 메모리 복원과 똑같이 이어지는지. 카드가 열린 상태 · 무한모드 · 장착 모듈이 있는 상태를 지남
         [TestCase(RunMode.Normal)]
         [TestCase(RunMode.Endless)]
         public void SaveThenLoad_ContinuesExactlyLikeOriginal(RunMode mode)
@@ -100,7 +100,7 @@ namespace Overclock.Tests
             Assert.GreaterOrEqual(checkedWithOffer, 10, "카드가 열린 상태 저장");
         }
 
-        // 난수 상태는 uint 다. int 범위를 넘는 값이 음수나 0 으로 바뀌지 않고 그대로 돌아와야 한다
+        // 난수 상태는 uint 다. int 범위를 넘는 값이 음수나 0 으로 바뀌지 않고 그대로 돌아와야 함
         [Test]
         public void LargeRandomState_RoundTrips()
         {
@@ -181,7 +181,7 @@ namespace Overclock.Tests
             var file = new RunSaveFile(directory);
             RunSaveData valid = RunSession.Create(3, parts, modules).CaptureSaveData();
 
-            // 고치지 않은 값은 읽혀야 한다
+            // 고치지 않은 값은 읽혀야 함
             file.Write(valid);
             Assert.IsTrue(file.TryLoad(parts, modules, out RunSession validSession, out string firstError), firstError);
 
@@ -197,7 +197,7 @@ namespace Overclock.Tests
             Assert.IsFalse(file.TryLoad(parts, modules, out RunSession moduleSession, out string moduleError));
             Assert.IsTrue(moduleError.Contains("removed_module"), moduleError);
 
-            // 세이브는 그대로 둔다. 지우는 것은 부르는 쪽이 정한다
+            // 세이브는 그대로 둠. 지우는 것은 부르는 쪽이 정함
             Assert.IsTrue(file.Exists);
         }
 

@@ -29,7 +29,7 @@ namespace Overclock.Core
         public PartTagFilter TagTarget => tagTarget;
         public float Value => value;
 
-        // 등급 조건과 태그 조건을 모두 만족해야 적용된다
+        // 등급 조건과 태그 조건을 모두 만족해야 적용됨
         public bool AppliesTo(Grade grade, PartTag tag)
         {
             return MatchesGrade(grade) && MatchesTag(tag);

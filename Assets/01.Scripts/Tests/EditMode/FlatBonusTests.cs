@@ -25,7 +25,7 @@ namespace Overclock.Tests
         [Test]
         public void ModifierType_KeepsSavedValues()
         {
-            // 모듈 에셋은 효과 종류를 숫자로 저장한다. 중간에 끼워 넣으면 기존 에셋의 효과가 조용히 다른 종류로 바뀐다
+            // 모듈 에셋은 효과 종류를 숫자로 저장함. 중간에 끼워 넣으면 기존 에셋의 효과가 조용히 다른 종류로 바뀜
             Assert.AreEqual(0, (int)ModifierType.SuperRareChance);
             Assert.AreEqual(1, (int)ModifierType.OutputMultiplier);
             Assert.AreEqual(2, (int)ModifierType.StreakBonus);
@@ -45,7 +45,7 @@ namespace Overclock.Tests
 
             // (1 + 2) × 1.3 = 3.9 → 4. 승산 뒤에 더하면 1 × 1.3 + 2 = 3.3 → 3
             Assert.AreEqual(4, engine.CalculateOutput(Grade.N, PartTag.Mechanical, 1, false));
-            // (1 + 2 + 10) × 1.3 = 16.9 → 17. 고정 보너스는 연속이 아닐 때도, 연속일 때도 더한다
+            // (1 + 2 + 10) × 1.3 = 16.9 → 17. 고정 보너스는 연속이 아닐 때도, 연속일 때도 더함
             Assert.AreEqual(17, engine.CalculateOutput(Grade.N, PartTag.Mechanical, 1, true));
             // (10 + 2) × 1.3 = 15.6 → 16
             Assert.AreEqual(16, engine.CalculateOutput(Grade.SR, PartTag.Power, 10, false));

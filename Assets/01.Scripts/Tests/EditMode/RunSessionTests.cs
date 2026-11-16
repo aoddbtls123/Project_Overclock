@@ -79,7 +79,7 @@ namespace Overclock.Tests
         [Test]
         public void Create_MatchesManualAssemblyWithOneRandomService()
         {
-            // 기대값은 기획 숫자로 직접 조립한 거울 런. 난수원이 하나라도 갈라지면 부품이나 카드가 달라진다
+            // 기대값은 기획 숫자로 직접 조립한 거울 런. 난수원이 하나라도 갈라지면 부품이나 카드가 달라짐
             for (uint seed = 1; seed <= 100; seed++)
             {
                 RunSession session = RunSession.Create(seed, parts, modules);

@@ -48,7 +48,7 @@ namespace Overclock.Tests
         [Test]
         public void ModuleAssets_HaveDesignedFamilies()
         {
-            // 표에 있는 15종만 검사한다. 새 모듈은 표 없이 추가할 수 있다 (코드 수정 없이 모듈 추가)
+            // 표에 있는 15종만 검사함. 새 모듈은 표 없이 추가할 수 있음 (코드 수정 없이 모듈 추가)
             var found = new HashSet<string>();
             var problems = new List<string>();
             foreach (string guid in AssetDatabase.FindAssets("t:ModuleData"))

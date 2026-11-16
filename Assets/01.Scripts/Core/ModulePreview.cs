@@ -17,7 +17,7 @@ namespace Overclock.Core
             this.remainingDraws = remainingDraws;
         }
 
-        // 다음 라운드 뽑기 횟수. 미리보기는 돌파 시점에 쓰므로 지금 남은 뽑기가 이월 대상이다
+        // 다음 라운드 뽑기 횟수. 미리보기는 돌파 시점에 쓰므로 지금 남은 뽑기가 이월 대상임
         public int DrawsPerRoundBefore => before.DrawsForNextRound(baseDrawsPerRound, remainingDraws);
         public int DrawsPerRoundAfter => after.DrawsForNextRound(baseDrawsPerRound, remainingDraws);
 

@@ -16,11 +16,11 @@ namespace Overclock.Presentation
         [SerializeField] private Button selectButton;
 
         [Header("다시 받기 회전 (11/07) — 셋 중 하나라도 비면 돌지 않고 바로 바뀐다")]
-        [Tooltip("세로축으로 도는 안쪽 판 (앞면 · 뒷면의 부모). 카드 자리 · 크기를 정하는 바깥 (이 오브젝트) 은 돌지 않는다")]
+        [Tooltip("세로축으로 도는 안쪽 판 (앞면 · 뒷면의 부모). 카드 자리 · 크기를 정하는 바깥 (이 오브젝트) 은 돌지 않음")]
         [SerializeField] private RectTransform flipRoot;
         [Tooltip("배경 · 테두리 · 글자 · 아이콘 · 선택 버튼을 담은 앞면")]
         [SerializeField] private GameObject frontFace;
-        [Tooltip("글자 없는 금속판 뒷면 (Flip Root 기준 180° 돌려 둔다). 90° ~ 270° 동안만 켠다")]
+        [Tooltip("글자 없는 금속판 뒷면 (Flip Root 기준 180° 돌려 둠). 90° ~ 270° 동안만 켬")]
         [SerializeField] private GameObject backFace;
 
         private ModuleData module;
@@ -41,7 +41,7 @@ namespace Overclock.Presentation
             Show(module, preview, preview, selected);
         }
 
-        /// <summary>카드 내용. 효과 글자는 지금 보기 방식 (SetDetailed) 에 따라 간단히 / 자세히 중 하나를 쓴다.</summary>
+        /// <summary>카드 내용. 효과 글자는 지금 보기 방식 (SetDetailed) 에 따라 간단히 / 자세히 중 하나를 씀.</summary>
         public void Show(ModuleData module, string summary, string detail, Action<ModuleData> selected)
         {
             this.module = module;
@@ -58,7 +58,7 @@ namespace Overclock.Presentation
             gameObject.SetActive(true);
         }
 
-        /// <summary>효과 글자를 간단히 (false) / 자세히 (true) 로 바꾼다. 다음 Show 에도 그대로 이어진다.</summary>
+        /// <summary>효과 글자를 간단히 (false) / 자세히 (true) 로 바꿈. 다음 Show 에도 그대로 이어짐.</summary>
         public void SetDetailed(bool value)
         {
             detailed = value;
@@ -77,13 +77,13 @@ namespace Overclock.Presentation
             gameObject.SetActive(false);
         }
 
-        /// <summary>선택 버튼을 켜고 끈다. 회전 중에는 꺼서 마우스 · 키보드 제출 모두 이전 카드를 고르지 못하게 한다.</summary>
+        /// <summary>선택 버튼을 켜고 끔. 회전 중에는 꺼서 마우스 · 키보드 제출 모두 이전 카드를 고르지 못하게 함.</summary>
         public void SetSelectable(bool selectable)
         {
             selectButton.interactable = selectable;
         }
 
-        /// <summary>안쪽 판을 세로축으로 degrees 만큼 돌린다. 90° 이상 270° 미만이면 뒷면만, 그 밖이면 앞면만 보인다.</summary>
+        /// <summary>안쪽 판을 세로축으로 degrees 만큼 돌림. 90° 이상 270° 미만이면 뒷면만, 그 밖이면 앞면만 보임.</summary>
         public void SetFlipAngle(float degrees)
         {
             if (!CanFlip)
@@ -93,7 +93,7 @@ namespace Overclock.Presentation
 
             flipRoot.localEulerAngles = new Vector3(0f, degrees, 0f);
 
-            // UI 셰이더는 뒷면을 버리지 않는다. 앞면을 끄지 않으면 뒤집힌 글자가 비쳐 보인다
+            // UI 셰이더는 뒷면을 버리지 않음. 앞면을 끄지 않으면 뒤집힌 글자가 비쳐 보임
             bool showBack = degrees >= 90f && degrees < 270f;
             if (frontFace.activeSelf == showBack)
             {

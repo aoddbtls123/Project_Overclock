@@ -9,7 +9,7 @@ namespace Overclock.EditorTools
     {
         private const string IconFolder = "Assets/04.Art/Icons";
 
-        // 아이콘 파일 이름 = 부품·모듈 id. 에셋마다 손으로 연결하지 않고 이름으로 찾아 넣는다
+        // 아이콘 파일 이름 = 부품·모듈 id. 에셋마다 손으로 연결하지 않고 이름으로 찾아 넣음
         [MenuItem("Overclock/Assign Icons")]
         private static void AssignIcons()
         {

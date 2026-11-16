@@ -38,14 +38,14 @@ namespace Overclock.Tests
                 }
             }
 
-            // 에셋을 하나도 못 찾으면 검사할 것이 없어 그냥 통과한다. 그걸 막는다
+            // 에셋을 하나도 못 찾으면 검사할 것이 없어 그냥 통과함. 그걸 막음
             Assert.GreaterOrEqual(partCount, 3, "부품 에셋을 찾지 못함");
             Assert.GreaterOrEqual(moduleCount, 3, "모듈 에셋을 찾지 못함");
             problems.Sort(StringComparer.Ordinal);
             Assert.IsTrue(problems.Count == 0, "아이콘 없음 " + problems.Count + "건\n" + string.Join("\n", problems));
         }
 
-        // 아이콘 연결 메뉴(Overclock/Assign Icons)는 파일 이름 = id 로 찾는다. id 만 바꾸면 다음 연결 때 아이콘이 빠진다
+        // 아이콘 연결 메뉴(Overclock/Assign Icons)는 파일 이름 = id 로 찾음. id 만 바꾸면 다음 연결 때 아이콘이 빠짐
         [Test]
         public void AllIcons_FileNameMatchesId()
         {
@@ -71,7 +71,7 @@ namespace Overclock.Tests
             Assert.IsTrue(problems.Count == 0, "아이콘 파일 이름 ≠ id " + problems.Count + "건\n" + string.Join("\n", problems));
         }
 
-        // 아이콘이 없는 경우는 AllDataAssets_HaveIcon 이 잡는다
+        // 아이콘이 없는 경우는 AllDataAssets_HaveIcon 이 잡음
         private static int CheckIconName(string assetPath, string id, Sprite icon, List<string> problems)
         {
             if (icon == null)

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 namespace Overclock.Presentation
 {
-    // 기계 패널의 슬롯 1칸. 패널이 이 오브젝트를 복제해서 쓴다
+    // 기계 패널의 슬롯 1칸. 패널이 이 오브젝트를 복제해서 씀
     public sealed class MachineSlotView : MonoBehaviour
     {
         [SerializeField] private Image iconImage;

@@ -7,8 +7,8 @@ using UnityEngine.UI;
 
 namespace Overclock.Presentation
 {
-    // 볼륨 슬라이더 한 줄 (이름 + 퍼센트 글자 + 슬라이더). 슬라이더와 같은 오브젝트에 붙인다 — 마우스를 놓는 순간(OnPointerUp)을 받기 위해서.
-    // 값을 바꾸고 저장하는 일은 GrayBoxRunScreen 이 한다. 끄는 동안은 바로 소리에 반영하고, 놓을 때 한 번 저장한다
+    // 볼륨 슬라이더 한 줄 (이름 + 퍼센트 글자 + 슬라이더). 슬라이더와 같은 오브젝트에 붙임 — 마우스를 놓는 순간(OnPointerUp)을 받기 위해서.
+    // 값을 바꾸고 저장하는 일은 GrayBoxRunScreen 이 함. 끄는 동안은 바로 소리에 반영하고, 놓을 때 한 번 저장함
     [RequireComponent(typeof(Slider))]
     public sealed class VolumeSliderView : MonoBehaviour, IPointerUpHandler
     {
@@ -38,7 +38,7 @@ namespace Overclock.Presentation
             });
         }
 
-        /// <summary>설정 값을 보여 준다. 슬라이더 이벤트는 내지 않는다 (다른 창의 같은 슬라이더를 맞출 때도 쓴다).</summary>
+        /// <summary>설정 값을 보여 줌. 슬라이더 이벤트는 내지 않음 (다른 창의 같은 슬라이더를 맞출 때도 씀).</summary>
         public void Show(float value)
         {
             slider.SetValueWithoutNotify(value);

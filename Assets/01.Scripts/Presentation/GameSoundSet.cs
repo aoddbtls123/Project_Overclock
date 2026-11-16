@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace Overclock.Presentation
 {
-    // 상황별 효과음 클립 · 음량 · 소리 사이 간격. 재생은 SoundPlayer 가 한다.
-    // 구매 음원(Assets/05.Audio/Licensed)은 저장소에 없다. 새로 클론하면 그 칸이 비고, 그 소리만 나지 않는다
+    // 상황별 효과음 클립 · 음량 · 소리 사이 간격. 재생은 SoundPlayer 가 함.
+    // 구매 음원(Assets/05.Audio/Licensed)은 저장소에 없음. 새로 클론하면 그 칸이 비고, 그 소리만 나지 않음
     [CreateAssetMenu(fileName = "GameSoundSet", menuName = "Overclock/Game Sound Set")]
     public sealed class GameSoundSet : ScriptableObject
     {
@@ -17,7 +17,7 @@ namespace Overclock.Presentation
         [SerializeField] private AudioClip[] rareReveal;
         [Tooltip("여러 개면 무작위 (직전과 같은 것 제외)")]
         [SerializeField] private AudioClip[] superRareReveal;
-        [Tooltip("SR 대기 시작부터 공개 순간까지. 공개 · 스킵되면 멈춘다. 연출 속도 '즉시' 면 시작하지 않는다")]
+        [Tooltip("SR 대기 시작부터 공개 순간까지. 공개 · 스킵되면 멈춤. 연출 속도 '즉시' 면 시작하지 않음")]
         [SerializeField] private AudioClip superRareCharge;
 
         [Header("기계 타격감 (11/04) — 멈추는 순간에 난다")]
@@ -45,12 +45,12 @@ namespace Overclock.Presentation
         [SerializeField] private AudioClip[] streakHits;
         [Tooltip("공개음이 시작된 뒤 첫 소리가 시작될 때까지 (초)")]
         [SerializeField, Min(0f)] private float streakDelay = 0.15f;
-        [Tooltip("3연속 소리의 시작 간격 (초). 클립보다 짧으면 겹치며 이어진다")]
+        [Tooltip("3연속 소리의 시작 간격 (초). 클립보다 짧으면 겹치며 이어짐")]
         [SerializeField, Min(0f)] private float streakInterval = 0.18f;
 
         [Header("돌파")]
         [SerializeField] private AudioClip breakthrough;
-        [Tooltip("공개음이 시작된 뒤 (3연속이 있으면 마지막 소리가 시작된 뒤) (초). 앞 소리가 끝나기를 기다리지 않는다")]
+        [Tooltip("공개음이 시작된 뒤 (3연속이 있으면 마지막 소리가 시작된 뒤) (초). 앞 소리가 끝나기를 기다리지 않음")]
         [SerializeField, Min(0f)] private float breakthroughDelay = 0.1f;
         [Tooltip("카드 패널이 열릴 때")]
         [SerializeField] private AudioClip cardAppear;
@@ -60,23 +60,23 @@ namespace Overclock.Presentation
         [SerializeField] private AudioClip moduleEquip;
         [Tooltip("다시 받기 회전이 끝나 카드가 정면에 멎을 때 (작은 금속 걸림 · 세 장이 멎을 때 한 번). 비어 있으면 소리 없음")]
         [SerializeField] private AudioClip offerLatch;
-        [Tooltip("걸림 소리 크기 (효과음 음량에 곱한다)")]
+        [Tooltip("걸림 소리 크기 (효과음 음량에 곱함)")]
         [SerializeField, Range(0f, 1f)] private float offerLatchVolume = 0.6f;
 
         [Header("런 시작 등장 (11/07 · 새 런만 · 즉시 · 스킵이면 없음)")]
-        [Tooltip("첫 패널이 출발할 때 한 번 — 레일 마찰음 '촤르륵'. 마지막 패널이 부딪히는 순간에 줄여 멈춘다. 비어 있으면 소리 없음")]
+        [Tooltip("첫 패널이 출발할 때 한 번 — 레일 마찰음 '촤르륵'. 마지막 패널이 부딪히는 순간에 줄여 멈춤. 비어 있으면 소리 없음")]
         [SerializeField] private AudioClip runIntroSlide;
-        [Tooltip("레일 소리 크기 (효과음 음량에 곱한다)")]
+        [Tooltip("레일 소리 크기 (효과음 음량에 곱함)")]
         [SerializeField, Range(0f, 1f)] private float runIntroVolume = 0.7f;
         [Tooltip("패널마다 최종 자리에 부딪히는 순간 — '덜컥'. 비어 있으면 소리 없음")]
         [SerializeField] private AudioClip runIntroArrival;
-        [Tooltip("도착음 크기 (효과음 음량에 곱한다). 앞 도착음과 겹치면 RunIntroSettings 의 배율로 더 줄인다")]
+        [Tooltip("도착음 크기 (효과음 음량에 곱함). 앞 도착음과 겹치면 RunIntroSettings 의 배율로 더 줄임")]
         [SerializeField, Range(0f, 1f)] private float runIntroArrivalVolume = 0.5f;
 
         [Header("런 끝")]
-        [Tooltip("런 실패. 실패 연출 (RunFailView) 이 있으면 동력 차단부터 모터가 멎는 소리로 쓰고 점점 작게 줄인다 · 없으면 마지막 공개 뒤 예약")]
+        [Tooltip("런 실패. 실패 연출 (RunFailView) 이 있으면 동력 차단부터 모터가 멎는 소리로 쓰고 점점 작게 줄임 · 없으면 마지막 공개 뒤 예약")]
         [SerializeField] private AudioClip runFailed;
-        [Tooltip("마지막 공개음이 시작된 뒤 (3연속이 있으면 마지막 소리가 시작된 뒤) (초). 앞 소리가 끝나기를 기다리지 않는다")]
+        [Tooltip("마지막 공개음이 시작된 뒤 (3연속이 있으면 마지막 소리가 시작된 뒤) (초). 앞 소리가 끝나기를 기다리지 않음")]
         [SerializeField, Min(0f)] private float runEndDelay = 0.2f;
         [Tooltip("자리만 — 아직 재생 코드 없음")]
         [SerializeField] private AudioClip runCleared;
@@ -141,7 +141,7 @@ namespace Overclock.Presentation
         public float ChargeVolume => chargeVolume;
         public float UiVolume => uiVolume;
 
-        // 자리만 잡아 둔 칸. 아직 재생하는 곳이 없다 (런 클리어 · 전자기 험 · 공장 앰비언스 · 배경 음악)
+        // 자리만 잡아 둔 칸. 아직 재생하는 곳이 없음 (런 클리어 · 전자기 험 · 공장 앰비언스 · 배경 음악)
         public AudioClip RunCleared => runCleared;
         public AudioClip[] ElectricHum => electricHum;
         public AudioClip FactoryAmbience => factoryAmbience;

@@ -27,7 +27,7 @@ namespace Overclock.Tests
                 CreatePart("코어", Grade.SR, 10, PartTag.Power),
             };
 
-            // 효과 7종을 모두 넣는다. 복원 뒤 다시 계산하는 값(확률표 · 생산량 · 뽑기 횟수 · 이월)이 전부 결과에 드러나게 한다
+            // 효과 7종을 모두 넣음. 복원 뒤 다시 계산하는 값(확률표 · 생산량 · 뽑기 횟수 · 이월)이 전부 결과에 드러나게 함
             modules = new[]
             {
                 CreateModule("sr_up", ModuleAxis.Probability, ModifierType.SuperRareChance, 0.05f),
@@ -68,8 +68,8 @@ namespace Overclock.Tests
             return module;
         }
 
-        // 저장 → 복원한 판을 같은 선택으로 끝까지 돌리면 원래 판과 매 단계가 같아야 한다.
-        // 단계 = 뽑기 1회 / 제안 열기 / 모듈 선택. 모든 단계 직후에 저장해 본다 (돌파 직후 · 카드가 열린 상태 포함)
+        // 저장 → 복원한 판을 같은 선택으로 끝까지 돌리면 원래 판과 매 단계가 같아야 함.
+        // 단계 = 뽑기 1회 / 제안 열기 / 모듈 선택. 모든 단계 직후에 저장해 봄 (돌파 직후 · 카드가 열린 상태 포함)
         [TestCase(RunMode.Normal)]
         [TestCase(RunMode.Endless)]
         public void RestoreAfterAnyStep_ContinuesExactlyLikeOriginal(RunMode mode)
@@ -112,7 +112,7 @@ namespace Overclock.Tests
                 }
             }
 
-            // 저장 시점이 실제로 덮였는지 확인한다. 이 값이 0 이면 그 상태의 복원은 검사되지 않은 것이다
+            // 저장 시점이 실제로 덮였는지 확인함. 이 값이 0 이면 그 상태의 복원은 검사되지 않은 것임
             Assert.GreaterOrEqual(checkpointsWithOpenOffer, 50, "카드가 열린 상태 저장");
             Assert.GreaterOrEqual(checkpointsWithStreak, 200, "연속 진행 중 저장");
             Assert.GreaterOrEqual(checkpointsAtPity, 20, "보증 15 이상에서 저장");
@@ -155,7 +155,7 @@ namespace Overclock.Tests
             session.RunManager.Draw();
             RunSaveData data = session.CaptureSaveData();
 
-            // 같은 상태에서 시작한 난수원이 다음 뽑기 난수를 그대로 낸다 = 저장한 값이 실제 게임 난수 상태다
+            // 같은 상태에서 시작한 난수원이 다음 뽑기 난수를 그대로 냄 = 저장한 값이 실제 게임 난수 상태임
             var mirror = new RandomService(1);
             mirror.RestoreState(data.randomState);
             double nextRoll = mirror.NextDouble();
@@ -247,7 +247,7 @@ namespace Overclock.Tests
             Assert.AreSame(offer[1], session.RunManager.EquippedModules[0]);
         }
 
-        // 화면이 하던 순서(장착 → 라운드 진행)를 그대로 옮겼는지. 순서가 바뀌면 추가 뽑기가 한 라운드 늦게 적용된다
+        // 화면이 하던 순서(장착 → 라운드 진행)를 그대로 옮겼는지. 순서가 바뀌면 추가 뽑기가 한 라운드 늦게 적용됨
         [Test]
         public void SelectModule_MatchesEquipThenAdvance()
         {
@@ -327,7 +327,7 @@ namespace Overclock.Tests
             Assert.AreEqual(RunState.Drawing, valid.state);
             Assert.AreEqual(2, valid.round);
 
-            // 고치지 않은 값은 복원되어야 한다. 그래야 아래 거부가 각 항목 때문이라고 말할 수 있다
+            // 고치지 않은 값은 복원되어야 함. 그래야 아래 거부가 각 항목 때문이라고 말할 수 있음
             RunSession.Restore(Copy(valid), parts, modules);
 
             var cases = new List<KeyValuePair<string, Action<RunSaveData>>>
@@ -368,7 +368,7 @@ namespace Overclock.Tests
             AssertRejected(null, "null");
         }
 
-        // 제안 카드는 ModuleOffer 가 만들 수 있는 조합만 받는다: 카드 수 = min(3, 모듈이 있는 축 수), 축은 서로 다르다
+        // 제안 카드는 ModuleOffer 가 만들 수 있는 조합만 받음: 카드 수 = min(3, 모듈이 있는 축 수), 축은 서로 다름
         [Test]
         public void Restore_RejectsImpossibleOfferCards()
         {
@@ -377,7 +377,7 @@ namespace Overclock.Tests
             RunSaveData valid = session.CaptureSaveData();
             Assert.AreEqual(3, valid.offeredModuleIds.Length);
 
-            // 고치지 않은 카드는 복원되어야 한다
+            // 고치지 않은 카드는 복원되어야 함
             RunSession.Restore(Copy(valid), parts, modules);
 
             ModuleData unusedAxisModule = null;
@@ -427,7 +427,7 @@ namespace Overclock.Tests
             }
         }
 
-        // 모듈이 있는 축이 2개뿐이면 제안도 2장이다. 이 경우를 3장 기준으로 거부하면 정상 세이브를 못 읽는다
+        // 모듈이 있는 축이 2개뿐이면 제안도 2장임. 이 경우를 3장 기준으로 거부하면 정상 세이브를 못 읽음
         [Test]
         public void Restore_AcceptsTwoCardOfferFromTwoAxisPool()
         {
@@ -541,7 +541,7 @@ namespace Overclock.Tests
             return trace;
         }
 
-        // 선택은 게임 난수를 쓰지 않는 고정 규칙. 원래 판과 복원한 판이 같은 상황이면 같은 카드를 고른다
+        // 선택은 게임 난수를 쓰지 않는 고정 규칙. 원래 판과 복원한 판이 같은 상황이면 같은 카드를 고름
         private static string Step(RunSession session)
         {
             RunManager runManager = session.RunManager;

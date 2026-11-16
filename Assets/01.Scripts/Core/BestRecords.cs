@@ -3,7 +3,7 @@
 namespace Overclock.Core
 {
     /// <summary>
-    /// 모드별 최고 도달 라운드. 런이 끝날 때 Submit 으로 갱신한다. 0 라운드 = 기록 없음.
+    /// 모드별 최고 도달 라운드. 런이 끝날 때 Submit 으로 갱신함. 0 라운드 = 기록 없음.
     /// </summary>
     public sealed class BestRecords
     {
@@ -16,14 +16,14 @@ namespace Overclock.Core
             return ValidMode(mode) == RunMode.Normal ? normalBestRound : endlessBestRound;
         }
 
-        /// <summary>일반모드에서 R8 을 돌파한 적이 있는가. 무한모드는 클리어가 없다.</summary>
+        /// <summary>일반모드에서 R8 을 돌파한 적이 있는가. 무한모드는 클리어가 없음.</summary>
         public bool IsCleared(RunMode mode)
         {
             return ValidMode(mode) == RunMode.Normal && normalCleared;
         }
 
         /// <summary>
-        /// 끝난 런의 결과를 넣는다. 지금 기록보다 좋으면 바꾸고 true 를 돌려준다 (같으면 false).
+        /// 끝난 런의 결과를 넣음. 지금 기록보다 좋으면 바꾸고 true 를 돌려줌 (같으면 false).
         /// </summary>
         public bool Submit(RunSession session)
         {
@@ -55,7 +55,7 @@ namespace Overclock.Core
                 return true;
             }
 
-            // 같은 R8 이라도 클리어가 실패보다 위다
+            // 같은 R8 이라도 클리어가 실패보다 위임
             if (Rank(finalRound, cleared) <= Rank(normalBestRound, normalCleared))
             {
                 return false;
@@ -78,7 +78,7 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 파일에서 읽은 값으로 기록을 만든다. 게임이 만들 수 없는 값이면 ArgumentException.
+        /// 파일에서 읽은 값으로 기록을 만듦. 게임이 만들 수 없는 값이면 ArgumentException.
         /// </summary>
         public static BestRecords FromData(BestRecordData data)
         {
@@ -123,7 +123,7 @@ namespace Overclock.Core
                 throw new ArgumentOutOfRangeException(nameof(finalRound), mode + " 라운드 " + finalRound);
             }
 
-            // 클리어는 일반모드 마지막 라운드에서만 생긴다
+            // 클리어는 일반모드 마지막 라운드에서만 생김
             if (cleared && (mode != RunMode.Normal || finalRound != RunSession.NormalRoundCount))
             {
                 throw new ArgumentException("클리어할 수 없는 기록입니다: " + mode + " R" + finalRound, nameof(cleared));

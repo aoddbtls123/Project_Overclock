@@ -5,8 +5,8 @@ using UnityEngine;
 namespace Overclock.Presentation
 {
     // 런 화면 가운데 기계(기어 · 피스톤 · 바늘 · 증기 · 레버)의 움직임 값. 시간(초)은 RevealTimings 가 등급별로 정하고,
-    // 기계는 그 시간을 늘리지 않는다. 각도는 Z 회전(도) · 거리는 px.
-    // 타격감 (11/04): 움직임은 끝에서 감속하지 않고 가속하며 딱 멈춘다 (InCubic). 멈추는 순간 기계 전체가 덜컹 · 소리
+    // 기계는 그 시간을 늘리지 않음. 각도는 Z 회전(도) · 거리는 px.
+    // 타격감 (11/04): 움직임은 끝에서 감속하지 않고 가속하며 딱 멈춤 (InCubic). 멈추는 순간 기계 전체가 덜컹 · 소리
     [CreateAssetMenu(fileName = "GachaMachineSettings", menuName = "Overclock/Gacha Machine Settings")]
     public sealed class GachaMachineSettings : ScriptableObject
     {
@@ -59,7 +59,7 @@ namespace Overclock.Presentation
         [SerializeField, Min(0f)] private float breakthroughSteamInterval = 0.15f;
 
         [Header("SR 기다림 증기 (11/05) — 위 증기 구멍에서 작은 증기, 공개가 가까울수록 잦게")]
-        [Tooltip("SR 기다림 진행률(0~1)이 이 값을 넘는 순간마다 작은 증기 하나 (오름차순). 진행률을 시계로 써서 스킵 · 일시정지 · 연출 속도와 맞는다. 증기 풀(10)을 SR 공개 · 돌파와 같이 쓰므로 6개 이하로")]
+        [Tooltip("SR 기다림 진행률(0~1)이 이 값을 넘는 순간마다 작은 증기 하나 (오름차순). 진행률을 시계로 써서 스킵 · 일시정지 · 연출 속도와 맞음. 증기 풀(10)을 SR 공개 · 돌파와 같이 쓰므로 6개 이하로")]
         [SerializeField] private float[] heatSteamPoints = { 0.3f, 0.5f, 0.64f, 0.76f, 0.86f, 0.94f };
 
         [Header("레버")]
@@ -90,7 +90,7 @@ namespace Overclock.Presentation
         [SerializeField] private SteamShape smallSteamShape = new SteamShape();
         [Tooltip("SR 공개 · 돌파의 큰 증기")]
         [SerializeField] private SteamShape bigSteamShape = new SteamShape();
-        [Tooltip("돌파 뒤 배관 근처에 잠깐 남는 증기 · 런 실패 잔압. 구멍마다 차례로 모두 낸다")]
+        [Tooltip("돌파 뒤 배관 근처에 잠깐 남는 증기 · 런 실패 잔압. 구멍마다 차례로 모두 냄")]
         [SerializeField] private SteamShape[] residualSteamShapes = Array.Empty<SteamShape>();
         [SerializeField, Min(0.01f)] private float residualSteamSeconds = 1.4f;
         [SerializeField] private float residualSteamRise = 16f;
@@ -114,7 +114,7 @@ namespace Overclock.Presentation
         [SerializeField, Range(0f, 1f)] private float revealLampFlashR = 0.65f;
         [SerializeField, Range(0f, 1f)] private float revealLampFlashSR = 1f;
         [SerializeField, Min(0.01f)] private float revealLampSeconds = 0.6f;
-        [Tooltip("SR 기다림이 가장 뜨거울 때 위 등 밝기 (진행률에 비례해 오른다)")]
+        [Tooltip("SR 기다림이 가장 뜨거울 때 위 등 밝기 (진행률에 비례해 오름)")]
         [SerializeField, Range(0f, 1f)] private float heatLampMax = 0.8f;
         [Tooltip("SR 기다림 위 등의 일렁임 폭 (밝기에 곱함)")]
         [SerializeField, Range(0f, 1f)] private float heatLampPulse = 0.2f;
@@ -225,7 +225,7 @@ namespace Overclock.Presentation
     public sealed class SteamShape
     {
         [SerializeField] private Sprite sprite;
-        [Tooltip("오른쪽 배관 입구 자리 (그림 기준 0~1 · 그림 밖이면 범위를 넘는다)")]
+        [Tooltip("오른쪽 배관 입구 자리 (그림 기준 0~1 · 그림 밖이면 범위를 넘음)")]
         [SerializeField] private Vector2 pivot = new Vector2(0.5f, 0.5f);
         [SerializeField, Min(0f)] private float startScale = 0.5f;
         [SerializeField, Min(0f)] private float endScale = 1f;

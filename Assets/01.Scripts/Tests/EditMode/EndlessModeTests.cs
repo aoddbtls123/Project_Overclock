@@ -47,7 +47,7 @@ namespace Overclock.Tests
             };
         }
 
-        // 뽑기 한 번에 1000 → 라운드마다 몇 번 안에 반드시 돌파한다 (R20 할당량 9313 < 10회 × 1000)
+        // 뽑기 한 번에 1000 → 라운드마다 몇 번 안에 반드시 돌파함 (R20 할당량 9313 < 10회 × 1000)
         private PartData[] HugeParts()
         {
             return new[]
@@ -130,7 +130,7 @@ namespace Overclock.Tests
         [Test]
         public void Endless_EndsByFailingQuota()
         {
-            // 할당량 8 을 못 채우는 부품 → R1 에서 셧다운. 무한모드도 실패 규칙은 같다
+            // 할당량 8 을 못 채우는 부품 → R1 에서 셧다운. 무한모드도 실패 규칙은 같음
             var parts = new[] { CreatePart("N", Grade.N, 0), CreatePart("R", Grade.R, 0), CreatePart("SR", Grade.SR, 0) };
             RunSession endless = RunSession.Create(3, parts, Modules(), RunMode.Endless);
 
@@ -143,8 +143,8 @@ namespace Overclock.Tests
         [Test]
         public void Endless_MatchesNormalThroughRoundEight()
         {
-            // 같은 시드 · 같은 선택이면 R8 까지는 뽑기 결과와 진행 상태가 일반모드와 같아야 한다 (난수 소비 · 계산이 같음).
-            // 상태는 R8 돌파에서만 갈린다 (일반 = 클리어, 무한 = 모듈 선택)
+            // 같은 시드 · 같은 선택이면 R8 까지는 뽑기 결과와 진행 상태가 일반모드와 같아야 함 (난수 소비 · 계산이 같음).
+            // 상태는 R8 돌파에서만 갈림 (일반 = 클리어, 무한 = 모듈 선택)
             PartData[] parts = DesignParts();
             ModuleData[] modules = Modules();
             int clearedRuns = 0;

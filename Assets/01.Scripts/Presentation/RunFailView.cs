@@ -5,17 +5,17 @@ using UnityEngine.UI;
 
 namespace Overclock.Presentation
 {
-    // 런 실패 연출 (11/07 · 라인 셧다운): 할당량을 못 채운 생산 라인이 전원이 내려가며 멎는다. 일반 · 무한 모드 공통.
-    //   0. 기다림      마지막 뽑기의 조각 낙하 · 숫자 세기 · 기계식 계수기 바퀴가 멈출 때까지 (최대 maxSettleWait) — 마지막 결과를 자르지 않는다
+    // 런 실패 연출 (11/07 · 라인 셧다운): 할당량을 못 채운 생산 라인이 전원이 내려가며 멎음. 일반 · 무한 모드 공통.
+    //   0. 기다림      마지막 뽑기의 조각 낙하 · 숫자 세기 · 기계식 계수기 바퀴가 멈출 때까지 (최대 maxSettleWait) — 마지막 결과를 자르지 않음
     //   A. 출력 불안정  기어가 힘겹게 돌다 두 번 힘이 빠짐 · 바늘이 무출력 자리 부근에서 살짝 떠 떨림 · 표시등 한두 번 깜빡 · 버벅임 소리
     //   B. 동력 차단    차단기 소리 하나 · 출력 창 테두리부터 꺼지고 표시등이 시간차로 따라 꺼짐 · 몸통이 살짝 내려앉음 ·
     //                   약한 잔압 증기 한 번 · 모터가 멎는 소리 시작
     //   C. 관성 정지    기어는 감속하며 멎음 · 피스톤이 몸통보다 늦게 처지며 작게 덜컹 · 바늘이 무출력 자리로 떨어져 한 번 튀고 멈춤 ·
     //                   모터 소리 점점 작게 · 몸체가 어두워짐 · 끝에 작은 금속 걸림 (소리 · 기어가 뒤로 살짝)
-    //   D. 정적        멎은 기계를 잠깐 보여 준 뒤 결과 창. 어두운 모습은 결과 창 뒤에 남고 런을 떠날 때 (Cancel) 되돌린다
-    // 약속은 RunClearView 와 같다: Play 한 번에 onFinished 정확히 한 번 · Skip = 바로 최종 모습 + 콜백 · Cancel = 콜백 없음 ·
-    // 시간은 Time.deltaTime 만 (일시정지면 멈춤 · 새 효과도 없음). 생산량 · 수확물 · 결과 · 기록은 바꾸지 않는다.
-    // 모습은 경과 시간 하나로 매 프레임 계산한다 (ApplyAt) — 스킵 · 즉시는 같은 계산의 끝 모습이라 서로 갈리지 않는다
+    //   D. 정적        멎은 기계를 잠깐 보여 준 뒤 결과 창. 어두운 모습은 결과 창 뒤에 남고 런을 떠날 때 (Cancel) 되돌림
+    // 약속은 RunClearView 와 같음: Play 한 번에 onFinished 정확히 한 번 · Skip = 바로 최종 모습 + 콜백 · Cancel = 콜백 없음 ·
+    // 시간은 Time.deltaTime 만 (일시정지면 멈춤 · 새 효과도 없음). 생산량 · 수확물 · 결과 · 기록은 바꾸지 않음.
+    // 모습은 경과 시간 하나로 매 프레임 계산함 (ApplyAt) — 스킵 · 즉시는 같은 계산의 끝 모습이라 서로 갈리지 않음
     public sealed class RunFailView : MonoBehaviour
     {
         private const int StutterEvent = 0;
@@ -31,22 +31,22 @@ namespace Overclock.Presentation
         [SerializeField] private GachaMachineView machine;
         [Tooltip("비어 있으면 소리 없이")]
         [SerializeField] private SoundPlayer sounds;
-        [Tooltip("마지막 뽑기의 조각 낙하를 기다린다. 비어 있으면 기다리지 않음")]
+        [Tooltip("마지막 뽑기의 조각 낙하를 기다림. 비어 있으면 기다리지 않음")]
         [SerializeField] private HarvestTrayView harvestTray;
-        [Tooltip("마지막 뽑기의 숫자 세기를 기다린다. 비어 있으면 기다리지 않음")]
+        [Tooltip("마지막 뽑기의 숫자 세기를 기다림. 비어 있으면 기다리지 않음")]
         [SerializeField] private ProductionCounterView productionCounter;
-        [Tooltip("기계식 계수기 바퀴가 멈추기를 기다린다 (숫자 세기가 끝나도 바퀴는 조금 더 따라간다). 비어 있으면 기다리지 않음")]
+        [Tooltip("기계식 계수기 바퀴가 멈추기를 기다림 (숫자 세기가 끝나도 바퀴는 조금 더 따라감). 비어 있으면 기다리지 않음")]
         [SerializeField] private MechanicalCounterView mechanicalCounter;
         [Tooltip("출력 창 테두리 다음에 꺼지는 순서대로 (계기판 → 작은 표시등). 원래 색에서 어두운 색으로")]
         [SerializeField] private Image[] lightStages = Array.Empty<Image>();
-        [Tooltip("관성 정지 동안 어두워지는 기계 몸체 이미지 (수확물 · 계수기 · 버튼은 넣지 않는다 — 결과가 읽혀야 한다)")]
+        [Tooltip("관성 정지 동안 어두워지는 기계 몸체 이미지 (수확물 · 계수기 · 버튼은 넣지 않음 — 결과가 읽혀야 함)")]
         [SerializeField] private Image[] dimTargets = Array.Empty<Image>();
 
         private Coroutine routine;
         private bool skipRequested;
         private bool shakeEnabled = true;
         private bool flashEnabled = true;
-        // 멎은 모습이 남아 있는가 (끝난 뒤에도 결과 창 뒤에 남는다 · Cancel 이 되돌린다)
+        // 멎은 모습이 남아 있는가 (끝난 뒤에도 결과 창 뒤에 남음 · Cancel 이 되돌림)
         private bool shutDown;
         private Color[] lightRestColors = Array.Empty<Color>();
         private Color[] dimRestColors = Array.Empty<Color>();
@@ -71,7 +71,7 @@ namespace Overclock.Presentation
             flashEnabled = flash;
         }
 
-        /// <summary>실패 연출을 시작한다. timeMultiplier = 연출 속도 배율 (0 이하 = 움직임 · 증기 · 소리 없이 최종 모습 + 바로 onFinished).</summary>
+        /// <summary>실패 연출을 시작함. timeMultiplier = 연출 속도 배율 (0 이하 = 움직임 · 증기 · 소리 없이 최종 모습 + 바로 onFinished).</summary>
         public void Play(float timeMultiplier, Action onFinished)
         {
             if (onFinished == null)
@@ -106,7 +106,7 @@ namespace Overclock.Presentation
             }
         }
 
-        /// <summary>남은 연출을 건너뛰고 최종 모습 + 결과 창으로. 연출 중이 아니면 무시한다.</summary>
+        /// <summary>남은 연출을 건너뛰고 최종 모습 + 결과 창으로. 연출 중이 아니면 무시함.</summary>
         public void Skip()
         {
             if (IsPlaying)
@@ -115,7 +115,7 @@ namespace Overclock.Presentation
             }
         }
 
-        /// <summary>멈추고 콜백을 부르지 않는다 (런을 버릴 때 · 새 런). 어두워진 모습 · 멎은 자세까지 원래대로 돌린다.</summary>
+        /// <summary>멈추고 콜백을 부르지 않음 (런을 버릴 때 · 새 런). 어두워진 모습 · 멎은 자세까지 원래대로 돌림.</summary>
         public void Cancel()
         {
             if (routine != null)
@@ -127,7 +127,7 @@ namespace Overclock.Presentation
             bool wasPlaying = IsPlaying;
             IsPlaying = false;
 
-            // 끝난 뒤에도 금속 걸림 소리의 꼬리가 남아 있을 수 있다 — 연출 중이 아니어도 실패 소리는 늘 멈춘다 (교차검토 #42)
+            // 끝난 뒤에도 금속 걸림 소리의 꼬리가 남아 있을 수 있음 — 연출 중이 아니어도 실패 소리는 늘 멈춤 (교차검토 #42)
             if (sounds != null)
             {
                 sounds.StopRunFailSounds();
@@ -146,7 +146,7 @@ namespace Overclock.Presentation
 
         private IEnumerator PlayRoutine(float multiplier, Action onFinished)
         {
-            // 마지막 뽑기의 조각 · 숫자가 끝나기를 기다린다 (자르지 않는다). 너무 길면 상한까지만
+            // 마지막 뽑기의 조각 · 숫자가 끝나기를 기다림 (자르지 않음). 너무 길면 상한까지만
             float waited = 0f;
             float maxWait = settings.MaxSettleWait * multiplier;
             while (!skipRequested && waited < maxWait && IsLastDrawBusy())
@@ -164,7 +164,7 @@ namespace Overclock.Presentation
             bool motorStarted = false;
             int nextEvent = StutterEvent;
             float elapsed = 0f;
-            // 이번 반복에서 시간이 흘렀는가. 일시정지 (deltaTime 0) 중에는 밀린 일도 새로 하지 않는다 (교차검토 #41 과 같은 규칙)
+            // 이번 반복에서 시간이 흘렀는가. 일시정지 (deltaTime 0) 중에는 밀린 일도 새로 하지 않음 (교차검토 #41 과 같은 규칙)
             bool timeMoved = true;
             while (!skipRequested)
             {
@@ -188,7 +188,7 @@ namespace Overclock.Presentation
 
                 if (motorStarted && timeMoved && sounds != null)
                 {
-                    // 모터 소리는 차단부터 관성 정지 끝까지 점점 작아진다
+                    // 모터 소리는 차단부터 관성 정지 끝까지 점점 작아짐
                     float fade = Mathf.Clamp01((elapsed - cutAt) / (coastEnd - cutAt));
                     sounds.SetRunFailMotorVolumeScale((1f - fade) * (1f - fade));
                 }
@@ -208,7 +208,7 @@ namespace Overclock.Presentation
             IsPlaying = false;
             if (skipRequested)
             {
-                // 스킵: 마지막 뽑기의 조각 · 숫자를 최종 모습으로 · 잔압 증기 · 기어 걸림 · 이번 연출 소리를 지운다
+                // 스킵: 마지막 뽑기의 조각 · 숫자를 최종 모습으로 · 잔압 증기 · 기어 걸림 · 이번 연출 소리를 지움
                 CompleteLastDraw();
                 if (machine != null)
                 {
@@ -222,7 +222,7 @@ namespace Overclock.Presentation
             }
             else if (sounds != null)
             {
-                // 끝: 모터는 이미 0 · 걸림 소리 꼬리는 남긴다
+                // 끝: 모터는 이미 0 · 걸림 소리 꼬리는 남김
                 sounds.StopRunFailMotor();
             }
 
@@ -232,7 +232,7 @@ namespace Overclock.Presentation
 
         private bool IsLastDrawBusy()
         {
-            // 숫자 세기가 끝나도 기계식 계수기 바퀴는 조금 더 따라간다 — 바퀴까지 멈춘 뒤 시작한다 (교차검토 #42)
+            // 숫자 세기가 끝나도 기계식 계수기 바퀴는 조금 더 따라감 — 바퀴까지 멈춘 뒤 시작함 (교차검토 #42)
             return (harvestTray != null && harvestTray.FlyingCount > 0)
                 || (productionCounter != null && productionCounter.IsAnimating)
                 || (mechanicalCounter != null && mechanicalCounter.IsMoving);
@@ -240,7 +240,7 @@ namespace Overclock.Presentation
 
         private void CompleteLastDraw()
         {
-            // GrayBoxRunScreen 이 다음 뽑기 전에 하는 것과 같은 순서 (조각을 앉혀 숫자를 올린 뒤 숫자를 최종 값으로 · 바퀴도 같이 맞춘다)
+            // GrayBoxRunScreen 이 다음 뽑기 전에 하는 것과 같은 순서 (조각을 앉혀 숫자를 올린 뒤 숫자를 최종 값으로 · 바퀴도 같이 맞춤)
             if (harvestTray != null)
             {
                 harvestTray.CompleteFlights();
@@ -281,7 +281,7 @@ namespace Overclock.Presentation
 
                     break;
                 case CutEvent:
-                    // 출력 쪽 빛 (공개 등급 테두리) 이 먼저 꺼진다. 표시등은 ApplyAt 이 시간차로 끈다
+                    // 출력 쪽 빛 (공개 등급 테두리) 이 먼저 꺼짐. 표시등은 ApplyAt 이 시간차로 끔
                     if (machine != null)
                     {
                         machine.ClearGradeFrame();
@@ -307,7 +307,7 @@ namespace Overclock.Presentation
                         sounds.PlayRunFailClank();
                     }
 
-                    // 기어가 뒤로 살짝 걸린다 (부품 덜컹 — 흔들림 끄기면 없음)
+                    // 기어가 뒤로 살짝 걸림 (부품 덜컹 — 흔들림 끄기면 없음)
                     if (machine != null && shakeEnabled && settings.ClankGearDegrees > 0f)
                     {
                         machine.PlayWaitTick(-settings.ClankGearDegrees, settings.ClankGearSeconds * multiplier);
@@ -317,7 +317,7 @@ namespace Overclock.Presentation
             }
         }
 
-        // t = 연출 시작부터 실제 초 (배율이 곱해진 시간). 이 시각의 모습을 그린다 — 같은 t 면 같은 모습
+        // t = 연출 시작부터 실제 초 (배율이 곱해진 시간). 이 시각의 모습을 그림 — 같은 t 면 같은 모습
         private void ApplyAt(float t, float multiplier)
         {
             float unstable = settings.UnstableSeconds * multiplier;
@@ -338,13 +338,13 @@ namespace Overclock.Presentation
                     continue;
                 }
 
-                // 출력 창 테두리 다음부터 차례로 꺼진다
+                // 출력 창 테두리 다음부터 차례로 꺼짐
                 float start = cutAt + settings.LightStagger * multiplier * (i + 1);
                 float off = Mathf.Clamp01((t - start) / (settings.LightFadeSeconds * multiplier));
                 float brightness = Mathf.Lerp(1f, settings.GetLightOffBrightness(i), OutQuad(off));
                 if (flashEnabled && t < cutAt)
                 {
-                    // 출력 불안정: 마지막 표시등이 한두 번 짧게 어두워진다 (앞 표시등은 절반만). 화면 전체를 번쩍이지 않는다
+                    // 출력 불안정: 마지막 표시등이 한두 번 짧게 어두워짐 (앞 표시등은 절반만). 화면 전체를 번쩍이지 않음
                     float u = t / unstable;
                     float blink = Mathf.Max(Window(u, 0.28f, 0.08f), Window(u, 0.62f, 0.06f));
                     float depth = (1f - settings.FlickerBrightness) * (i == lightStages.Length - 1 ? 1f : 0.5f);
@@ -369,14 +369,14 @@ namespace Overclock.Presentation
             float strain = settings.StrainGearSpeed;
             if (t < cutAt)
             {
-                // 힘겹게 빨라지다가 두 번 힘이 빠진다
+                // 힘겹게 빨라지다가 두 번 힘이 빠짐
                 float u = t / unstable;
                 float baseSpeed = Mathf.Lerp(1f, strain, Smooth(Mathf.Clamp01(u / 0.25f)));
                 float dip = Mathf.Min(1f, Bump(u, 0.3f, 0.18f) + Bump(u, 0.65f, 0.18f));
                 return baseSpeed * (1f - settings.GearDipDepth * dip);
             }
 
-            // 동력이 끊긴 뒤에는 그 속도에서 감속하며 멎는다 (바로 얼어붙지 않는다)
+            // 동력이 끊긴 뒤에는 그 속도에서 감속하며 멎음 (바로 얼어붙지 않음)
             float s = Mathf.Clamp01((t - cutAt) / (coastEnd - cutAt));
             return strain * (1f - s) * (1f - s);
         }
@@ -397,7 +397,7 @@ namespace Overclock.Presentation
             }
             else
             {
-                // 힘이 빠진 바늘은 점점 빠르게 떨어진다
+                // 힘이 빠진 바늘은 점점 빠르게 떨어짐
                 float v = Mathf.Clamp01((t - dropStart) / drop);
                 lift = maxLift * (1f - v * v);
             }
@@ -409,7 +409,7 @@ namespace Overclock.Presentation
 
             if (t < coastAt)
             {
-                // 떨림: 불안정 동안 커지고 차단 동안 잦아든다. 주파수는 실제 초 기준 (빠름에서도 같은 떨림)
+                // 떨림: 불안정 동안 커지고 차단 동안 잦아듦. 주파수는 실제 초 기준 (빠름에서도 같은 떨림)
                 float envelope = t < cutAt ? Smooth(t / unstable) : 1f - (t - cutAt) / (coastAt - cutAt);
                 lift += settings.NeedleJitterDegrees * envelope * Mathf.Sin(2f * Mathf.PI * settings.NeedleJitterHz * t);
             }
@@ -418,7 +418,7 @@ namespace Overclock.Presentation
             float bounce = settings.NeedleBounceSeconds * multiplier;
             if (t >= landed && t < landed + bounce)
             {
-                // 무출력 자리에 닿고 한 번 위로 튄 뒤 멈춘다 (멈춤 핀 아래로는 가지 않는다)
+                // 무출력 자리에 닿고 한 번 위로 튄 뒤 멈춤 (멈춤 핀 아래로는 가지 않음)
                 float v = (t - landed) / bounce;
                 lift += settings.NeedleBounceDegrees * Mathf.Sin(Mathf.PI * v) * (1f - v);
             }
@@ -441,13 +441,13 @@ namespace Overclock.Presentation
                 return sag;
             }
 
-            // 몸통보다 늦게 · 몸통과 다른 방향으로 두 번 덜컹하고 잦아든다
+            // 몸통보다 늦게 · 몸통과 다른 방향으로 두 번 덜컹하고 잦아듦
             return sag + settings.PistonRattlePixels * (1f - v) * (1f - v) * Mathf.Sin(2f * Mathf.PI * 2f * v);
         }
 
         private float BodyOffsetAt(float t, float multiplier, float cutAt)
         {
-            // 위로 튀지 않고 살짝 내려앉은 채 남는다. 흔들림 끄기면 GachaMachineView 가 몸통을 제자리에 둔다
+            // 위로 튀지 않고 살짝 내려앉은 채 남음. 흔들림 끄기면 GachaMachineView 가 몸통을 제자리에 둠
             if (t < cutAt)
             {
                 return 0f;

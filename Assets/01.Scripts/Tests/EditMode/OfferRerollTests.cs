@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Overclock.Tests
 {
-    // 제안 다시 받기 (11/06): 돌파마다 1번 · 대가 없음 · 처음 제안과 같은 규칙 · 세이브에 남는다
+    // 제안 다시 받기 (11/06): 돌파마다 1번 · 대가 없음 · 처음 제안과 같은 규칙 · 세이브에 남음
     public class OfferRerollTests
     {
         private readonly List<UnityEngine.Object> createdObjects = new List<UnityEngine.Object>();
@@ -27,7 +27,7 @@ namespace Overclock.Tests
                 CreatePart("코어", Grade.SR, 10, PartTag.Power),
             };
 
-            // 축 4개 · 축마다 2개 이상 → 다시 받으면 다른 조합이 나올 수 있다
+            // 축 4개 · 축마다 2개 이상 → 다시 받으면 다른 조합이 나올 수 있음
             modules = new[]
             {
                 CreateModule("sr_up", ModuleAxis.Probability, ModifierType.SuperRareChance, 0.05f),
@@ -71,7 +71,7 @@ namespace Overclock.Tests
                 Assert.AreSame(expected[i], rerolled[i], "카드 " + i);
             }
 
-            // 카드만 맞고 난수를 더 쓰면 뒤 판이 달라진다 → 난수 상태도 같아야 한다
+            // 카드만 맞고 난수를 더 쓰면 뒤 판이 달라짐 → 난수 상태도 같아야 함
             Assert.AreEqual(mirror.CaptureSaveData().randomState, session.CaptureSaveData().randomState, "난수 소비 = CreateOffer 한 번");
             Assert.AreSame(rerolled, session.CurrentOffer);
             Assert.IsTrue(session.ModuleOffer.IsPossibleOffer(rerolled), "규칙에 맞는 조합");
@@ -119,7 +119,7 @@ namespace Overclock.Tests
         [Test]
         public void Reroll_HasNoCost()
         {
-            // 대가 없음: 다시 받아도 진행 · 보증 · 장착 · 다음 라운드 뽑기가 같다
+            // 대가 없음: 다시 받아도 진행 · 보증 · 장착 · 다음 라운드 뽑기가 같음
             RunSession session = CreateClearedSession(out uint seed);
             RunSession mirror = RunSession.Create(seed, parts, modules);
             DrawUntilNotDrawing(mirror);
@@ -133,7 +133,7 @@ namespace Overclock.Tests
             Assert.AreEqual(mirror.GachaEngine.DrawsWithoutSuperRare, session.GachaEngine.DrawsWithoutSuperRare);
             Assert.AreEqual(RunState.RoundCleared, session.RunManager.State);
 
-            // 다음 라운드 뽑기 = 미리보기 값 그대로 (미리보기는 다시 받기를 모른다 → 깎였으면 달라진다)
+            // 다음 라운드 뽑기 = 미리보기 값 그대로 (미리보기는 다시 받기를 모름 → 깎였으면 달라짐)
             ModuleData choice = session.CurrentOffer[0];
             int expectedDraws = session.RunManager.PreviewModule(choice).DrawsPerRoundAfter;
             session.SelectModule(choice);
@@ -159,7 +159,7 @@ namespace Overclock.Tests
                 Assert.AreSame(rerolled[i], restored.CurrentOffer[i]);
             }
 
-            // 고른 뒤 이어지는 판도 원래 판과 같다
+            // 고른 뒤 이어지는 판도 원래 판과 같음
             session.SelectModule(session.CurrentOffer[1]);
             restored.SelectModule(restored.CurrentOffer[1]);
             Assert.AreEqual(session.CaptureSaveData().randomState, restored.CaptureSaveData().randomState);
@@ -185,7 +185,7 @@ namespace Overclock.Tests
         [Test]
         public void Restore_RejectsRerolledFlagWithoutOpenOffer()
         {
-            // 돌파 직후 (카드를 열기 전) 저장 · 뽑기 중 저장에 "다시 받음" 이 붙어 있으면 고친 세이브다
+            // 돌파 직후 (카드를 열기 전) 저장 · 뽑기 중 저장에 "다시 받음" 이 붙어 있으면 고친 세이브임
             RunSession cleared = CreateClearedSession(out _);
             RunSaveData beforeOffer = cleared.CaptureSaveData();
             beforeOffer.offerRerolled = true;
@@ -245,7 +245,7 @@ namespace Overclock.Tests
 
                     if (r == 1)
                     {
-                        // 다시 받은 카드로 같은 선택을 해야 판이 같아진다 → 탐색도 다시 받은 뒤 0번을 고른다
+                        // 다시 받은 카드로 같은 선택을 해야 판이 같아짐 → 탐색도 다시 받은 뒤 0번을 고름
                         probe.OpenOffer();
                         probe.RerollOffer();
                         probe.SelectModule(probe.CurrentOffer[0]);

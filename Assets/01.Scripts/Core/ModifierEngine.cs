@@ -46,11 +46,11 @@ namespace Overclock.Core
 
         public void GetProbabilities(out double n, out double r, out double sr)
         {
-            // 효과를 전부 더한 뒤 한 번만 계산한다. 그래야 장착 순서가 결과를 바꾸지 않는다
+            // 효과를 전부 더한 뒤 한 번만 계산함. 그래야 장착 순서가 결과를 바꾸지 않음
             double superRareBonus = SumValues(ModifierType.SuperRareChance);
             double rareBonus = SumValues(ModifierType.RareChance);
 
-            // 상한은 모듈이 올리는 양에만 건다. 기본표의 값을 깎지 않는다
+            // 상한은 모듈이 올리는 양에만 걺. 기본표의 값을 깎지 않음
             sr = Math.Min(baseSR + superRareBonus, Math.Max(MaxSuperRareChance, baseSR));
             r = Math.Min(baseR + rareBonus, Math.Max(MaxRareChance, baseR));
             bool superRareRaised = sr != baseSR;
@@ -63,7 +63,7 @@ namespace Overclock.Core
                 return;
             }
 
-            // 올린 등급은 올린 값으로 두고, 올리지 않은 등급이 남은 몫을 원래 비율대로 나눠 갖는다
+            // 올린 등급은 올린 값으로 두고, 올리지 않은 등급이 남은 몫을 원래 비율대로 나눠 가짐
             double raisedSum = 0.0;
             double raisedBaseSum = 0.0;
             if (superRareRaised)
@@ -146,7 +146,7 @@ namespace Overclock.Core
             return DrawsForNextRound(baseDraws, 0);
         }
 
-        // 다음 라운드 뽑기 = 기본 + 추가 + min(남은 뽑기, 이월 상한 합). 20회 상한은 마지막에 한 번만 건다
+        // 다음 라운드 뽑기 = 기본 + 추가 + min(남은 뽑기, 이월 상한 합). 20회 상한은 마지막에 한 번만 걺
         public int DrawsForNextRound(int baseDraws, int remainingDraws)
         {
             if (remainingDraws < 0)

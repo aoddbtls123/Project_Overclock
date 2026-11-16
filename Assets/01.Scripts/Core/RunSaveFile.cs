@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Overclock.Core
 {
     /// <summary>
-    /// 진행 중인 런 하나를 JSON 파일 1개로 저장하고 읽는다. 폴더는 밖에서 받는다 (게임은 persistentDataPath, 테스트는 임시 폴더).
+    /// 진행 중인 런 하나를 JSON 파일 1개로 저장하고 읽음. 폴더는 밖에서 받음 (게임은 persistentDataPath, 테스트는 임시 폴더).
     /// </summary>
     public sealed class RunSaveFile
     {
@@ -42,7 +42,7 @@ namespace Overclock.Core
         {
             Directory.CreateDirectory(directory);
 
-            // 임시 파일에 다 쓴 뒤 바꾼다. 쓰는 도중 꺼져도 이전 세이브가 온전히 남는다
+            // 임시 파일에 다 쓴 뒤 바꿈. 쓰는 도중 꺼져도 이전 세이브가 온전히 남음
             string tempPath = FilePath + ".tmp";
             File.WriteAllText(tempPath, JsonUtility.ToJson(data, true));
             if (File.Exists(FilePath))
@@ -56,14 +56,14 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 세이브를 읽어 런을 되살린다. 파일이 없거나, 깨졌거나, 지금 데이터로 복원할 수 없으면 false 와 이유를 돌려준다.
+        /// 세이브를 읽어 런을 되살림. 파일이 없거나, 깨졌거나, 지금 데이터로 복원할 수 없으면 false 와 이유를 돌려줌.
         /// </summary>
         public bool TryLoad(IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules, out RunSession session, out string error)
         {
             session = null;
             try
             {
-                // 빈 파일이면 null 이 온다. Restore 가 null 을 ArgumentNullException 으로 거부한다
+                // 빈 파일이면 null 이 옴. Restore 가 null 을 ArgumentNullException 으로 거부함
                 RunSaveData data = JsonUtility.FromJson<RunSaveData>(File.ReadAllText(FilePath));
                 session = RunSession.Restore(data, parts, modules);
                 error = null;
@@ -71,13 +71,13 @@ namespace Overclock.Core
             }
             catch (ArgumentException exception)
             {
-                // JSON 형식 오류와 복원 검사 실패가 모두 여기로 온다
+                // JSON 형식 오류와 복원 검사 실패가 모두 여기로 옴
                 error = exception.Message;
                 return false;
             }
             catch (IOException exception)
             {
-                // 파일이 없을 때(FileNotFoundException)도 여기로 온다
+                // 파일이 없을 때(FileNotFoundException)도 여기로 옴
                 error = exception.Message;
                 return false;
             }

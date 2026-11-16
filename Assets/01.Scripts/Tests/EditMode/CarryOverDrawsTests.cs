@@ -83,7 +83,7 @@ namespace Overclock.Tests
             Assert.AreEqual(12, preview.DrawsPerRoundAfter);
             Assert.AreEqual(2, preview.CarriedDrawsAfter);
 
-            // 돌파 → 장착 → 진행 순서라 처음 고른 라운드의 잔여부터 넘어간다
+            // 돌파 → 장착 → 진행 순서라 처음 고른 라운드의 잔여부터 넘어감
             run.EquipModule(carry);
             run.AdvanceRound();
             Assert.AreEqual(12, run.DrawsRemaining);
@@ -141,7 +141,7 @@ namespace Overclock.Tests
         [Test]
         public void Preview_BeforeKeepsCarryOfEquippedModule()
         {
-            // 이미 이월 모듈을 낀 상태에서 다른 카드를 볼 때도 '전' 에 이월이 들어가야 한다
+            // 이미 이월 모듈을 낀 상태에서 다른 카드를 볼 때도 '전' 에 이월이 들어가야 함
             RunManager run = CreateRun(2);
             DrawUntilCleared(run);
             run.EquipModule(CreateModule(ModifierType.CarryOverDraws, 5));
@@ -159,7 +159,7 @@ namespace Overclock.Tests
             Assert.AreEqual(30.0, preview.ExpectedRoundOutputBefore(parts), Tolerance);
             Assert.AreEqual(34.0, preview.ExpectedRoundOutputAfter(parts), Tolerance);
 
-            // 새 카드를 장착해도 이월 효과가 남아 있어야 한다
+            // 새 카드를 장착해도 이월 효과가 남아 있어야 함
             run.EquipModule(extra);
             run.AdvanceRound();
             Assert.AreEqual(17, run.DrawsRemaining);

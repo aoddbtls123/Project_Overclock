@@ -28,7 +28,7 @@ namespace Overclock.Presentation
 
         /// <summary>
         /// 카드 간단히 보기 (11/16): 예상 생산량 변화 한 줄 + 할당량 + 핵심 변화 몇 줄 (뽑기 · 가장 희귀한 등급 확률 · 생산량 첫 묶음 외 n건).
-        /// 자세한 수치는 Format 이 낸다. 같은 미리보기로 계산하므로 두 문구의 숫자는 늘 같다
+        /// 자세한 수치는 Format 이 냄. 같은 미리보기로 계산하므로 두 문구의 숫자는 늘 같음
         /// </summary>
         public static string FormatSummary(ModulePreview preview, IReadOnlyList<PartData> parts, int nextQuota)
         {
@@ -43,7 +43,7 @@ namespace Overclock.Presentation
             }
             else
             {
-                // 표시한 두 값의 차를 쓴다 (내부 값끼리 빼면 반올림 때문에 0.1 어긋나 보일 수 있다)
+                // 표시한 두 값의 차를 씀 (내부 값끼리 빼면 반올림 때문에 0.1 어긋나 보일 수 있음)
                 double delta = double.Parse(afterText) - double.Parse(beforeText);
                 lines.Add("예상 생산량 " + beforeText + " → " + afterText + " (" + (delta >= 0 ? "+" : "") + delta.ToString("0.0") + ")");
             }
@@ -112,7 +112,7 @@ namespace Overclock.Presentation
             string valueText = beforeText == afterText ? afterText : beforeText + " → " + afterText;
 
             lines.Add("다음 라운드 예상 생산량 " + valueText + " (할당량 " + nextQuota + ")");
-            // 할당량에 도달해도 멈추지 않고 다 뽑았을 때의 평균이다. 실제 판정과 다르게 읽히지 않게 한다
+            // 할당량에 도달해도 멈추지 않고 다 뽑았을 때의 평균임. 실제 판정과 다르게 읽히지 않게 함
             lines.Add("(전체 횟수 기준 · 천장 제외)");
         }
 
@@ -123,7 +123,7 @@ namespace Overclock.Presentation
             double[] before = { beforeN, beforeR, beforeSR };
             double[] after = { afterN, afterR, afterSR };
 
-            // 희귀한 등급부터 SR → R → N 순서로 고정한다. 어떤 모듈이든 같은 자리에서 비교할 수 있게
+            // 희귀한 등급부터 SR → R → N 순서로 고정함. 어떤 모듈이든 같은 자리에서 비교할 수 있게
             bool changed = false;
             for (int i = Grades.Length - 1; i >= 0; i--)
             {
@@ -136,16 +136,16 @@ namespace Overclock.Presentation
                 }
             }
 
-            // 천장(보증)이 차서 다음 뽑기가 SR 확정이어도 이 표는 그대로다. 다음 뽑기 확률로 읽히지 않게 한다
+            // 천장(보증)이 차서 다음 뽑기가 SR 확정이어도 이 표는 그대로임. 다음 뽑기 확률로 읽히지 않게 함
             if (changed)
             {
                 lines.Add("(모듈 적용 확률표 · 천장 확정 별도)");
             }
         }
 
-        // 바뀌는 묶음을 가장 크게 묶어 보여준다: 등급 전체가 같게 바뀌면 등급 한 줄, 아니면 태그별, 그래도 다르면 부품별.
-        // 대표 부품 하나만 보면 태그 효과가 등급 전체에 걸린 것처럼 보이거나 줄이 빠진다.
-        // 평상시와 3연속 값을 한 줄에 쓴다. 따로 쓰면 묶음 8개가 두 번씩 나와 카드(19줄)가 잘린다
+        // 바뀌는 묶음을 가장 크게 묶어 보여줌: 등급 전체가 같게 바뀌면 등급 한 줄, 아니면 태그별, 그래도 다르면 부품별.
+        // 대표 부품 하나만 보면 태그 효과가 등급 전체에 걸린 것처럼 보이거나 줄이 빠짐.
+        // 평상시와 3연속 값을 한 줄에 씀. 따로 쓰면 묶음 8개가 두 번씩 나와 카드(19줄)가 잘림
         private static void AddOutputLines(ModulePreview preview, IReadOnlyList<PartData> parts, List<string> lines)
         {
             List<PartData> validParts = CollectParts(parts);
@@ -186,7 +186,7 @@ namespace Overclock.Presentation
             }
         }
 
-        // group 은 평상시와 3연속 값이 모두 같게 바뀌는 부품 묶음이다 (HasSameChange 를 통과한 것)
+        // group 은 평상시와 3연속 값이 모두 같게 바뀌는 부품 묶음임 (HasSameChange 를 통과한 것)
         private static void AddChangeLine(ModulePreview preview, List<PartData> group, string label, List<string> lines)
         {
             int before = preview.OutputBefore(group[0], false);
@@ -195,7 +195,7 @@ namespace Overclock.Presentation
             int streakAfter = preview.OutputAfter(group[0], true);
 
             bool normalChanged = before != after;
-            // 장착은 효과를 더하기만 하므로 '후'에 연속 보너스가 없으면(3연속 값 = 평상시 값) '전'에도 없다. 그때는 생략한다
+            // 장착은 효과를 더하기만 하므로 '후'에 연속 보너스가 없으면(3연속 값 = 평상시 값) '전'에도 없음. 그때는 생략함
             bool streakChanged = streakBefore != streakAfter && streakAfter != after;
 
             string streakText = "3연속 " + streakBefore + " → " + streakAfter;
@@ -284,7 +284,7 @@ namespace Overclock.Presentation
         {
             if (preview.DrawsPerRoundBefore != preview.DrawsPerRoundAfter)
             {
-                // 이월분은 이번 잔여에 따라 달라지므로 '부터' 를 쓰지 않는다
+                // 이월분은 이번 잔여에 따라 달라지므로 '부터' 를 쓰지 않음
                 if (preview.CarriedDrawsAfter > 0)
                 {
                     lines.Add("다음 라운드 뽑기 " + preview.DrawsPerRoundBefore + " → " + preview.DrawsPerRoundAfter + "회 (이월 " + preview.CarriedDrawsAfter + "회 포함)");

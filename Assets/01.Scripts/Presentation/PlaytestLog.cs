@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace Overclock.Presentation
 {
-    // 2차 테스트 기록용 Player.log 줄 (시트 §11 "2차 테스트에 추가할 기록"). 모든 줄은 "[기록]" 으로 시작한다.
-    // 시간은 호출하는 쪽이 넘기는 Time.time 이다 — 일시정지(timeScale 0) 동안은 늘지 않는다. 게임 상태는 바꾸지 않는다
+    // 2차 테스트 기록용 Player.log 줄 (시트 §11 "2차 테스트에 추가할 기록"). 모든 줄은 "[기록]" 으로 시작함.
+    // 시간은 호출하는 쪽이 넘기는 Time.time 임 — 일시정지(timeScale 0) 동안은 늘지 않음. 게임 상태는 바꾸지 않음
     public sealed class PlaytestLog
     {
         private const string Prefix = "[기록] ";

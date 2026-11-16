@@ -61,7 +61,7 @@ namespace Overclock.Core
                 }
             }
 
-            // 축을 먼저 뽑고 그 축에서 모듈을 뽑는다 → 카드끼리 축이 겹치지 않는다. 카드 1장당 난수 2개
+            // 축을 먼저 뽑고 그 축에서 모듈을 뽑음 → 카드끼리 축이 겹치지 않음. 카드 1장당 난수 2개
             var offer = new List<ModuleData>();
             while (offer.Count < OfferSize && remainingAxes.Count > 0)
             {
@@ -85,8 +85,8 @@ namespace Overclock.Core
             return eligible;
         }
 
-        // 이미 열린 옛 제안은 효과가 없어져도 보존. 원래 카드 수 또는 현재 필터 후 카드 수만 허용한다.
-        // 축 중복/풀 밖 카드는 거부하며, 복원할 때 난수나 다시 뽑기를 사용하지 않는다.
+        // 이미 열린 옛 제안은 효과가 없어져도 보존. 원래 카드 수 또는 현재 필터 후 카드 수만 허용함.
+        // 축 중복/풀 밖 카드는 거부하며, 복원할 때 난수나 다시 뽑기를 사용하지 않음.
         internal bool IsPossibleOffer(IReadOnlyList<ModuleData> offer)
         {
             int axesWithModules = 0;

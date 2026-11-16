@@ -110,7 +110,7 @@ namespace Overclock.Tests
         [TestCase(2)]
         public void Simulate_MatchesManualPlayLoop(int slot)
         {
-            // slot -1 = 고르지 않음. 거울 런은 기획 숫자로 직접 조립하고 화면과 같은 순서(제안 → 장착 → 진행)로 진행한다
+            // slot -1 = 고르지 않음. 거울 런은 기획 숫자로 직접 조립하고 화면과 같은 순서(제안 → 장착 → 진행)로 진행함
             IModuleStrategy strategy = slot < 0 ? (IModuleStrategy)new NoModuleStrategy() : new FixedSlotStrategy(slot);
 
             for (uint seed = 1; seed <= 200; seed++)
@@ -163,7 +163,7 @@ namespace Overclock.Tests
         [Test]
         public void Simulate_RandomStrategyUsesChoiceSeedFromGameSeed()
         {
-            // 선택 난수원은 런마다 (게임 시드 XOR 0x2545F491) 로 새로 만든다. CSV 의 시드 하나로 무작위 런을 재현하기 위한 규칙
+            // 선택 난수원은 런마다 (게임 시드 XOR 0x2545F491) 로 새로 만듦. CSV 의 시드 하나로 무작위 런을 재현하기 위한 규칙
             var strategy = new RandomModuleStrategy();
 
             for (uint seed = 1; seed <= 200; seed++)
@@ -323,7 +323,7 @@ namespace Overclock.Tests
         [Test]
         public void GreedyStrategy_JudgesFromCurrentEquipment()
         {
-            // 교정을 5개 달면 SR 이 상한 25% 라 교정을 더 달아도 늘지 않는다 → 코일
+            // 교정을 5개 달면 SR 이 상한 25% 라 교정을 더 달아도 늘지 않음 → 코일
             RunManager run = RunSession.Create(1, parts, modules).RunManager;
             for (int i = 0; i < 5; i++)
             {
@@ -388,7 +388,7 @@ namespace Overclock.Tests
         public void NoModuleStrategy_RoundPassRatesMatchAnalysis()
         {
             // N1/R3/SR10 테스트 부품·20번째 천장·10회·즉시 돌파의 독립 확률 DP 해석값.
-            // 런 전체 천장 카운트를 라운드 사이에 전달한다. 실제 에셋 R5/SR18의 밸런스 기준은 아님.
+            // 런 전체 천장 카운트를 라운드 사이에 전달함. 실제 에셋 R5/SR18의 밸런스 기준은 아님.
             List<RunRecord> records = RunSimulator.SimulateMany(1, 20000, parts, modules, new NoModuleStrategy());
             var summary = new SimulationSummary(records);
 

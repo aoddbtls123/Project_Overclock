@@ -5,7 +5,7 @@ using Overclock.Core;
 
 namespace Overclock.Tests
 {
-    // 설정 규칙 + 실제 JsonUtility 와 파일 입출력. 파일은 임시 폴더에서만 읽고 쓴다
+    // 설정 규칙 + 실제 JsonUtility 와 파일 입출력. 파일은 임시 폴더에서만 읽고 씀
     public class GameSettingsTests
     {
         private string directory;
@@ -150,7 +150,7 @@ namespace Overclock.Tests
         [TestCase(false, 0f, TestName = "버전 2 · 끔 = 전체 0%")]
         public void FromData_Version2_SoundToggleBecomesMasterVolume(bool soundEnabled, float master)
         {
-            // 버전 2 파일에는 볼륨 값이 없다 (0 으로 읽힘) — 켬/끔만 보고 정한다
+            // 버전 2 파일에는 볼륨 값이 없음 (0 으로 읽힘) — 켬/끔만 보고 정함
             var data = new GameSettingsData { version = 2, shakeEnabled = true, flashEnabled = false, revealSpeed = 1, soundEnabled = soundEnabled };
 
             GameSettings settings = GameSettings.FromData(data);

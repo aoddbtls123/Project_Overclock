@@ -85,7 +85,7 @@ namespace Overclock.EditorTools
             modules = LoadAll<ModuleData>();
         }
 
-        // 순서가 바뀌면 같은 시드라도 고르는 부품·카드가 달라지므로 경로 순으로 고정한다
+        // 순서가 바뀌면 같은 시드라도 고르는 부품·카드가 달라지므로 경로 순으로 고정함
         private static T[] LoadAll<T>() where T : ScriptableObject
         {
             string[] guids = AssetDatabase.FindAssets("t:" + typeof(T).Name);
@@ -214,7 +214,7 @@ namespace Overclock.EditorTools
                 }
             }
 
-            // Excel 이 한글을 깨뜨리지 않게 BOM 을 붙인다
+            // Excel 이 한글을 깨뜨리지 않게 BOM 을 붙임
             File.WriteAllText(path, csv.ToString(), new UTF8Encoding(true));
             File.WriteAllText(Path.ChangeExtension(path, ".txt"), report, new UTF8Encoding(true));
             report += "\n저장: " + path;

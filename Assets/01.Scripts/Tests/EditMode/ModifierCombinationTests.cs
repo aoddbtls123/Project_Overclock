@@ -21,9 +21,9 @@ namespace Overclock.Tests
         private static readonly PartTag[] Tags = { PartTag.None, PartTag.Electronic, PartTag.Mechanical, PartTag.Power };
         private static readonly int[] DesignBaseOutputs = { 1, 3, 10 };
 
-        // 이 조합 검사가 독립 기대값을 가진 효과 목록. enum 순서 그대로 둔다 (시드별 조합이 바뀌지 않게).
+        // 이 조합 검사가 독립 기대값을 가진 효과 목록. enum 순서 그대로 둠 (시드별 조합이 바뀌지 않게).
         // ModifierType 에 새 효과를 추가하면 ① 이 목록 ② CreateValue 의 값 범위
-        // ③ RandomCombinations_KeepTableValidAndFollowDesignRules 의 기대값 계산을 함께 보완해야 한다
+        // ③ RandomCombinations_KeepTableValidAndFollowDesignRules 의 기대값 계산을 함께 보완해야 함
         private static readonly ModifierType[] CheckedTypes =
         {
             ModifierType.SuperRareChance,
@@ -102,8 +102,8 @@ namespace Overclock.Tests
                 engine.GetProbabilities(out double n, out double r, out double sr);
                 AssertValidTable(n, r, sr, seed, combination);
 
-                // 기대값은 기획 규칙으로 따로 계산한다. 엔진 상수를 쓰지 않는다
-                // 올린 등급(SR 상한 25%, R 상한 50%)은 그 값, 올리지 않은 등급은 기본표 72 : 25 : 3 비율로 남은 몫을 나눈다
+                // 기대값은 기획 규칙으로 따로 계산함. 엔진 상수를 쓰지 않음
+                // 올린 등급(SR 상한 25%, R 상한 50%)은 그 값, 올리지 않은 등급은 기본표 72 : 25 : 3 비율로 남은 몫을 나눔
                 double superRareBonus = SumValues(combination, ModifierType.SuperRareChance, null, null);
                 double rareBonus = SumValues(combination, ModifierType.RareChance, null, null);
                 double raisedSR = Math.Min(0.03 + superRareBonus, 0.25);
@@ -231,7 +231,7 @@ namespace Overclock.Tests
 
                 AssertOutput("뽑기 횟수", Math.Min(10 + extraDraws, 20), draws, seed, combination);
 
-                // 남은 뽑기는 시드에서 정한다 (0 ~ 10). 생성기 난수를 더 쓰지 않아 기존 조합이 그대로다
+                // 남은 뽑기는 시드에서 정함 (0 ~ 10). 생성기 난수를 더 쓰지 않아 기존 조합이 그대로임
                 int remaining = (int)(seed % 11);
                 int carryCap = RoundHalfAway(SumValues(combination, ModifierType.CarryOverDraws, null, null));
                 int carried = Math.Min(remaining, carryCap);
@@ -311,7 +311,7 @@ namespace Overclock.Tests
             return module;
         }
 
-        // 조합 하나 = 시드 하나. 실패 메시지의 시드만으로 같은 조합을 다시 만든다
+        // 조합 하나 = 시드 하나. 실패 메시지의 시드만으로 같은 조합을 다시 만듦
         private static List<ModifierEffect[]> CreateCombination(uint seed)
         {
             var random = new RandomService(seed);
@@ -354,12 +354,12 @@ namespace Overclock.Tests
                 case ModifierType.CarryOverDraws:
                     return 1 + (int)(random.NextDouble() * 8);
                 default:
-                    // 값 범위를 정하지 않은 효과를 조용히 다른 효과의 값으로 만들지 않는다
+                    // 값 범위를 정하지 않은 효과를 조용히 다른 효과의 값으로 만들지 않음
                     throw new ArgumentOutOfRangeException(nameof(type), type, "CreateValue 에 값 범위가 없는 효과 (CheckedTypes 주석 참고)");
             }
         }
 
-        // 엔진과 따로 쓴 필터 판정. 등급 필터 값은 Any 다음이 N, R, SR 순서이고 태그 필터 값은 Any 다음이 전자, 기계, 동력 순서다 (PartTag 는 None 다음)
+        // 엔진과 따로 쓴 필터 판정. 등급 필터 값은 Any 다음이 N, R, SR 순서이고 태그 필터 값은 Any 다음이 전자, 기계, 동력 순서임 (PartTag 는 None 다음)
         private static double SumValues(List<ModifierEffect[]> combination, ModifierType type, Grade? grade, PartTag? tag)
         {
             double sum = 0.0;

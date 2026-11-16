@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Overclock.Presentation
 {
     // 출력 창 셔터와 기다림 박자의 겉모습 값 (기계연출 구상 §14-5). 시간은 scaled time(초) · 거리는 px.
-    // 모든 시간은 뜸들이기(N 0.3 · R 0.8 · SR 1.5초) 안에서 쓰고, 연출 속도 배율(빠름 0.5)을 같이 받는다. 뜸들이기 시간은 늘리지 않는다
+    // 모든 시간은 뜸들이기(N 0.3 · R 0.8 · SR 1.5초) 안에서 쓰고, 연출 속도 배율(빠름 0.5)을 같이 받음. 뜸들이기 시간은 늘리지 않음
     [CreateAssetMenu(fileName = "ShutterSettings", menuName = "Overclock/Shutter Settings")]
     public sealed class ShutterSettings : ScriptableObject
     {
@@ -27,7 +27,7 @@ namespace Overclock.Presentation
         [Header("철판 (11/16) — 떨어지는 동안 철판 사이가 벌어져 있다가 닿으면 아래부터 차례로 포개진다 · 열 때는 위부터 벌어진다")]
         [Tooltip("철판 사이가 벌어지는 거리 (px · 기계 그림 1 픽셀 = 4)")]
         [SerializeField, Min(0f)] private float slatGap = 4f;
-        [Tooltip("닫힌 뒤 철판이 아래부터 차례로 포개지는 시간 (닫히는 시간과 같은 배율을 받는다)")]
+        [Tooltip("닫힌 뒤 철판이 아래부터 차례로 포개지는 시간 (닫히는 시간과 같은 배율을 받음)")]
         [SerializeField, Min(0.01f)] private float slatSettleSeconds = 0.12f;
         [Tooltip("열 때 철판 사이가 다 벌어지는 시점 (여는 시간 대비)")]
         [SerializeField, Range(0.05f, 1f)] private float slatOpenLead = 0.5f;
@@ -49,7 +49,7 @@ namespace Overclock.Presentation
         [SerializeField, Min(0f)] private float jitterFrequency = 40f;
 
         [Header("틈새 증기 (SR 틱마다)")]
-        [Tooltip("셔터 아래 틈의 가로 자리를 차례로 돌려 쓴다 (창 가운데 기준 px · 난수 없음)")]
+        [Tooltip("셔터 아래 틈의 가로 자리를 차례로 돌려 씀 (창 가운데 기준 px · 난수 없음)")]
         [SerializeField] private float[] gapPuffOffsetsX = { -120f, 90f, -40f, 150f, 20f, -160f, 60f };
         [SerializeField, Min(0.01f)] private float gapPuffSeconds = 0.35f;
         [SerializeField, Min(0f)] private float gapPuffRise = 25f;
@@ -77,7 +77,7 @@ namespace Overclock.Presentation
         public float GapPuffEndScale => gapPuffEndScale;
         public Color GapPuffColor => gapPuffColor;
 
-        /// <summary>틱 간격 (연출 속도 배율 전). N 은 틱 없음 (0). SR 은 진행률(0~1)에 따라 처음 → 끝으로 줄어든다.</summary>
+        /// <summary>틱 간격 (연출 속도 배율 전). N 은 틱 없음 (0). SR 은 진행률(0~1)에 따라 처음 → 끝으로 줄어듦.</summary>
         public float GetTickInterval(Grade grade, float progress)
         {
             switch (grade)

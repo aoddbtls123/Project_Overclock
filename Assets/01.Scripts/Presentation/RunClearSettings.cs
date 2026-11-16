@@ -3,13 +3,13 @@
 namespace Overclock.Presentation
 {
     // 일반모드 R8 클리어 마무리 연출의 값 (11/06 · v4 = 압력을 모으고 → 버티고 → 분출 · 반동 → 잦아듦).
-    // 첫 조정값이다 (밸런스 수치 아님 · Play 에서 느낌을 맞춘다). 시간은 scaled time(초) · 연출 속도 배율이 곱해진다 (즉시 = 연출 없음)
+    // 첫 조정값임 (밸런스 수치 아님 · Play 에서 느낌을 맞춤). 시간은 scaled time(초) · 연출 속도 배율이 곱해짐 (즉시 = 연출 없음)
     [CreateAssetMenu(fileName = "RunClearSettings", menuName = "Overclock/Run Clear Settings")]
     public sealed class RunClearSettings : ScriptableObject
     {
         [Header("1. 기 모으기")]
         [SerializeField, Min(0.1f)] private float chargeSeconds = 1.4f;
-        [Tooltip("끝 무렵 바늘 떨림 최대 폭 (도). 진행률³ 으로 커진다 — 처음엔 거의 없고 끝에 가까울수록")]
+        [Tooltip("끝 무렵 바늘 떨림 최대 폭 (도). 진행률³ 으로 커짐 — 처음엔 거의 없고 끝에 가까울수록")]
         [SerializeField, Min(0f)] private float needleJitterDegrees = 4f;
         [SerializeField, Min(0.1f)] private float needleJitterHz = 18f;
         [Tooltip("충전음 크기: 시작 → 끝 (압력이 오르는 느낌)")]
@@ -46,7 +46,7 @@ namespace Overclock.Presentation
         [SerializeField, Min(0f)] private float steamSoundDelay = 0.22f;
 
         [Header("4. 잦아듦 · 완료")]
-        [Tooltip("분출 뒤 결과 창까지 (마지막 증기가 끝나는 시각보다 짧으면 그 시각까지 늘어난다)")]
+        [Tooltip("분출 뒤 결과 창까지 (마지막 증기가 끝나는 시각보다 짧으면 그 시각까지 늘어남)")]
         [SerializeField, Min(0.1f)] private float afterBurstSeconds = 1.6f;
         [SerializeField, Min(0.05f)] private float steamInterval = 0.33f;
         [Tooltip("증기마다 크기 (분출 → 잦아듦). 개수 = 증기 횟수")]

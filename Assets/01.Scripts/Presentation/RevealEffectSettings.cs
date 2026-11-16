@@ -2,18 +2,18 @@
 
 namespace Overclock.Presentation
 {
-    // 공개 연출 효과 값. 시간(초)은 RevealTimings 가 등급별로 정하고, 여기는 색 · 세기 · 효과 길이만 둔다
+    // 공개 연출 효과 값. 시간(초)은 RevealTimings 가 등급별로 정하고, 여기는 색 · 세기 · 효과 길이만 둠
     [CreateAssetMenu(fileName = "RevealEffectSettings", menuName = "Overclock/Reveal Effect Settings")]
     public sealed class RevealEffectSettings : ScriptableObject
     {
         [Header("SR 달아오름 (연출 시간 동안)")]
         [SerializeField] private Color heatStartColor = new Color(1f, 0.35f, 0f, 0f);
         [SerializeField] private Color heatEndColor = new Color(1f, 0.69f, 0.125f, 0.6f);
-        [Tooltip("연출 시간 중 이 비율에서 가장 뜨거워지고, 남은 시간은 그 세기를 유지한다")]
+        [Tooltip("연출 시간 중 이 비율에서 가장 뜨거워지고, 남은 시간은 그 세기를 유지함")]
         [SerializeField, Range(0.1f, 1f)] private float heatRampRatio = 0.8f;
         [Tooltip("가장 뜨거울 때 흔들림 폭 (px)")]
         [SerializeField, Min(0f)] private float shakeStrength = 10f;
-        [Tooltip("연출 전체 동안 흔들림이 바뀌는 횟수 (클수록 잘게 떤다)")]
+        [Tooltip("연출 전체 동안 흔들림이 바뀌는 횟수 (클수록 잘게 떪)")]
         [SerializeField, Min(1f)] private float shakeCycles = 30f;
 
         [Header("SR 공개 순간")]

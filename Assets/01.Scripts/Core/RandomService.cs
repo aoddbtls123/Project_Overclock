@@ -5,7 +5,7 @@ namespace Overclock.Core
 {
     public sealed class RandomService
     {
-        // readonly 금지: struct라서 readonly면 복사본만 갱신되어 같은 값이 반복된다
+        // readonly 금지: struct라서 readonly면 복사본만 갱신되어 같은 값이 반복됨
         private Random random;
 
         public RandomService(uint seed)

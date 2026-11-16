@@ -18,7 +18,7 @@ namespace Overclock.Tests
             List<string> partPaths = FindPaths<PartData>();
             List<string> modulePaths = FindPaths<ModuleData>();
 
-            // 에셋을 하나도 못 찾으면 검사할 것이 없어 그냥 통과한다. 그걸 막는다
+            // 에셋을 하나도 못 찾으면 검사할 것이 없어 그냥 통과함. 그걸 막음
             Assert.GreaterOrEqual(partPaths.Count, 3, "부품 에셋을 찾지 못함");
             Assert.GreaterOrEqual(modulePaths.Count, 3, "모듈 에셋을 찾지 못함");
 
@@ -82,7 +82,7 @@ namespace Overclock.Tests
             Assert.AreEqual("B.asset,C.asset,D.asset,E.asset,F.asset,H.asset", string.Join(",", flagged), string.Join("\n", problems));
         }
 
-        // 세이브가 id 로 에셋을 찾으므로 부품·모듈 전체에서 하나뿐이어야 한다
+        // 세이브가 id 로 에셋을 찾으므로 부품·모듈 전체에서 하나뿐이어야 함
         private static List<string> FindIdProblems(List<IdEntry> entries)
         {
             var problems = new List<string>();

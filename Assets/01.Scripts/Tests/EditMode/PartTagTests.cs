@@ -48,7 +48,7 @@ namespace Overclock.Tests
         [Test]
         public void NewPart_HasNoTag()
         {
-            // 태그 칸이 없던 기존 에셋도 이 값으로 읽힌다. 아무 태그로나 조용히 분류되면 안 된다
+            // 태그 칸이 없던 기존 에셋도 이 값으로 읽힘. 아무 태그로나 조용히 분류되면 안 됨
             var part = ScriptableObject.CreateInstance<PartData>();
             createdObjects.Add(part);
 

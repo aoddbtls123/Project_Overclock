@@ -14,7 +14,7 @@ namespace Overclock.Tests
         private const string ScreenScriptPath = "Assets/01.Scripts/Presentation/GrayBoxRunScreen.cs";
         private const string EmptySlot = "(빈 칸)";
 
-        // 하네스는 에셋을 경로 순으로 모은다. 씬 배열이 그 순서와 다르면 같은 시드라도 게임과 하네스의 판이 갈린다
+        // 하네스는 에셋을 경로 순으로 모음. 씬 배열이 그 순서와 다르면 같은 시드라도 게임과 하네스의 판이 갈림
         [Test]
         public void RunScene_PartsFollowAssetPathOrder()
         {
@@ -98,7 +98,7 @@ namespace Overclock.Tests
             return problems;
         }
 
-        // 디스크의 씬 파일을 읽는다 (커밋되는 내용). 씬을 열지 않으므로 에디터 상태를 바꾸지 않는다
+        // 디스크의 씬 파일을 읽음 (커밋되는 내용). 씬을 열지 않으므로 에디터 상태를 바꾸지 않음
         private static List<string> ReadSceneArray(string fieldName)
         {
             string screenGuid = AssetDatabase.AssetPathToGUID(ScreenScriptPath);

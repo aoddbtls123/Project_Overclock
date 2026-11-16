@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Overclock.Presentation
 {
-    // 계열은 등급 기준이라 색도 등급 색을 그대로 쓴다 (물량 = N · 안정 = R · 대박 = SR). 범용은 표시하지 않는다
+    // 계열은 등급 기준이라 색도 등급 색을 그대로 씀 (물량 = N · 안정 = R · 대박 = SR). 범용은 표시하지 않음
     public static class FamilyStyle
     {
         public static bool IsShown(ModuleFamily family)

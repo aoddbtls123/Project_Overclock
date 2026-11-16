@@ -22,7 +22,7 @@ namespace Overclock.Tests
             createdObjects.Clear();
         }
 
-        // 1차 빌드 설계안 3장 표. 올린 등급은 그 값, 나머지는 원래 비율(72 : 25 : 3)로 남은 몫을 나눈다
+        // 1차 빌드 설계안 3장 표. 올린 등급은 그 값, 나머지는 원래 비율(72 : 25 : 3)로 남은 몫을 나눔
         [TestCase(0.10f, 0f, 0.624, 0.35, 0.026)]
         [TestCase(0.15f, 0f, 0.576, 0.40, 0.024)]
         [TestCase(0.10f, 0.05f, 0.57, 0.35, 0.08)]
@@ -66,7 +66,7 @@ namespace Overclock.Tests
         [Test]
         public void RareCap_DoesNotCutBaseTableAboveCap()
         {
-            // 상한은 모듈이 올리는 양에만 건다. 기본표 R 이 이미 50% 를 넘으면 그대로 둔다 (SR 의 교차검토 #06 ② 와 같은 경우)
+            // 상한은 모듈이 올리는 양에만 걺. 기본표 R 이 이미 50% 를 넘으면 그대로 둠 (SR 의 교차검토 #06 ② 와 같은 경우)
             var engine = new ModifierEngine(0.2, 0.7, 0.1);
             engine.Equip(CreateModule(new ModifierEffect(ModifierType.RareChance, GradeFilter.Any, 0.1f)));
 
@@ -128,7 +128,7 @@ namespace Overclock.Tests
             // 10 × (0.624 × 1 + 0.35 × 3 + 0.026 × 10) = 19.34
             Assert.AreEqual(19.34, preview.ExpectedRoundOutputAfter(parts), Tolerance);
 
-            // 장착하면 실제 추첨 확률표도 같은 값이 된다
+            // 장착하면 실제 추첨 확률표도 같은 값이 됨
             runManager.EquipModule(rare);
             Assert.AreEqual(0.35, gachaEngine.GetProbability(Grade.R), Tolerance);
             Assert.AreEqual(0.026, gachaEngine.GetProbability(Grade.SR), Tolerance);

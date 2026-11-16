@@ -46,7 +46,7 @@ namespace Overclock.Core
             return count;
         }
 
-        // 그 라운드를 넘긴 런. 마지막 라운드는 클리어한 런만 넘긴 것으로 센다
+        // 그 라운드를 넘긴 런. 마지막 라운드는 클리어한 런만 넘긴 것으로 셈
         public int PassedCount(int round)
         {
             int count = 0;

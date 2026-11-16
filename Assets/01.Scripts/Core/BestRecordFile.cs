@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Overclock.Core
 {
     /// <summary>
-    /// 모드별 최고 기록을 JSON 파일 1개로 저장하고 읽는다. 런 세이브(RunSaveFile)와 따로 둔다 — 런 세이브는 런이 끝나면 지워진다.
+    /// 모드별 최고 기록을 JSON 파일 1개로 저장하고 읽음. 런 세이브(RunSaveFile)와 따로 둠 — 런 세이브는 런이 끝나면 지워짐.
     /// </summary>
     public sealed class BestRecordFile
     {
@@ -35,7 +35,7 @@ namespace Overclock.Core
 
             Directory.CreateDirectory(directory);
 
-            // 임시 파일에 다 쓴 뒤 바꾼다. 쓰는 도중 꺼져도 이전 기록이 온전히 남는다
+            // 임시 파일에 다 쓴 뒤 바꿈. 쓰는 도중 꺼져도 이전 기록이 온전히 남음
             string tempPath = FilePath + ".tmp";
             File.WriteAllText(tempPath, JsonUtility.ToJson(records.ToData(), true));
             if (File.Exists(FilePath))
@@ -49,7 +49,7 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 기록을 읽는다. 파일이 없으면 빈 기록과 true. 깨졌거나 게임이 만들 수 없는 값이면 빈 기록과 false, 이유를 돌려준다.
+        /// 기록을 읽음. 파일이 없으면 빈 기록과 true. 깨졌거나 게임이 만들 수 없는 값이면 빈 기록과 false, 이유를 돌려줌.
         /// </summary>
         public bool TryLoad(out BestRecords records, out string error)
         {
@@ -62,7 +62,7 @@ namespace Overclock.Core
 
             try
             {
-                // 빈 파일이면 null 이 온다. FromData 가 null 을 ArgumentNullException 으로 거부한다
+                // 빈 파일이면 null 이 옴. FromData 가 null 을 ArgumentNullException 으로 거부함
                 records = BestRecords.FromData(JsonUtility.FromJson<BestRecordData>(File.ReadAllText(FilePath)));
                 return true;
             }

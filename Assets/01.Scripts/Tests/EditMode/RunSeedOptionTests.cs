@@ -30,7 +30,7 @@ namespace Overclock.Tests
             Assert.IsTrue(error == null);
         }
 
-        // 0 은 Inspector 에서 '자동' 이라 QA 고정 시드로 쓰지 않는다. int 를 넘는 값은 로그 · Inspector 와 범위가 다르다
+        // 0 은 Inspector 에서 '자동' 이라 QA 고정 시드로 쓰지 않음. int 를 넘는 값은 로그 · Inspector 와 범위가 다름
         [TestCase("0")]
         [TestCase("2147483648")]
         [TestCase("4294967295")]

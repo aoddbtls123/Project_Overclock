@@ -7,9 +7,9 @@ namespace Overclock.Core
     {
         // 19회 연속 SR 미획득 뒤, 늦어도 20번째 뽑기는 SR 확정.
         private const int PityThreshold = 19;
-        // 일반모드 라운드 수. 최고 기록 검사(BestRecords)도 이 값을 쓴다
+        // 일반모드 라운드 수. 최고 기록 검사(BestRecords)도 이 값을 씀
         public const int NormalRoundCount = 8;
-        // 무한모드에는 마지막 라운드가 없다. 클리어 판정(현재 라운드 == 라운드 수)에 닿지 않는 값을 넘긴다
+        // 무한모드에는 마지막 라운드가 없음. 클리어 판정(현재 라운드 == 라운드 수)에 닿지 않는 값을 넘김
         private const int EndlessRoundCount = int.MaxValue;
         private const int DrawsPerRound = 10;
         private const double BaseN = 0.72;
@@ -42,7 +42,7 @@ namespace Overclock.Core
         /// <summary>열린 제안을 다시 받을 수 있는가. 돌파마다 1번 · 대가 없음 (11/06).</summary>
         public bool CanRerollOffer => openOffer != null && !offerRerolled;
 
-        /// <summary>열린 제안을 이미 다시 받았는가. 모듈을 고르면 false 로 돌아간다.</summary>
+        /// <summary>열린 제안을 이미 다시 받았는가. 모듈을 고르면 false 로 돌아감.</summary>
         public bool OfferRerolled => offerRerolled;
 
         public static RunSession Create(uint seed, IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules)
@@ -59,8 +59,8 @@ namespace Overclock.Core
 
             int roundCount = mode == RunMode.Endless ? EndlessRoundCount : NormalRoundCount;
 
-            // 보증 카운터가 런 전체에서 이어져야 하므로 GachaEngine 은 런마다 한 번만 만든다
-            // 같은 시드로 같은 판을 재현하려면 모든 난수 소비가 이 RandomService 하나를 거쳐야 한다
+            // 보증 카운터가 런 전체에서 이어져야 하므로 GachaEngine 은 런마다 한 번만 만듦
+            // 같은 시드로 같은 판을 재현하려면 모든 난수 소비가 이 RandomService 하나를 거쳐야 함
             var randomService = new RandomService(seed);
             var gachaEngine = new GachaEngine(randomService, PityThreshold, BaseN, BaseR, BaseSR);
             var partCatalog = new PartCatalog(parts, randomService);
@@ -70,7 +70,7 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 돌파했을 때 제안 카드를 연다. 이미 열려 있으면 같은 카드를 돌려준다 (난수를 더 쓰지 않는다).
+        /// 돌파했을 때 제안 카드를 엶. 이미 열려 있으면 같은 카드를 돌려줌 (난수를 더 쓰지 않음).
         /// </summary>
         public IReadOnlyList<ModuleData> OpenOffer()
         {
@@ -79,7 +79,7 @@ namespace Overclock.Core
                 throw new InvalidOperationException("돌파 상태가 아닙니다: " + RunManager.State);
             }
 
-            // 다시 뽑으면 공유 난수를 더 소비해 같은 시드의 판이 달라진다. 세이브 후 다시 열어도 카드가 바뀌면 안 된다
+            // 다시 뽑으면 공유 난수를 더 소비해 같은 시드의 판이 달라짐. 세이브 후 다시 열어도 카드가 바뀌면 안 됨
             if (openOffer == null)
             {
                 openOffer = ModuleOffer.CreateOffer();
@@ -89,8 +89,8 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 열린 제안을 버리고 새 카드를 받는다. 돌파마다 1번. 규칙은 처음 제안과 같다 (축이 겹치지 않음 · 같은 조합이 다시 나올 수 있음).
-        /// 공유 난수를 쓰므로 부른 뒤에는 저장해야 한다 — 저장하지 않고 껐다 켜면 처음 카드로 돌아가 다시 받을 수 있게 된다.
+        /// 열린 제안을 버리고 새 카드를 받음. 돌파마다 1번. 규칙은 처음 제안과 같음 (축이 겹치지 않음 · 같은 조합이 다시 나올 수 있음).
+        /// 공유 난수를 쓰므로 부른 뒤에는 저장해야 함 — 저장하지 않고 껐다 켜면 처음 카드로 돌아가 다시 받을 수 있게 됨.
         /// </summary>
         public IReadOnlyList<ModuleData> RerollOffer()
         {
@@ -110,7 +110,7 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 열린 제안에서 고른 모듈을 장착하고 다음 라운드로 넘어간다.
+        /// 열린 제안에서 고른 모듈을 장착하고 다음 라운드로 넘어감.
         /// </summary>
         public void SelectModule(ModuleData module)
         {
@@ -124,7 +124,7 @@ namespace Overclock.Core
                 throw new ArgumentException("제안에 없는 모듈입니다.", nameof(module));
             }
 
-            // 장착이 라운드 진행보다 먼저. 새 라운드의 뽑기 횟수는 시작할 때 장착된 모듈로 정해진다
+            // 장착이 라운드 진행보다 먼저. 새 라운드의 뽑기 횟수는 시작할 때 장착된 모듈로 정해짐
             RunManager.EquipModule(module);
             RunManager.AdvanceRound();
             openOffer = null;
@@ -158,7 +158,7 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 세이브 데이터로 런을 되살린다. 부품·모듈 목록은 저장할 때와 같은 에셋이어야 한다 (모듈은 id 로 찾는다).
+        /// 세이브 데이터로 런을 되살림. 부품·모듈 목록은 저장할 때와 같은 에셋이어야 함 (모듈은 id 로 찾음).
         /// </summary>
         public static RunSession Restore(RunSaveData data, IReadOnlyList<PartData> parts, IReadOnlyList<ModuleData> modules)
         {
@@ -174,11 +174,11 @@ namespace Overclock.Core
 
             Dictionary<string, ModuleData> modulesById = IndexById(modules);
 
-            // 새로 만들 때는 난수를 쓰지 않는다. 난수 상태는 맨 마지막에 덮어쓴다
+            // 새로 만들 때는 난수를 쓰지 않음. 난수 상태는 맨 마지막에 덮어씀
             RunSession session = Create(data.seed, parts, modules, data.mode);
             RunManager runManager = session.RunManager;
 
-            // 확률표·뽑기 횟수는 저장하지 않고 장착 모듈로 다시 계산한다. 계산 규칙이 한 곳에만 있게 하기 위해서다
+            // 확률표·뽑기 횟수는 저장하지 않고 장착 모듈로 다시 계산함. 계산 규칙이 한 곳에만 있게 하기 위해서임
             foreach (ModuleData module in FindAll(data.equippedModuleIds, modulesById))
             {
                 runManager.EquipModule(module);
@@ -186,8 +186,8 @@ namespace Overclock.Core
 
             runManager.RestoreProgress(data.round, data.production, data.drawsRemaining, data.state, data.streakGrade, data.streakCount);
             runManager.RestoreOverclock(data.overclockUsed, data.overclockDrawsLeft);
-            // 옛 런의 누적 횟수와 부품 기록을 그대로 보존한다. 새 임계값을 넘었다면
-            // 다음 뽑기가 즉시 SR이며, 그 전에 다시 저장/복원해도 이 권리를 유지한다.
+            // 옛 런의 누적 횟수와 부품 기록을 그대로 보존함. 새 임계값을 넘었다면
+            // 다음 뽑기가 즉시 SR이며, 그 전에 다시 저장/복원해도 이 권리를 유지함.
             if (data.version == 1)
             {
                 session.GachaEngine.RestoreLegacyPityCounter(data.drawsWithoutSuperRare);

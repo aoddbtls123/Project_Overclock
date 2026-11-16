@@ -2,7 +2,7 @@
 
 namespace Overclock.Presentation
 {
-    // 최고 기록 · 런 결과 문구. 모드 선택 화면과 결과 창이 같은 문구를 쓴다
+    // 최고 기록 · 런 결과 문구. 모드 선택 화면과 결과 창이 같은 문구를 씀
     public static class RecordText
     {
         public static string Best(BestRecords records, RunMode mode)

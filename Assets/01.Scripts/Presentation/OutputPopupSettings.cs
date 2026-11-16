@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Overclock.Presentation
 {
     // 공개 순간 출력 창 위에 크게 뜨는 생산량 "+n" 의 겉모습 값 (11/06 · 기계연출 구상 §13 "팝업 확대").
-    // 시간은 scaled time(초) · 연출 속도 배율이 곱해진다 · 크기는 연출 예산 N 10 / R 20 / SR 70% 를 따른다
+    // 시간은 scaled time(초) · 연출 속도 배율이 곱해짐 · 크기는 연출 예산 N 10 / R 20 / SR 70% 를 따름
     [CreateAssetMenu(fileName = "OutputPopupSettings", menuName = "Overclock/Output Popup Settings")]
     public sealed class OutputPopupSettings : ScriptableObject
     {
@@ -16,7 +16,7 @@ namespace Overclock.Presentation
         [SerializeField, Min(1f)] private float bonusScale = 1.15f;
 
         [Header("움직임")]
-        [Tooltip("튀어나오는 시간 (작게 → 살짝 넘쳤다 → 제 크기)")]
+        [Tooltip("튀어나오는 시간 (작게 → 살짝 넘쳤음 → 제 크기)")]
         [SerializeField, Min(0.01f)] private float popSeconds = 0.14f;
         [Tooltip("다 튀어나온 뒤 그대로 있는 시간")]
         [SerializeField, Min(0f)] private float holdSeconds = 0.45f;

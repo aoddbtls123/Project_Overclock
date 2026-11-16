@@ -69,7 +69,7 @@ namespace Overclock.Core
 
         internal void RestorePityCounter(int drawsWithoutSuperRare)
         {
-            // 보증 횟수와 같은 값은 가능하다. 다음 뽑기가 SR 확정인 상태다
+            // 보증 횟수와 같은 값은 가능함. 다음 뽑기가 SR 확정인 상태임
             if (drawsWithoutSuperRare < 0 || drawsWithoutSuperRare > pityThreshold)
             {
                 throw new ArgumentOutOfRangeException(nameof(drawsWithoutSuperRare));
@@ -78,8 +78,8 @@ namespace Overclock.Core
             this.drawsWithoutSuperRare = drawsWithoutSuperRare;
         }
 
-        // v1 세이브 전용: 50회 천장에서 이미 누적한 횟수는 잃지 않는다.
-        // Draw는 현재 임계값 이상이면 SR을 확정하고 카운터를 0으로 되돌린다.
+        // v1 세이브 전용: 50회 천장에서 이미 누적한 횟수는 잃지 않음.
+        // Draw는 현재 임계값 이상이면 SR을 확정하고 카운터를 0으로 되돌림.
         internal void RestoreLegacyPityCounter(int counter)
         {
             if (counter < 0 || counter > 50)

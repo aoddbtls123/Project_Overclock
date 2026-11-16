@@ -6,12 +6,12 @@ using UnityEngine.UI;
 namespace Overclock.Presentation
 {
     // 뽑기 공개 연출의 겉모습 (SR 달아오름 · 흔들림 · 플래시 · 아이콘 빛 · 펀치).
-    // 언제 무엇을 할지는 DrawRevealView 가 정한다. 이 창은 그리기만 하고 결과 · 콜백은 모른다.
+    // 언제 무엇을 할지는 DrawRevealView 가 정함. 이 창은 그리기만 하고 결과 · 콜백은 모름.
     // 달아오름은 DrawRevealView 의 시계(SetHeat)로 그려 스킵 · 일시정지와 늘 맞고,
-    // 공개 뒤 효과만 DOTween 으로 흘린다 (scaled time — 일시정지면 같이 멈춤).
-    // 흔들림은 달아오름 · 공개 순간 모두 Perlin 노이즈로 만든다 (DOTween 의 Shake 는 UnityEngine.Random 을 씀).
-    // 흔들림 · 플래시는 값을 넣을 때마다 접근성 스위치를 확인한다 — 효과 도중에 꺼도 바로 멈춘다.
-    // 쉬는 상태 = 흔들림 0 · 테두리 · 플래시 · 빛 투명 · 아이콘 원래 크기. StopAll 은 언제나 이 상태로 돌린다
+    // 공개 뒤 효과만 DOTween 으로 흘림 (scaled time — 일시정지면 같이 멈춤).
+    // 흔들림은 달아오름 · 공개 순간 모두 Perlin 노이즈로 만듦 (DOTween 의 Shake 는 UnityEngine.Random 을 씀).
+    // 흔들림 · 플래시는 값을 넣을 때마다 접근성 스위치를 확인함 — 효과 도중에 꺼도 바로 멈춤.
+    // 쉬는 상태 = 흔들림 0 · 테두리 · 플래시 · 빛 투명 · 아이콘 원래 크기. StopAll 은 언제나 이 상태로 돌림
     public sealed class RevealEffectsView : MonoBehaviour
     {
         private const int GlowTextureSize = 128;
@@ -41,7 +41,7 @@ namespace Overclock.Presentation
             restShakePosition = shakeRoot.anchoredPosition;
             restIconScale = partIcon.localScale;
 
-            // 빛 모양은 코드로 만든다 (에셋 0원 · 파일 없음)
+            // 빛 모양은 코드로 만듦 (에셋 0원 · 파일 없음)
             glowTexture = CreateRadialTexture(GlowTextureSize);
             edgeTexture = CreateEdgeTexture(EdgeTextureSize);
             glowSprite = CreateSprite(glowTexture);
@@ -49,7 +49,7 @@ namespace Overclock.Presentation
             iconGlow.sprite = glowSprite;
             heatFrame.sprite = edgeSprite;
 
-            // 화면 전체를 덮는 효과 이미지는 투명해도 클릭을 막는다. 씬 설정과 관계없이 클릭을 통과시킨다
+            // 화면 전체를 덮는 효과 이미지는 투명해도 클릭을 막음. 씬 설정과 관계없이 클릭을 통과시킴
             heatFrame.raycastTarget = false;
             flashImage.raycastTarget = false;
             iconGlow.raycastTarget = false;
@@ -71,7 +71,7 @@ namespace Overclock.Presentation
             Destroy(edgeTexture);
         }
 
-        /// <summary>접근성: 흔들림 · 섬광(화면 플래시)을 끈다. 달아오름 색과 아이콘 빛은 남는다.</summary>
+        /// <summary>접근성: 흔들림 · 섬광(화면 플래시)을 끔. 달아오름 색과 아이콘 빛은 남음.</summary>
         public void SetMotionOptions(bool shake, bool flash)
         {
             shakeEnabled = shake;
@@ -87,19 +87,19 @@ namespace Overclock.Presentation
             }
         }
 
-        /// <summary>SR 연출 진행률(0~1)에 맞춰 테두리를 달구고 화면을 흔든다. 같은 진행률이면 같은 모습이다.</summary>
+        /// <summary>SR 연출 진행률(0~1)에 맞춰 테두리를 달구고 화면을 흔듦. 같은 진행률이면 같은 모습임.</summary>
         public void SetHeat(float progress)
         {
             float clamped = Mathf.Clamp01(progress);
             float ramp = Mathf.Clamp01(clamped / settings.HeatRampRatio);
 
-            // 처음엔 천천히, 끝에 갈수록 빠르게 달아오른다
+            // 처음엔 천천히, 끝에 갈수록 빠르게 달아오름
             float heat = ramp * ramp;
             heatFrame.color = Color.Lerp(settings.HeatStartColor, settings.HeatEndColor, heat);
 
             if (shakeEnabled)
             {
-                // 난수 대신 Perlin 노이즈 — 진행률이 같으면 흔들림도 같다
+                // 난수 대신 Perlin 노이즈 — 진행률이 같으면 흔들림도 같음
                 float t = clamped * settings.ShakeCycles;
                 float x = Mathf.PerlinNoise(t, 0.31f) * 2f - 1f;
                 float y = Mathf.PerlinNoise(0.73f, t) * 2f - 1f;
@@ -109,11 +109,11 @@ namespace Overclock.Presentation
 
         /// <summary>
         /// 공개 순간 효과. R = 아이콘 펀치 · SR = 펀치 + 아이콘 빛 + 플래시 + 짧은 흔들림 + 테두리 잔광 · N = 없음.
-        /// 끝나면 쉬는 상태로 돌아간다. 연출을 스킵했을 때는 부르지 않는다 (DrawRevealView).
+        /// 끝나면 쉬는 상태로 돌아감. 연출을 스킵했을 때는 부르지 않음 (DrawRevealView).
         /// </summary>
         public void PlayReveal(Grade grade)
         {
-            // 달아오른 테두리 색은 잔광으로 서서히 꺼야 하므로 여기서는 흔들림 · 크기만 되돌린다
+            // 달아오른 테두리 색은 잔광으로 서서히 꺼야 하므로 여기서는 흔들림 · 크기만 되돌림
             KillRevealSequence();
             shakeRoot.anchoredPosition = restShakePosition;
             partIcon.localScale = restIconScale;
@@ -138,7 +138,7 @@ namespace Overclock.Presentation
                 revealSequence.Insert(0f, iconGlow.rectTransform.DOScale(settings.IconGlowEndScale, settings.AfterglowSeconds).SetEase(Ease.OutQuad));
                 revealSequence.Insert(0f, heatFrame.DOFade(0f, settings.AfterglowSeconds));
 
-                // 플래시 · 짧은 흔들림은 스위치가 꺼져 있으면 값을 넣지 않는다 (ApplyFlash · ApplyKick)
+                // 플래시 · 짧은 흔들림은 스위치가 꺼져 있으면 값을 넣지 않음 (ApplyFlash · ApplyKick)
                 ApplyFlash(settings.FlashColor.a);
                 revealSequence.Insert(0f, DOTween.To(() => settings.FlashColor.a, ApplyFlash, 0f, settings.FlashSeconds));
                 revealSequence.Insert(0f, DOTween.To(() => 0f, ApplyKick, 1f, settings.KickSeconds));
@@ -148,8 +148,8 @@ namespace Overclock.Presentation
         }
 
         /// <summary>
-        /// 짧은 흔들림만 (클리어 분출 · 11/06). 플래시 · 아이콘 · 테두리는 건드리지 않는다 — 평소 SR 연출을 되풀이하지 않게.
-        /// 흔들림 끄기면 값을 넣지 않는다. timeMultiplier = 시간 배율 (빠름 0.5)
+        /// 짧은 흔들림만 (클리어 분출 · 11/06). 플래시 · 아이콘 · 테두리는 건드리지 않음 — 평소 SR 연출을 되풀이하지 않게.
+        /// 흔들림 끄기면 값을 넣지 않음. timeMultiplier = 시간 배율 (빠름 0.5)
         /// </summary>
         public void PlayKick(float timeMultiplier)
         {
@@ -161,7 +161,7 @@ namespace Overclock.Presentation
             revealSequence.OnComplete(OnRevealComplete);
         }
 
-        /// <summary>진행 중인 효과를 모두 멈추고 쉬는 상태로 돌린다 (새 연출 · 스킵 · 런 버림 · 모듈 선택 뒤).</summary>
+        /// <summary>진행 중인 효과를 모두 멈추고 쉬는 상태로 돌림 (새 연출 · 스킵 · 런 버림 · 모듈 선택 뒤).</summary>
         public void StopAll()
         {
             KillRevealSequence();
@@ -213,7 +213,7 @@ namespace Overclock.Presentation
 
         private void ResetToRest()
         {
-            // 씬을 내릴 때(Play 종료 등)는 다른 오브젝트가 먼저 파괴될 수 있다. 파괴된 대상은 건드리지 않는다
+            // 씬을 내릴 때(Play 종료 등)는 다른 오브젝트가 먼저 파괴될 수 있음. 파괴된 대상은 건드리지 않음
             if (shakeRoot == null || partIcon == null || heatFrame == null || flashImage == null || iconGlow == null)
             {
                 return;
@@ -254,7 +254,7 @@ namespace Overclock.Presentation
 
         private static Texture2D CreateEdgeTexture(int size)
         {
-            // 화면 가장자리가 가장 진하고 안쪽으로 갈수록 투명해지는 테두리 (전체 화면에 늘려 쓴다)
+            // 화면 가장자리가 가장 진하고 안쪽으로 갈수록 투명해지는 테두리 (전체 화면에 늘려 씀)
             var pixels = new Color32[size * size];
             float half = (size - 1) * 0.5f;
             for (int y = 0; y < size; y++)

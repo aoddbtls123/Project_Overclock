@@ -3,19 +3,19 @@ using UnityEngine.UI;
 
 namespace Overclock.Presentation
 {
-    // 배경 방의 조명 (11/16). 새 런 등장 때: 암전 → 어두운 방이 드러남 → 전등이 두 번 깜빡이며 켜지고 방이 밝아진다.
-    // 타이틀 = 어두운 방 (전등 꺼짐) · 이어하기 · 스킵 · 즉시 = 바로 밝은 방. 게임 상태는 바꾸지 않는다.
-    // 방 그림은 밝게 그려져 있고 어두움은 위에 덮은 검은 판의 불투명도로만 만든다 (켜진 전등은 그 판보다 앞이라 늘 밝다).
-    // 시계는 Time.deltaTime 이라 일시정지 중에는 멈춘다 (등장 패널과 같다). 시간에는 연출 속도 배율을 곱한다
+    // 배경 방의 조명 (11/16). 새 런 등장 때: 암전 → 어두운 방이 드러남 → 전등이 두 번 깜빡이며 켜지고 방이 밝아짐.
+    // 타이틀 = 어두운 방 (전등 꺼짐) · 이어하기 · 스킵 · 즉시 = 바로 밝은 방. 게임 상태는 바꾸지 않음.
+    // 방 그림은 밝게 그려져 있고 어두움은 위에 덮은 검은 판의 불투명도로만 만듦 (켜진 전등은 그 판보다 앞이라 늘 밝음).
+    // 시계는 Time.deltaTime 이라 일시정지 중에는 멈춤 (등장 패널과 같음). 시간에는 연출 속도 배율을 곱함
     public sealed class RoomLightView : MonoBehaviour
     {
-        [Tooltip("화면 전체 검은 판 (캔버스 맨 앞 · 클릭 통과). 등장 처음에만 쓴다")]
+        [Tooltip("화면 전체 검은 판 (캔버스 맨 앞 · 클릭 통과). 등장 처음에만 씀")]
         [SerializeField] private Image blackout;
         [Tooltip("방 위에 덮는 검은 판 (방 · 꺼진 전등 앞, 켜진 전등 뒤)")]
         [SerializeField] private Image darkness;
         [Tooltip("켜진 전등 그림")]
         [SerializeField] private Image lampOn;
-        [Tooltip("기계 · 패널 앞에 덮는 검은 판 (ShakeRoot 바로 뒤 · 모듈 선택 · 결과 · 일시정지 창보다 뒤). 방과 같이 어두웠다 밝아진다")]
+        [Tooltip("기계 · 패널 앞에 덮는 검은 판 (ShakeRoot 바로 뒤 · 모듈 선택 · 결과 · 일시정지 창보다 뒤). 방과 같이 어두웠다 밝아짐")]
         [SerializeField] private Image machineShade;
 
         [Header("밝기 (검은 판 불투명도)")]
@@ -23,7 +23,7 @@ namespace Overclock.Presentation
         [SerializeField, Range(0f, 1f)] private float litAlpha = 0.5f;
         [Tooltip("전등이 꺼져 있을 때 기계 · 패널 위 검은 판 (켜지면 0)")]
         [SerializeField, Range(0f, 1f)] private float machineDarkAlpha = 0.7f;
-        [Tooltip("첫 깜빡임 순간의 밝기 (0 = 꺼짐 · 1 = 다 켜짐). 그 뒤 계속 켜지면서 1 까지 오른다")]
+        [Tooltip("첫 깜빡임 순간의 밝기 (0 = 꺼짐 · 1 = 다 켜짐). 그 뒤 계속 켜지면서 1 까지 오름")]
         [SerializeField, Range(0f, 1f)] private float flickerLight = 0.7f;
 
         [Header("등장 시간 (초 · 연출 속도 배율을 곱한다)")]
@@ -101,7 +101,7 @@ namespace Overclock.Presentation
             float t = elapsed / multiplier;
             float black = t < blackHoldSeconds ? 1f : 1f - Mathf.Clamp01((t - blackHoldSeconds) / blackFadeSeconds);
 
-            // 켜짐 → 꺼짐 → 켜짐 (한 칸씩) 뒤로는 계속 켜짐. 켜진 순간 방 · 기계가 같이 밝아지고 (깜빡임도 같이), 계속 켜지면 다 밝아진다
+            // 켜짐 → 꺼짐 → 켜짐 (한 칸씩) 뒤로는 계속 켜짐. 켜진 순간 방 · 기계가 같이 밝아지고 (깜빡임도 같이), 계속 켜지면 다 밝아짐
             float sinceOn = t - lampOnAt;
             bool lit = sinceOn >= 0f && !(sinceOn >= flickerSeconds && sinceOn < flickerSeconds * 2f);
             float steadyAt = flickerSeconds * 2f;

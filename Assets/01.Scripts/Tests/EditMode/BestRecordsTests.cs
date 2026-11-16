@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Overclock.Tests
 {
-    // 기록 규칙 + 실제 JsonUtility 와 파일 입출력. 파일은 임시 폴더에서만 읽고 쓴다
+    // 기록 규칙 + 실제 JsonUtility 와 파일 입출력. 파일은 임시 폴더에서만 읽고 씀
     public class BestRecordsTests
     {
         private readonly List<UnityEngine.Object> createdObjects = new List<UnityEngine.Object>();
@@ -103,7 +103,7 @@ namespace Overclock.Tests
             Assert.IsFalse(records.IsCleared(RunMode.Endless));
         }
 
-        // 일반모드 순서: 낮은 라운드 < R8 실패 < R8 클리어. 같은 기록은 신기록이 아니다
+        // 일반모드 순서: 낮은 라운드 < R8 실패 < R8 클리어. 같은 기록은 신기록이 아님
         [Test]
         public void NormalSubmit_KeepsBestAndReportsOnlyImprovements()
         {
@@ -156,7 +156,7 @@ namespace Overclock.Tests
             Assert.AreEqual(0, records.BestRound(RunMode.Endless));
         }
 
-        // 실제로 끝난 런의 라운드 · 클리어 여부가 그대로 들어간다
+        // 실제로 끝난 런의 라운드 · 클리어 여부가 그대로 들어감
         [TestCase(RunMode.Normal)]
         [TestCase(RunMode.Endless)]
         public void SubmitSession_UsesFinalRoundOfFinishedRun(RunMode mode)

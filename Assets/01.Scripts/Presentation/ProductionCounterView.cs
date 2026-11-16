@@ -6,8 +6,8 @@ using UnityEngine.UI;
 
 namespace Overclock.Presentation
 {
-    // 할당량 줄의 생산량 숫자 · 게이지. 공개 뒤 이전 값에서 새 값으로 세어 올라가고, 다 세면 등급 색으로 잠깐 튄다.
-    // 보이는 값만 늦출 뿐 생산량은 이미 확정돼 있다. 숫자는 뒤로 가지 않는다 — 새 값이 작거나 할당량이 바뀌면(새 라운드) 바로 맞춘다.
+    // 할당량 줄의 생산량 숫자 · 게이지. 공개 뒤 이전 값에서 새 값으로 세어 올라가고, 다 세면 등급 색으로 잠깐 튐.
+    // 보이는 값만 늦출 뿐 생산량은 이미 확정돼 있음. 숫자는 뒤로 가지 않음 — 새 값이 작거나 할당량이 바뀌면(새 라운드) 바로 맞춤.
     // 시간은 scaled time (일시정지면 멈춤)
     public sealed class ProductionCounterView : MonoBehaviour
     {
@@ -15,9 +15,9 @@ namespace Overclock.Presentation
         [Tooltip("\"생산량 / 할당량\" 글자")]
         [SerializeField] private TMP_Text valueText;
         [SerializeField] private Slider gauge;
-        [Tooltip("할당량을 넘은 양 \"+n\" 글자 (11/05). 숫자와 같이 세어 올라가고 돌파 뽑기 끝에 등급 색으로 튄다. 비어 있으면 표시 없음")]
+        [Tooltip("할당량을 넘은 양 \"+n\" 글자 (11/05). 숫자와 같이 세어 올라가고 돌파 뽑기 끝에 등급 색으로 튐. 비어 있으면 표시 없음")]
         [SerializeField] private TMP_Text overflowText;
-        [Tooltip("기계 몸통의 계수기 창 (11/06). 보이는 생산량을 자리 바퀴로 굴린다. 비어 있으면 표시 없음")]
+        [Tooltip("기계 몸통의 계수기 창 (11/06). 보이는 생산량을 자리 바퀴로 굴림. 비어 있으면 표시 없음")]
         [SerializeField] private MechanicalCounterView mechanicalCounter;
 
         private float shownProduction;
@@ -58,7 +58,7 @@ namespace Overclock.Presentation
             KillTweens();
         }
 
-        /// <summary>바로 그 값으로 보여 준다 (라운드 시작 · 모듈 선택 · 이어하기 · 스킵 · 즉시).</summary>
+        /// <summary>바로 그 값으로 보여 줌 (라운드 시작 · 모듈 선택 · 이어하기 · 스킵 · 즉시).</summary>
         public void SetImmediate(int production, int quota)
         {
             KillTweens();
@@ -68,7 +68,7 @@ namespace Overclock.Presentation
             shownProduction = production;
             ResetPunch();
             Apply();
-            // 0 으로 돌아가는 중인 계수기 바퀴 (새 라운드) 는 끊지 않는다. 그 밖에는 바로 맞춘다
+            // 0 으로 돌아가는 중인 계수기 바퀴 (새 라운드) 는 끊지 않음. 그 밖에는 바로 맞춤
             if (mechanicalCounter != null)
             {
                 mechanicalCounter.CompleteFollow();
@@ -76,7 +76,7 @@ namespace Overclock.Presentation
         }
 
         /// <summary>
-        /// 지금 보이는 값에서 새 값까지 등급별 시간 동안 세어 올린다. 세는 중이면 앞의 값을 끝낸 자리에서 이어 센다.
+        /// 지금 보이는 값에서 새 값까지 등급별 시간 동안 세어 올림. 세는 중이면 앞의 값을 끝낸 자리에서 이어 셈.
         /// </summary>
         public void RollTo(int production, int quota, Grade grade)
         {
@@ -100,7 +100,7 @@ namespace Overclock.Presentation
         }
 
         /// <summary>
-        /// 조각 단위로 세기 시작한다 (수확물 조각이 앉을 때마다 Advance). 값이 줄었거나 할당량이 바뀌면 바로 맞춘다.
+        /// 조각 단위로 세기 시작함 (수확물 조각이 앉을 때마다 Advance). 값이 줄었거나 할당량이 바뀌면 바로 맞춤.
         /// </summary>
         public void BeginCount(int production, int quota, Grade grade)
         {
@@ -116,7 +116,7 @@ namespace Overclock.Presentation
             counting = true;
         }
 
-        /// <summary>앉은 조각만큼 올린다. 목표에 닿으면 등급 색으로 튄다. 세는 중이 아니면 무시한다.</summary>
+        /// <summary>앉은 조각만큼 올림. 목표에 닿으면 등급 색으로 튐. 세는 중이 아니면 무시함.</summary>
         public void Advance(int units)
         {
             if (!counting)
@@ -144,7 +144,7 @@ namespace Overclock.Presentation
                 Apply();
             }
 
-            // 숫자 세기가 끝났어도 바퀴는 아직 따라가는 중일 수 있다
+            // 숫자 세기가 끝났어도 바퀴는 아직 따라가는 중일 수 있음
             SnapMechanicalCounter();
         }
 
@@ -179,7 +179,7 @@ namespace Overclock.Presentation
 
         private void PunchOverflow(Grade grade)
         {
-            // 돌파시킨 부품의 등급 색으로 튄다 (금색은 SR 일 때만). 초과분이 크면 더 크게
+            // 돌파시킨 부품의 등급 색으로 튐 (금색은 SR 일 때만). 초과분이 크면 더 크게
             int overflow = targetProduction - quota;
             if (overflowText == null || overflow <= 0)
             {
@@ -259,7 +259,7 @@ namespace Overclock.Presentation
 
             if (mechanicalCounter != null)
             {
-                // 반올림 전 값을 넘긴다 — 롤업 중에는 바퀴가 자리 사이에서 굴러간다
+                // 반올림 전 값을 넘김 — 롤업 중에는 바퀴가 자리 사이에서 굴러감
                 mechanicalCounter.SetTarget(shownProduction);
             }
         }

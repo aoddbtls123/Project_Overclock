@@ -6,20 +6,20 @@ using UnityEngine.UI;
 
 namespace Overclock.Presentation
 {
-    // 출력 창 셔터 (기계연출 구상 §14-5 "철 · 커 · 착"). 뽑기를 기다리는 동안 출력 창을 가리고 공개 순간에 열린다.
-    // 언제 닫고 열지는 DrawRevealView 가 정한다 (뜸들이기 시간 안에서만 움직이고 시간을 늘리지 않는다). 게임 상태는 바꾸지 않는다.
-    // 판(plate)은 창 크기이고, 부모의 마스크(RectMask2D)가 창 밖을 가린다 — 열림 = 판이 창 높이만큼 위로 · 닫힘 = 창 자리.
-    // 시간은 scaled time (일시정지면 멈춤). 떨림 · 틈새 증기 자리는 값으로만 정한다 (난수 없음)
-    // 철판 (11/16): 판 안의 철판들은 떨어지는 동안 사이가 벌어져 있다가 닿는 순간부터 아래부터 차례로 포개지고, 열 때는 위부터 벌어진다.
-    // 철판이 없으면 판 한 장으로 움직인다 (이전과 같음)
+    // 출력 창 셔터 (기계연출 구상 §14-5 "철 · 커 · 착"). 뽑기를 기다리는 동안 출력 창을 가리고 공개 순간에 열림.
+    // 언제 닫고 열지는 DrawRevealView 가 정함 (뜸들이기 시간 안에서만 움직이고 시간을 늘리지 않음). 게임 상태는 바꾸지 않음.
+    // 판(plate)은 창 크기이고, 부모의 마스크(RectMask2D)가 창 밖을 가림 — 열림 = 판이 창 높이만큼 위로 · 닫힘 = 창 자리.
+    // 시간은 scaled time (일시정지면 멈춤). 떨림 · 틈새 증기 자리는 값으로만 정함 (난수 없음)
+    // 철판 (11/16): 판 안의 철판들은 떨어지는 동안 사이가 벌어져 있다가 닿는 순간부터 아래부터 차례로 포개지고, 열 때는 위부터 벌어짐.
+    // 철판이 없으면 판 한 장으로 움직임 (이전과 같음)
     public sealed class MachineShutterView : MonoBehaviour
     {
         [SerializeField] private ShutterSettings settings;
         [Tooltip("셔터 판. 창과 같은 크기 · 가운데 피벗 · 마스크 안 자식")]
         [SerializeField] private RectTransform plate;
-        [Tooltip("셔터 아래 틈에서 새는 증기 이미지 풀 (마스크 밖 · 이 오브젝트의 자식). 차례로 돌려 쓴다")]
+        [Tooltip("셔터 아래 틈에서 새는 증기 이미지 풀 (마스크 밖 · 이 오브젝트의 자식). 차례로 돌려 씀")]
         [SerializeField] private Image[] gapPuffs = Array.Empty<Image>();
-        [Tooltip("판 안의 철판 (위 → 아래 순). 판 크기로 늘린 이미지 · 위치는 코드가 정한다")]
+        [Tooltip("판 안의 철판 (위 → 아래 순). 판 크기로 늘린 이미지 · 위치는 코드가 정함")]
         [SerializeField] private RectTransform[] slats = Array.Empty<RectTransform>();
 
         /// <summary>셔터가 끝까지 내려와 닫힌 순간 (닫힘 소리 · 덜컹).</summary>
@@ -79,7 +79,7 @@ namespace Overclock.Presentation
             KillPuffs();
         }
 
-        /// <summary>delay 초 뒤 seconds 동안 가속하며 내려와 쾅 닫힌다 (닫히는 순간 Closed). seconds 0 이면 바로 닫힘.</summary>
+        /// <summary>delay 초 뒤 seconds 동안 가속하며 내려와 쾅 닫힘 (닫히는 순간 Closed). seconds 0 이면 바로 닫힘.</summary>
         public void Close(float delay, float seconds)
         {
             KillMove();
@@ -117,7 +117,7 @@ namespace Overclock.Presentation
 
         /// <summary>
         /// 공개 순간 (끝까지 본 공개만). N · R = 빠르게 열림 · SR = 튕겨 올라가 위에 부딪히고 살짝 내려왔다 다시 올라감.
-        /// 닫히는 도중이면 그 자리에서 연다. timeScale = 연출 속도 배율 (빠름 0.5 = 반 시간).
+        /// 닫히는 도중이면 그 자리에서 엶. timeScale = 연출 속도 배율 (빠름 0.5 = 반 시간).
         /// </summary>
         public void Open(Grade grade, float timeScale = 1f)
         {
@@ -155,7 +155,7 @@ namespace Overclock.Presentation
                 .OnComplete(FinishOpen);
         }
 
-        /// <summary>바로 열린 자세 (스킵 · 즉시 · 새 연출 · 런 이탈). 이벤트 없음 · 틈새 증기도 지운다.</summary>
+        /// <summary>바로 열린 자세 (스킵 · 즉시 · 새 연출 · 런 이탈). 이벤트 없음 · 틈새 증기도 지움.</summary>
         public void ShowOpen()
         {
             KillMove();
@@ -165,14 +165,14 @@ namespace Overclock.Presentation
             SetClosed(0f);
         }
 
-        /// <summary>SR 기다림 떨림 (가로 px). 닫혀 있을 때만 보인다.</summary>
+        /// <summary>SR 기다림 떨림 (가로 px). 닫혀 있을 때만 보임.</summary>
         public void SetJitter(float pixels)
         {
             jitter = IsClosed ? pixels : 0f;
             Apply();
         }
 
-        /// <summary>셔터 아래 틈에서 증기 한 줄기 (index 차례로 자리를 돌려 쓴다). 풀이 없으면 무시.</summary>
+        /// <summary>셔터 아래 틈에서 증기 한 줄기 (index 차례로 자리를 돌려 씀). 풀이 없으면 무시.</summary>
         public void PuffGap(int index)
         {
             if (gapPuffs.Length == 0)
@@ -212,8 +212,8 @@ namespace Overclock.Presentation
             slatProgress = progress;
         }
 
-        // 철판 b (아래부터 0) 는 그 아래 사이 b 개가 벌어진 만큼 위로 간다.
-        // 사이 k (k 번째 철판과 그 아래 사이 · 1 부터) 는 포갤 때 아래부터 (k 가 작은 것부터) 닫히고, 열 때는 위부터 (k 가 큰 것부터) 벌어진다
+        // 철판 b (아래부터 0) 는 그 아래 사이 b 개가 벌어진 만큼 위로 감.
+        // 사이 k (k 번째 철판과 그 아래 사이 · 1 부터) 는 포갤 때 아래부터 (k 가 작은 것부터) 닫히고, 열 때는 위부터 (k 가 큰 것부터) 벌어짐
         private float GetGapOpen(int gap, int gapCount)
         {
             if (slatsOpening)
@@ -240,7 +240,7 @@ namespace Overclock.Presentation
             int count = slats.Length;
             int gapCount = count - 1;
             float lift = 0f;
-            // 아래 철판부터 올라가며 벌어진 사이를 누적한다
+            // 아래 철판부터 올라가며 벌어진 사이를 누적함
             for (int b = 0; b < count; b++)
             {
                 if (b > 0)

@@ -7,8 +7,8 @@ using UnityEngine;
 
 namespace Overclock.Tests
 {
-    // 이번 라운드에 뽑은 부품 목록 (수확물 더미). 뽑을 때마다 순서대로 쌓이고 · 새 라운드에 비고 · 세이브에 id 로 들어가 그대로 돌아온다.
-    // 목록을 기록한 세이브는 게임이 만들 수 있는 것만 받는다 (뽑기 상한 · 연속 · 천장). 기록 안 한 옛 세이브 → 빈 더미 · 그 라운드는 저장 안 함
+    // 이번 라운드에 뽑은 부품 목록 (수확물 더미). 뽑을 때마다 순서대로 쌓이고 · 새 라운드에 비고 · 세이브에 id 로 들어가 그대로 돌아옴.
+    // 목록을 기록한 세이브는 게임이 만들 수 있는 것만 받음 (뽑기 상한 · 연속 · 천장). 기록 안 한 옛 세이브 → 빈 더미 · 그 라운드는 저장 안 함
     public class RoundPartsTests
     {
         private const int PityThreshold = 50;
@@ -113,7 +113,7 @@ namespace Overclock.Tests
                     checkedDraws++;
                 }
 
-                // 런이 끝나도 마지막 라운드 부품은 남는다 (실패 화면에서 더미를 그대로 보여 준다)
+                // 런이 끝나도 마지막 라운드 부품은 남음 (실패 화면에서 더미를 그대로 보여 줌)
                 CollectionAssert.AreEqual(expected, runManager.RoundParts, "seed=" + seed + " 런 끝");
             }
 
@@ -121,7 +121,7 @@ namespace Overclock.Tests
             Assert.GreaterOrEqual(checkedDraws, 500, "뽑기 수");
         }
 
-        // 모든 단계 직후 저장 → 복원하면 같은 부품 목록이 돌아온다. 다시 저장한 id 도 같다
+        // 모든 단계 직후 저장 → 복원하면 같은 부품 목록이 돌아옴. 다시 저장한 id 도 같음
         [Test]
         public void RestoreAfterAnyStep_KeepsRoundParts()
         {
@@ -183,7 +183,7 @@ namespace Overclock.Tests
             CollectionAssert.AreEqual(session.RunManager.RoundParts, loaded.RunManager.RoundParts);
         }
 
-        // 부품 목록이 없는 옛 세이브 (기록 표시 false · 빈 목록 · null) 는 빈 더미로 복원하고, 판은 그대로 이어진다
+        // 부품 목록이 없는 옛 세이브 (기록 표시 false · 빈 목록 · null) 는 빈 더미로 복원하고, 판은 그대로 이어짐
         [Test]
         public void OldSaveWithoutRoundParts_RestoresWithEmptyList()
         {
@@ -210,8 +210,8 @@ namespace Overclock.Tests
             Assert.AreEqual(1, fromNull.RunManager.RoundParts.Count, "복원 뒤 뽑은 것부터 쌓인다");
         }
 
-        // 옛 세이브로 이어 한 라운드에서 다시 저장 → 다시 복원해도 거부되지 않는다 (앞 부품을 모르는 채 뒤 부품만 저장하면
-        // 연속 · 천장 검사가 맞는 세이브를 거부한다 — 교차검토 #32). 다음 라운드부터는 다시 목록을 저장한다
+        // 옛 세이브로 이어 한 라운드에서 다시 저장 → 다시 복원해도 거부되지 않음 (앞 부품을 모르는 채 뒤 부품만 저장하면
+        // 연속 · 천장 검사가 맞는 세이브를 거부함 — 교차검토 #32). 다음 라운드부터는 다시 목록을 저장함
         [Test]
         public void OldSave_ResaveAndRestoreKeepsWorkingUntilNextRound()
         {
@@ -302,7 +302,7 @@ namespace Overclock.Tests
             RunSaveData data = session.CaptureSaveData();
             string kept = data.roundPartIds[0];
 
-            // 맞는 id 하나 뒤에 붙인다 — 모르는 id 를 건너뛰는 틀린 구현이면 남은 목록이 맞아서 통과해 버린다
+            // 맞는 id 하나 뒤에 붙임 — 모르는 id 를 건너뛰는 틀린 구현이면 남은 목록이 맞아서 통과해 버림
             data.roundPartIds = new[] { kept, "없는부품" };
             Assert.Throws<ArgumentException>(() => RunSession.Restore(data, parts, modules), "없는 id");
 
@@ -354,7 +354,7 @@ namespace Overclock.Tests
             AssertRestore(CreateRestoredRun(8, Grade.N, 1, 2), twoNormals, false, "연속 개수가 다름");
             AssertRestore(CreateRestoredRun(8, Grade.R, 2, 2), twoNormals, false, "연속 등급이 다름");
 
-            // 3연속이 발동하면 0 으로 돌아간다 (발동 뒤 다시 센다)
+            // 3연속이 발동하면 0 으로 돌아감 (발동 뒤 다시 셈)
             var threeNormals = new List<PartData> { normal, normal, normal };
             AssertRestore(CreateRestoredRun(7, Grade.N, 0, 3), threeNormals, true, "(대조) 3연속 발동 → 0");
             AssertRestore(CreateRestoredRun(7, Grade.N, 2, 3), threeNormals, false, "발동했는데 연속이 남음");
@@ -371,14 +371,14 @@ namespace Overclock.Tests
             AssertRestore(CreateRestoredRun(8, Grade.N, 1, 2), superRareThenNormal, false, "SR 뒤 1 인데 카운터 2");
             AssertRestore(CreateRestoredRun(8, Grade.N, 1, 0), superRareThenNormal, false, "SR 뒤 1 인데 카운터 0");
 
-            // SR 이 없으면 카운터는 적어도 부품 수 (앞 라운드에서 이어진 수가 더해질 수 있다)
+            // SR 이 없으면 카운터는 적어도 부품 수 (앞 라운드에서 이어진 수가 더해질 수 있음)
             var normalThenRare = new List<PartData> { normal, rare };
             AssertRestore(CreateRestoredRun(8, Grade.R, 1, 2), normalThenRare, true, "(대조) 카운터 = 부품 수");
             AssertRestore(CreateRestoredRun(8, Grade.R, 1, 30), normalThenRare, true, "(대조) 앞 라운드에서 이어짐");
             AssertRestore(CreateRestoredRun(8, Grade.R, 1, 1), normalThenRare, false, "카운터가 부품 수보다 작음");
         }
 
-        // R1 · 뽑기 중 · 생산량 0 으로 진행 상태를 맞춘 뒤 연속 · 천장만 바꿔 본다. 부품 목록 검사 하나만 결과를 가른다
+        // R1 · 뽑기 중 · 생산량 0 으로 진행 상태를 맞춘 뒤 연속 · 천장만 바꿔 봄. 부품 목록 검사 하나만 결과를 가름
         private RunManager CreateRestoredRun(int drawsRemaining, Grade streakGrade, int streakCount, int pity)
         {
             var random = new RandomService(1);

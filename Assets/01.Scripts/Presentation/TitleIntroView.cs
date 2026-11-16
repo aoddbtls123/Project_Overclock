@@ -4,9 +4,9 @@ using TMPro;
 
 namespace Overclock.Presentation
 {
-    // 타이틀 등장 (11/16): 제목이 한 글자씩 타이핑되고, 끝나면 버튼이 차례로 떠오른다.
-    // 타이틀 패널이 켜질 때마다 처음부터. 아무 키 · 클릭이면 바로 끝 모습 (버튼은 다 나타나기 전에는 눌리지 않는다).
-    // 일시정지에서 '처음으로' 로 올 수 있어 시간은 unscaled 로 잰다. 게임 상태는 바꾸지 않는다
+    // 타이틀 등장 (11/16): 제목이 한 글자씩 타이핑되고, 끝나면 버튼이 차례로 떠오름.
+    // 타이틀 패널이 켜질 때마다 처음부터. 아무 키 · 클릭이면 바로 끝 모습 (버튼은 다 나타나기 전에는 눌리지 않음).
+    // 일시정지에서 '처음으로' 로 올 수 있어 시간은 unscaled 로 잼. 게임 상태는 바꾸지 않음
     public sealed class TitleIntroView : MonoBehaviour
     {
         [SerializeField] private TMP_Text title;
@@ -75,7 +75,7 @@ namespace Overclock.Presentation
                 return;
             }
 
-            // 켜진 그 프레임의 클릭 (시작 화면으로 돌아온 클릭) 은 스킵으로 보지 않는다
+            // 켜진 그 프레임의 클릭 (시작 화면으로 돌아온 클릭) 은 스킵으로 보지 않음
             if (elapsed > 0f && IsSkipPressed())
             {
                 Finish();

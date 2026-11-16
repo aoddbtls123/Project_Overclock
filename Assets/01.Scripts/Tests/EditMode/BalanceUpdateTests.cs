@@ -110,7 +110,7 @@ namespace Overclock.Tests
         [TestCase(50, "다음 뽑기 SR 확정")]
         public void Gauge_ReportsRemainingDrawsIncludingGuaranteedDraw(int counter, string expected)
         {
-            // Presentation은 Assembly-CSharp에 있으므로 테스트 어셈블리에서 직접 의존하지 않는다.
+            // Presentation은 Assembly-CSharp에 있으므로 테스트 어셈블리에서 직접 의존하지 않음.
             var type = Type.GetType("Overclock.Presentation.GaugePanelView, Assembly-CSharp");
             Assert.IsNotNull(type);
             Assert.AreEqual(expected, type.GetMethod("FormatPity").Invoke(null, new object[] { counter, 19 }));

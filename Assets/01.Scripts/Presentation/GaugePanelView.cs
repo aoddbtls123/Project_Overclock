@@ -7,8 +7,8 @@ using UnityEngine;
 namespace Overclock.Presentation
 {
     // 왼쪽 계기판 (등급별 확률 · 천장). 모듈을 달아 확률이 바뀌면 보이던 값에서 새 값으로 세어 바꾸고,
-    // 바뀐 줄 옆에 ▲▼ 와 변화량(%p)을 잠깐 띄운다 (시트 §2 "계기판 수치 변화는 코어 연출").
-    // 표시만 늦출 뿐 확률은 이미 바뀌어 있다. 시간은 scaled time (일시정지면 멈춤)
+    // 바뀐 줄 옆에 ▲▼ 와 변화량(%p)을 잠깐 띄움 (시트 §2 "계기판 수치 변화는 코어 연출").
+    // 표시만 늦출 뿐 확률은 이미 바뀌어 있음. 시간은 scaled time (일시정지면 멈춤)
     public sealed class GaugePanelView : MonoBehaviour
     {
         private const int GradeCount = 3;
@@ -42,8 +42,8 @@ namespace Overclock.Presentation
         }
 
         /// <summary>
-        /// 평소 갱신 (뽑기 · 라운드 · 런 시작). 확률이 지금 목표와 같으면 진행 중인 연출을 그대로 두고 천장 줄만 바꾼다.
-        /// 다르면 바로 그 값으로 보여 주고 ▲▼ 를 지운다.
+        /// 평소 갱신 (뽑기 · 라운드 · 런 시작). 확률이 지금 목표와 같으면 진행 중인 연출을 그대로 두고 천장 줄만 바꿈.
+        /// 다르면 바로 그 값으로 보여 주고 ▲▼ 를 지움.
         /// </summary>
         public void Show(double normal, double rare, double superRare, int drawsWithoutSuperRare, int pityThreshold)
         {
@@ -61,8 +61,8 @@ namespace Overclock.Presentation
         }
 
         /// <summary>
-        /// 확률이 바뀐 순간 (모듈 장착). 보이던 값에서 새 값으로 세어 바꾸고 바뀐 줄에 ▲▼ 를 띄운다.
-        /// timeMultiplier = 연출 속도 배율 (0 = 바로 바꾸고 ▲▼ 만). 목표와 같으면 아무것도 하지 않는다.
+        /// 확률이 바뀐 순간 (모듈 장착). 보이던 값에서 새 값으로 세어 바꾸고 바뀐 줄에 ▲▼ 를 띄움.
+        /// timeMultiplier = 연출 속도 배율 (0 = 바로 바꾸고 ▲▼ 만). 목표와 같으면 아무것도 하지 않음.
         /// </summary>
         public void AnimateTo(double normal, double rare, double superRare, float timeMultiplier)
         {
@@ -81,7 +81,7 @@ namespace Overclock.Presentation
 
             KillTweens();
 
-            // ▲▼ 는 이전 확률 → 새 확률. 숫자는 지금 보이는 값에서 출발한다 (앞 연출 도중이어도 뒤로 튀지 않게)
+            // ▲▼ 는 이전 확률 → 새 확률. 숫자는 지금 보이는 값에서 출발함 (앞 연출 도중이어도 뒤로 튀지 않게)
             for (int i = 0; i < GradeCount; i++)
             {
                 rollStart[i] = shown[i];
@@ -162,7 +162,7 @@ namespace Overclock.Presentation
 
         private string BuildMark(double before, double after)
         {
-            // 화면에 보이는 숫자(0.1 단위)가 바뀐 줄만 표시한다. 변화량도 보이는 두 숫자의 차이로 적는다 (반올림 경계에서 ▲0.0 이 나오지 않게)
+            // 화면에 보이는 숫자(0.1 단위)가 바뀐 줄만 표시함. 변화량도 보이는 두 숫자의 차이로 적음 (반올림 경계에서 ▲0.0 이 나오지 않게)
             string beforeText = FormatNumber(before);
             string afterText = FormatNumber(after);
             if (beforeText == afterText)

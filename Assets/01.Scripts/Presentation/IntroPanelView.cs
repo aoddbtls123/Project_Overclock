@@ -12,19 +12,19 @@ namespace Overclock.Presentation
         Right
     }
 
-    // 런 시작 때 화면 밖에서 레일을 타고 들어오는 패널 하나 (11/07 · v3). 두 겹으로 나눈다 —
-    //   이 오브젝트 (배치) : 최종 자리 · 크기. 움직이지 않는다
-    //   Slide (이동)       : 패널판 · 테두리 · 볼트 같은 장식 + 글자 · 숫자 · 목록. 한 덩어리로 움직인다 (안쪽만 따로 드러나지 않는다)
-    // 패널 이미지를 바꿀 때는 Slide 아래 판 · 테두리만 바꾼다. 출발 자리 · 지나치는 거리는 실제 Canvas · 패널 크기로 매번 계산하므로
-    // 장식이 더 튀어나오면 (Slide 아래 Graphic 이 커지면) 그대로 따라간다.
-    // 크기는 보이는 Graphic 사각형 + 테두리 · 그림자 효과 (Outline · Shadow) 거리, 가림막 (RectMask2D · Mask) 밖으로 잘린 부분은 뺀다
+    // 런 시작 때 화면 밖에서 레일을 타고 들어오는 패널 하나 (11/07 · v3). 두 겹으로 나눔 —
+    //   이 오브젝트 (배치) : 최종 자리 · 크기. 움직이지 않음
+    //   Slide (이동)       : 패널판 · 테두리 · 볼트 같은 장식 + 글자 · 숫자 · 목록. 한 덩어리로 움직임 (안쪽만 따로 드러나지 않음)
+    // 패널 이미지를 바꿀 때는 Slide 아래 판 · 테두리만 바꿈. 출발 자리 · 지나치는 거리는 실제 Canvas · 패널 크기로 매번 계산하므로
+    // 장식이 더 튀어나오면 (Slide 아래 Graphic 이 커지면) 그대로 따라감.
+    // 크기는 보이는 Graphic 사각형 + 테두리 · 그림자 효과 (Outline · Shadow) 거리, 가림막 (RectMask2D · Mask) 밖으로 잘린 부분은 뺌
     public sealed class IntroPanelView : MonoBehaviour
     {
         [Tooltip("판 · 장식 · 안쪽 정보를 함께 움직이는 겹")]
         [SerializeField] private RectTransform slide;
         [Tooltip("어느 화면 끝 밖에서 들어오나")]
         [SerializeField] private IntroEntryEdge enterFrom = IntroEntryEdge.Top;
-        [Tooltip("최종 자리를 한 번 지나치는 거리 (UI 단위). 기계 · 다른 화면 요소와 여유가 모자라면 자동으로 줄인다")]
+        [Tooltip("최종 자리를 한 번 지나치는 거리 (UI 단위). 기계 · 다른 화면 요소와 여유가 모자라면 자동으로 줄임")]
         [SerializeField, Min(0f)] private float overshoot = 20f;
 
         private Vector2 restPosition;
@@ -43,13 +43,13 @@ namespace Overclock.Presentation
         /// <summary>최종 자리 기준 출발 자리 (Slide 부모 좌표).</summary>
         public Vector2 EntryOffset => entryOffset;
 
-        /// <summary>지나치는 방향 (Slide 부모 좌표 · 길이 1). 들어오던 방향과 같다.</summary>
+        /// <summary>지나치는 방향 (Slide 부모 좌표 · 길이 1). 들어오던 방향과 같음.</summary>
         public Vector2 OvershootDirection => inward;
 
         /// <summary>
-        /// 출발 자리와 지나치는 거리를 지금 화면에 맞춰 계산한다. 출발 자리 = 패널 전체 (Slide 아래 보이는 Graphic 모두 + 테두리) 가 화면 밖.
-        /// 지나치는 거리 = 원래 값과 (가리면 안 되는 것까지의 틈 − 안전 여유) 중 작은 값. 최종 자리에서 재므로 먼저 최종 자리로 둔다.
-        /// screen 이 비면 계산하지 않고 이전 값을 쓴다.
+        /// 출발 자리와 지나치는 거리를 지금 화면에 맞춰 계산함. 출발 자리 = 패널 전체 (Slide 아래 보이는 Graphic 모두 + 테두리) 가 화면 밖.
+        /// 지나치는 거리 = 원래 값과 (가리면 안 되는 것까지의 틈 − 안전 여유) 중 작은 값. 최종 자리에서 재므로 먼저 최종 자리로 둠.
+        /// screen 이 비면 계산하지 않고 이전 값을 씀.
         /// </summary>
         public void Prepare(RectTransform screen, IReadOnlyList<RectTransform> keepClear, float screenMargin, float clearanceMargin)
         {
@@ -84,7 +84,7 @@ namespace Overclock.Presentation
             limitedBy = nearest >= 0 ? obstacleGraphics[nearest].name + " (틈 " + clearance.ToString("0.#") + ")" : "";
             float allowed = Mathf.Max(0f, clearance - clearanceMargin);
 
-            // 화면 좌표 (UI 단위) → Slide 부모 좌표. Canvas 와 사이에 크기 · 회전이 있어도 맞게 바꾼다
+            // 화면 좌표 (UI 단위) → Slide 부모 좌표. Canvas 와 사이에 크기 · 회전이 있어도 맞게 바꿈
             Vector2 inwardOnScreen = Inward(enterFrom);
             Transform parent = slide.parent;
             Vector3 worldOffset = screen.TransformVector(-(Vector3)(inwardOnScreen * distance));
@@ -97,7 +97,7 @@ namespace Overclock.Presentation
         }
 
         /// <summary>
-        /// 최종 자리 기준으로 놓는다. travel 0 = 출발 자리 (화면 밖) · 1 = 최종 자리.
+        /// 최종 자리 기준으로 놓음. travel 0 = 출발 자리 (화면 밖) · 1 = 최종 자리.
         /// pastFraction 0 ~ 1 = 최종 자리를 Bounce 의 몇 배만큼 지나쳤나 (들어오던 방향으로).
         /// </summary>
         public void Place(float travel, float pastFraction)
@@ -124,7 +124,7 @@ namespace Overclock.Presentation
 
         private void CaptureRest()
         {
-            // 최종 자리는 처음 움직이기 전 값을 기억한다 (씬 배치가 바뀌어도 그 자리로 돌아온다)
+            // 최종 자리는 처음 움직이기 전 값을 기억함 (씬 배치가 바뀌어도 그 자리로 돌아옴)
             if (!restCaptured)
             {
                 restPosition = slide.anchoredPosition;
@@ -150,7 +150,7 @@ namespace Overclock.Presentation
 
         /// <summary>
         /// 최종 자리에서 들어오던 방향으로 더 나아갈 때 가장 먼저 닿는 것까지의 틈 (UI 단위). 닿을 것이 없으면 float.MaxValue.
-        /// 이미 겹쳐 있으면 0 이하 (지나치지 않는다).
+        /// 이미 겹쳐 있으면 0 이하 (지나치지 않음).
         /// </summary>
         internal static float Clearance(Rect panel, IntroEntryEdge edge, IList<Rect> obstacles)
         {
@@ -173,7 +173,7 @@ namespace Overclock.Presentation
                     continue;
                 }
 
-                // 들어오던 방향의 앞쪽 (지나치는 쪽) 에 있는 것만 본다. 뒤쪽 (출발한 쪽) 은 닿지 않는다
+                // 들어오던 방향의 앞쪽 (지나치는 쪽) 에 있는 것만 봄. 뒤쪽 (출발한 쪽) 은 닿지 않음
                 float gap;
                 switch (edge)
                 {
@@ -262,8 +262,8 @@ namespace Overclock.Presentation
 
         private static void CollectGraphicRects(Transform root, RectTransform screen, List<Rect> into, List<Graphic> owners)
         {
-            // 보이는 Graphic (Image · 글자) 만 센다. 빈 정리용 오브젝트 · 꺼진 것 · 투명한 것은 자리를 차지하지 않는다.
-            // 가림막 안에 숨어 있는 부분 (예: 열린 셔터판) 은 가림막 사각형으로 잘라서 센다
+            // 보이는 Graphic (Image · 글자) 만 셈. 빈 정리용 오브젝트 · 꺼진 것 · 투명한 것은 자리를 차지하지 않음.
+            // 가림막 안에 숨어 있는 부분 (예: 열린 셔터판) 은 가림막 사각형으로 잘라서 셈
             Graphic[] graphics = root.GetComponentsInChildren<Graphic>(false);
             for (int i = 0; i < graphics.Length; i++)
             {
@@ -289,7 +289,7 @@ namespace Overclock.Presentation
 
         private static float EffectReach(Graphic graphic)
         {
-            // Outline · Shadow 는 Graphic 사각형 밖으로 이만큼 더 그린다
+            // Outline · Shadow 는 Graphic 사각형 밖으로 이만큼 더 그림
             float reach = 0f;
             Shadow[] effects = graphic.GetComponents<Shadow>();
             for (int i = 0; i < effects.Length; i++)
@@ -306,7 +306,7 @@ namespace Overclock.Presentation
 
         private static bool ClipToMasks(Transform target, RectTransform screen, ref Rect rect)
         {
-            // 자기 자신의 Mask 는 자기 모양을 자르지 않는다. 부모 쪽 가림막만 본다 (화면 Canvas 까지)
+            // 자기 자신의 Mask 는 자기 모양을 자르지 않음. 부모 쪽 가림막만 봄 (화면 Canvas 까지)
             for (Transform parent = target.parent; parent != null && parent != screen; parent = parent.parent)
             {
                 RectTransform area = parent as RectTransform;

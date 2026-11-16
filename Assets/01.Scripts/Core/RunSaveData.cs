@@ -2,8 +2,8 @@
 
 namespace Overclock.Core
 {
-    // 저장 파일에 그대로 들어가는 값 묶음이다. JsonUtility 가 public 필드를 읽으므로 필드로 둔다.
-    // 값이 맞는지는 RunSession.Restore 가 전부 검사한다
+    // 저장 파일에 그대로 들어가는 값 묶음임. JsonUtility 가 public 필드를 읽으므로 필드로 둠.
+    // 값이 맞는지는 RunSession.Restore 가 전부 검사함
     [Serializable]
     public sealed class RunSaveData
     {
@@ -14,7 +14,7 @@ namespace Overclock.Core
         public uint seed;
         public uint randomState;
         public int drawsWithoutSuperRare;
-        // v1의 20~50회 누적을 보존한 채 v2로 다시 저장한 경우. 다음 SR에서 해제된다.
+        // v1의 20~50회 누적을 보존한 채 v2로 다시 저장한 경우. 다음 SR에서 해제됨.
         public bool legacyPityPending;
         public int round;
         public int production;
@@ -22,7 +22,7 @@ namespace Overclock.Core
         public RunState state;
         public Grade streakGrade;
         public int streakCount;
-        // 오버클럭 추가 전 세이브에는 없는 값 → false / 0 (= 이번 라운드 안 켬) 으로 읽힌다
+        // 오버클럭 추가 전 세이브에는 없는 값 → false / 0 (= 이번 라운드 안 켬) 으로 읽힘
         public bool overclockUsed;
         public int overclockDrawsLeft;
         // 이번 라운드에 뽑은 부품 id (뽑은 순서 · 수확물 더미 복원용) 와, 그 목록이 라운드 처음부터 빠짐없는지.

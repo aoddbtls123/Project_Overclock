@@ -69,11 +69,11 @@ namespace Overclock.Core
         public RunState State => state;
         public IReadOnlyList<ModuleData> EquippedModules => equippedModules;
 
-        /// <summary>이번 라운드에 뽑은 부품 (뽑은 순서). 새 라운드가 시작되면 비운다. 화면의 수확물 더미가 쓴다.</summary>
+        /// <summary>이번 라운드에 뽑은 부품 (뽑은 순서). 새 라운드가 시작되면 비움. 화면의 수확물 더미가 씀.</summary>
         public IReadOnlyList<PartData> RoundParts => roundParts;
 
         /// <summary>
-        /// RoundParts 가 이번 라운드 처음부터 빠짐없는가. 부품 목록이 없는 옛 세이브로 이어 한 라운드는 false — 앞 부품을 모르므로 저장하지 않는다 (다음 라운드부터 true).
+        /// RoundParts 가 이번 라운드 처음부터 빠짐없는가. 부품 목록이 없는 옛 세이브로 이어 한 라운드는 false — 앞 부품을 모르므로 저장하지 않음 (다음 라운드부터 true).
         /// </summary>
         public bool RoundPartsComplete => roundPartsComplete;
         internal Grade StreakGrade => streakGrade;
@@ -96,7 +96,7 @@ namespace Overclock.Core
 
             double quota = Math.Round(BaseQuota * Math.Pow(QuotaGrowth, round - 1), MidpointRounding.AwayFromZero);
 
-            // 무한모드에서 int 를 넘는 라운드(R54~)는 int 최댓값으로 둔다. 넘긴 채 변환하면 음수가 되어 바로 돌파한다
+            // 무한모드에서 int 를 넘는 라운드(R54~)는 int 최댓값으로 둠. 넘긴 채 변환하면 음수가 되어 바로 돌파함
             return quota >= int.MaxValue ? int.MaxValue : (int)quota;
         }
 
@@ -132,7 +132,7 @@ namespace Overclock.Core
                 state = RunState.RunFailed;
             }
 
-            // 돌파 · 런 끝이면 남은 오버클럭 횟수는 사라진다
+            // 돌파 · 런 끝이면 남은 오버클럭 횟수는 사라짐
             if (state != RunState.Drawing)
             {
                 overclockDrawsLeft = 0;
@@ -142,7 +142,7 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 오버클럭을 켠다. 라운드마다 1번 · 다음 뽑기부터 3회 (남은 뽑기가 적으면 그만큼). 난수는 쓰지 않는다.
+        /// 오버클럭을 켬. 라운드마다 1번 · 다음 뽑기부터 3회 (남은 뽑기가 적으면 그만큼). 난수는 쓰지 않음.
         /// </summary>
         public void ActivateOverclock()
         {
@@ -165,13 +165,13 @@ namespace Overclock.Core
             modifierEngine.Equip(module);
             equippedModules.Add(module);
 
-            // GachaEngine 은 새로 만들지 않는다. 보증 카운터가 런 전체에서 이어져야 한다
+            // GachaEngine 은 새로 만들지 않음. 보증 카운터가 런 전체에서 이어져야 함
             modifierEngine.GetProbabilities(out double n, out double r, out double sr);
             gachaEngine.SetProbabilities(n, r, sr);
         }
 
         // 확률만 올리는 카드 중 장착 전후 확률이 완전히 같은 카드만 새 제안에서 제외.
-        // 다른 효과가 섞였거나 R/SR 어느 한쪽이라도 남은 효과가 있으면 유지한다.
+        // 다른 효과가 섞였거나 R/SR 어느 한쪽이라도 남은 효과가 있으면 유지함.
         public bool CanOfferModule(ModuleData module)
         {
             if (module == null) throw new ArgumentNullException(nameof(module));
@@ -193,7 +193,7 @@ namespace Overclock.Core
 
         public ModulePreview PreviewModule(ModuleData module)
         {
-            // 실제 엔진은 건드리지 않는다. 전/후 모두 복제본으로 계산
+            // 실제 엔진은 건드리지 않음. 전/후 모두 복제본으로 계산
             ModifierEngine after = modifierEngine.Clone();
             after.Equip(module);
             return new ModulePreview(modifierEngine.Clone(), after, drawsPerRound, drawsRemaining);
@@ -206,12 +206,12 @@ namespace Overclock.Core
                 throw new InvalidOperationException("돌파 상태가 아닙니다: " + state);
             }
 
-            // 남은 뽑기는 새 라운드 횟수로 덮어쓰기 전에 읽어야 이월된다
+            // 남은 뽑기는 새 라운드 횟수로 덮어쓰기 전에 읽어야 이월됨
             StartRound(currentRound + 1, drawsRemaining);
         }
 
-        // 세이브 복원 전용. 장착 모듈은 EquipModule 로 먼저 다시 단 뒤에 부른다.
-        // Draw 가 만들 수 있는 상태만 받는다. 고친 세이브로 끝나지 않는 라운드를 만들지 못하게 한다
+        // 세이브 복원 전용. 장착 모듈은 EquipModule 로 먼저 다시 단 뒤에 부름.
+        // Draw 가 만들 수 있는 상태만 받음. 고친 세이브로 끝나지 않는 라운드를 만들지 못하게 함
         internal void RestoreProgress(int round, int production, int drawsRemaining, RunState state, Grade streakGrade, int streakCount)
         {
             if (round < 1 || round > roundCount)
@@ -275,7 +275,7 @@ namespace Overclock.Core
             this.streakCount = streakCount;
         }
 
-        // 세이브 복원 전용. RestoreProgress 다음에 부른다. ActivateOverclock 과 Draw 가 만들 수 있는 값만 받는다
+        // 세이브 복원 전용. RestoreProgress 다음에 부름. ActivateOverclock 과 Draw 가 만들 수 있는 값만 받음
         internal void RestoreOverclock(bool used, int drawsLeft)
         {
             if (drawsLeft < 0 || drawsLeft > OverclockDraws)
@@ -292,23 +292,23 @@ namespace Overclock.Core
             overclockDrawsLeft = drawsLeft;
         }
 
-        // 세이브 복원 전용 (옛 세이브). 이번 라운드에 이미 뽑은 부품을 모른다 → 빈 목록 · 이번 라운드는 목록을 저장하지 않는다.
-        // 모르는 앞 부품이 연속 · 천장에 들어 있어서, 뒤에 쌓인 부품만으로 검사하면 맞는 세이브를 거부하게 된다 (교차검토 #32)
+        // 세이브 복원 전용 (옛 세이브). 이번 라운드에 이미 뽑은 부품을 모름 → 빈 목록 · 이번 라운드는 목록을 저장하지 않음.
+        // 모르는 앞 부품이 연속 · 천장에 들어 있어서, 뒤에 쌓인 부품만으로 검사하면 맞는 세이브를 거부하게 됨 (교차검토 #32)
         internal void MarkRoundPartsUnknown()
         {
             roundParts.Clear();
             roundPartsComplete = false;
         }
 
-        // 세이브 복원 전용. RestoreProgress · 보증 복원 다음에 부른다. 라운드 처음부터 빠짐없는 목록만 받는다 (빈 목록 = 아직 안 뽑음).
-        // Draw 가 만들 수 있는 것만 받는다: 이번 라운드 뽑기 수 상한 · 뽑은 적 없으면 생산량 0 · 뽑기 중 · 연속 상태 · 보증 카운터가 목록과 맞아야 한다
+        // 세이브 복원 전용. RestoreProgress · 보증 복원 다음에 부름. 라운드 처음부터 빠짐없는 목록만 받음 (빈 목록 = 아직 안 뽑음).
+        // Draw 가 만들 수 있는 것만 받음: 이번 라운드 뽑기 수 상한 · 뽑은 적 없으면 생산량 0 · 뽑기 중 · 연속 상태 · 보증 카운터가 목록과 맞아야 함
         internal void RestoreRoundParts(IReadOnlyList<PartData> drawnParts)
         {
             roundParts.Clear();
             roundPartsComplete = true;
             if (drawnParts == null || drawnParts.Count == 0)
             {
-                // 뽑지 않은 라운드: 생산량 0 · 뽑기 중 · 연속 0 (라운드 시작 상태) 이어야 한다
+                // 뽑지 않은 라운드: 생산량 0 · 뽑기 중 · 연속 0 (라운드 시작 상태) 이어야 함
                 if (production != 0 || state != RunState.Drawing || streakCount != 0)
                 {
                     throw new ArgumentException("이번 라운드 부품이 없는데 진행이 있습니다: 생산량 " + production + " " + state + " 연속 " + streakCount);
@@ -322,7 +322,7 @@ namespace Overclock.Core
                 throw new ArgumentException("이번 라운드 부품 수가 뽑기 상한을 넘습니다: 부품 " + drawnParts.Count + " 남은 뽑기 " + drawsRemaining);
             }
 
-            // 연속은 라운드 시작에 0 이므로 이번 라운드 부품만으로 다시 셀 수 있다 (AdvanceStreak 와 같은 규칙)
+            // 연속은 라운드 시작에 0 이므로 이번 라운드 부품만으로 다시 셀 수 있음 (AdvanceStreak 와 같은 규칙)
             Grade replayGrade = Grade.N;
             int replayCount = 0;
             int sinceSuperRare = 0;
@@ -365,7 +365,7 @@ namespace Overclock.Core
                 throw new ArgumentException("이번 라운드 부품과 연속 상태가 맞지 않습니다: 다시 센 값 " + replayGrade + "x" + replayCount + " 저장 " + streakGrade + "x" + streakCount);
             }
 
-            // 보증 카운터 = 마지막 SR 뒤 뽑기 수. 이번 라운드에 SR 이 있었으면 같아야 하고, 없었으면 적어도 부품 수만큼이다
+            // 보증 카운터 = 마지막 SR 뒤 뽑기 수. 이번 라운드에 SR 이 있었으면 같아야 하고, 없었으면 적어도 부품 수만큼임
             int pity = gachaEngine.DrawsWithoutSuperRare;
             if (sawSuperRare ? pity != sinceSuperRare : pity < sinceSuperRare)
             {

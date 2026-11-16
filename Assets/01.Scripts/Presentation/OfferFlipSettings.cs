@@ -2,11 +2,11 @@
 
 namespace Overclock.Presentation
 {
-    // 다시 받기 카드 회전 (11/07) 의 시간 값. 연출 속도 배율 (보통 1 · 빠름 0.5 · 즉시 0) 은 회전 · 시작 간격 둘 다에 곱한다
+    // 다시 받기 카드 회전 (11/07) 의 시간 값. 연출 속도 배율 (보통 1 · 빠름 0.5 · 즉시 0) 은 회전 · 시작 간격 둘 다에 곱함
     [CreateAssetMenu(fileName = "OfferFlipSettings", menuName = "Overclock/Offer Flip Settings")]
     public sealed class OfferFlipSettings : ScriptableObject
     {
-        [Tooltip("카드 한 장이 세로축으로 한 바퀴 (360°) 도는 시간 (초). 세 장 모두 같다")]
+        [Tooltip("카드 한 장이 세로축으로 한 바퀴 (360°) 도는 시간 (초). 세 장 모두 같음")]
         [SerializeField, Min(0.05f)] private float spinSeconds = 0.6f;
         [Tooltip("왼쪽 카드부터 다음 카드가 돌기 시작할 때까지 (초)")]
         [SerializeField, Min(0f)] private float staggerSeconds = 0.06f;

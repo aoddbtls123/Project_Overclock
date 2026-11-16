@@ -8,7 +8,7 @@ namespace Overclock.Core
         private const int GradeCount = 3;
         private const int StreakLength = 3;
 
-        // 주어진 횟수를 전부 뽑았을 때의 기대 생산량. 할당량 도달 조기 종료와 보증 확정 SR 은 넣지 않는다
+        // 주어진 횟수를 전부 뽑았을 때의 기대 생산량. 할당량 도달 조기 종료와 보증 확정 SR 은 넣지 않음
         public static double Estimate(ModifierEngine engine, IReadOnlyList<PartData> parts, int draws)
         {
             if (parts == null)
@@ -82,7 +82,7 @@ namespace Overclock.Core
             return expected;
         }
 
-        // 부품은 등급 안에서 균등하게 뽑히므로 부품별 생산량의 평균이 그 등급의 기대 생산량이다
+        // 부품은 등급 안에서 균등하게 뽑히므로 부품별 생산량의 평균이 그 등급의 기대 생산량임
         private static double AverageOutput(ModifierEngine engine, IReadOnlyList<PartData> parts, Grade grade, bool streakTriggered)
         {
             double sum = 0.0;

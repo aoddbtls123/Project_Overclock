@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Overclock.Tests
 {
     // 오버클럭: 라운드마다 1번 · 켠 뒤 3회 · N 0 · R · SR 배수 증가분 +3 (×8 상한 안) · 천장 영향 없음 · 난수 미사용.
-    // 기대값은 기획 숫자 리터럴로 쓴다 (구현 상수 OverclockDraws · OverclockMultiplierBonus 를 쓰지 않는다)
+    // 기대값은 기획 숫자 리터럴로 씀 (구현 상수 OverclockDraws · OverclockMultiplierBonus 를 쓰지 않음)
     public class OverclockTests
     {
         private const int NoPity = int.MaxValue;
@@ -164,7 +164,7 @@ namespace Overclock.Tests
             Assert.AreEqual(3, run.Draw().Output, "새 라운드는 꺼진 채 시작");
         }
 
-        // 이번 라운드에 안 켰어도 돌파 · 실패 상태에서는 못 켠다 (위 테스트는 이미 켠 라운드라 이 경우를 가리지 못함)
+        // 이번 라운드에 안 켰어도 돌파 · 실패 상태에서는 못 켬 (위 테스트는 이미 켠 라운드라 이 경우를 가리지 못함)
         [Test]
         public void Activate_RejectedWhenNotDrawingEvenIfUnused()
         {
@@ -223,7 +223,7 @@ namespace Overclock.Tests
             Assert.AreEqual(plain.GachaEngine.DrawsWithoutSuperRare, boosted.GachaEngine.DrawsWithoutSuperRare, "천장 카운터 영향 없음");
         }
 
-        // 저장 → 복원한 판이 원래 판과 끝까지 같아야 한다. 오버클럭이 걸린 채, 쓴 뒤, 안 쓴 라운드 모두 저장해 본다
+        // 저장 → 복원한 판이 원래 판과 끝까지 같아야 함. 오버클럭이 걸린 채, 쓴 뒤, 안 쓴 라운드 모두 저장해 봄
         [Test]
         public void RestoreAnywhere_ContinuesExactlyLikeOriginal()
         {
@@ -284,7 +284,7 @@ namespace Overclock.Tests
             RunSaveData valid = session.CaptureSaveData();
             Assert.AreEqual(2, valid.overclockDrawsLeft);
 
-            // 고치지 않은 값과 옛 세이브(값 없음 = false / 0)는 복원되어야 한다
+            // 고치지 않은 값과 옛 세이브(값 없음 = false / 0)는 복원되어야 함
             RunSession.Restore(Copy(valid, valid.overclockUsed, valid.overclockDrawsLeft), parts, modules);
             RunSession.Restore(Copy(valid, false, 0), parts, modules);
 
@@ -304,7 +304,7 @@ namespace Overclock.Tests
 
         private static void AssertRejected(RunSaveData data, PartData[] parts, ModuleData[] modules, string name)
         {
-            // 범위 밖 값은 ArgumentOutOfRangeException (ArgumentException 의 하위) 이라 둘 다 받는다
+            // 범위 밖 값은 ArgumentOutOfRangeException (ArgumentException 의 하위) 이라 둘 다 받음
             try
             {
                 RunSession.Restore(data, parts, modules);
@@ -339,7 +339,7 @@ namespace Overclock.Tests
             };
         }
 
-        // 정책: 라운드마다 첫 뽑기 뒤에 켠다 (켜기 전 · 켠 직후 · 걸린 중 · 쓴 뒤가 모두 저장 시점에 나오게)
+        // 정책: 라운드마다 첫 뽑기 뒤에 켬 (켜기 전 · 켠 직후 · 걸린 중 · 쓴 뒤가 모두 저장 시점에 나오게)
         private static List<string> RunToEnd(RunSession session)
         {
             var trace = new List<string>();

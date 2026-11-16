@@ -6,8 +6,8 @@ using UnityEngine.InputSystem;
 
 namespace Overclock.Presentation
 {
-    // 장착 모듈을 기계 슬롯(아이콘)으로 보여 준다. 같은 모듈은 한 슬롯에 ×n 으로 묶는다.
-    // 슬롯에 마우스를 올리면 설명 팝업, 클릭하면 고정, 다른 곳을 클릭하면 닫힌다.
+    // 장착 모듈을 기계 슬롯(아이콘)으로 보여 줌. 같은 모듈은 한 슬롯에 ×n 으로 묶음.
+    // 슬롯에 마우스를 올리면 설명 팝업, 클릭하면 고정, 다른 곳을 클릭하면 닫힘.
     public sealed class MachinePanelView : MonoBehaviour
     {
         [SerializeField] private TMP_Text titleText;
@@ -36,7 +36,7 @@ namespace Overclock.Presentation
             groups.AddRange(Group(equippedModules));
             titleText.text = "장착 모듈 " + equippedModules.Count;
 
-            // 슬롯은 필요한 만큼만 만들고 다시 쓴다. 템플릿은 꺼 둔 채라 레이아웃에 들어가지 않는다
+            // 슬롯은 필요한 만큼만 만들고 다시 씀. 템플릿은 꺼 둔 채라 레이아웃에 들어가지 않음
             while (slots.Count < groups.Count)
             {
                 slots.Add(Instantiate(slotTemplate, slotContainer));
@@ -100,7 +100,7 @@ namespace Overclock.Presentation
 
         private int FindHoveredGroup(Vector2 pointer)
         {
-            // 레이캐스트를 쓰지 않고 사각형으로 판정한다. 모듈 선택 오버레이가 위를 덮어도 판정이 같다.
+            // 레이캐스트를 쓰지 않고 사각형으로 판정함. 모듈 선택 오버레이가 위를 덮어도 판정이 같음.
             // 캔버스가 Screen Space - Overlay 라 카메라는 null
             for (int i = 0; i < groups.Count; i++)
             {
@@ -116,7 +116,7 @@ namespace Overclock.Presentation
         private void ShowTooltip(int index, Vector2 position)
         {
             tooltipText.text = BuildTooltipText(groups[index]);
-            // Overlay 캔버스에서는 화면 좌표가 그대로 위치다
+            // Overlay 캔버스에서는 화면 좌표가 그대로 위치임
             tooltip.position = position;
             KeepTooltipOnScreen();
             tooltip.gameObject.SetActive(true);

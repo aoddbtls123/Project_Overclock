@@ -63,7 +63,7 @@ namespace Overclock.Core
             }
         }
 
-        /// <summary>보통 → 빠름 → 즉시 → 보통 순서로 바꾼다.</summary>
+        /// <summary>보통 → 빠름 → 즉시 → 보통 순서로 바꿈.</summary>
         public void CycleRevealSpeed()
         {
             revealSpeed = revealSpeed == RevealSpeed.Instant ? RevealSpeed.Normal : revealSpeed + 1;
@@ -74,7 +74,7 @@ namespace Overclock.Core
             return volumes[Index(channel)];
         }
 
-        /// <summary>볼륨 (0~1). 범위 밖이면 끝 값으로 자른다 · NaN · 무한은 ArgumentOutOfRangeException.</summary>
+        /// <summary>볼륨 (0~1). 범위 밖이면 끝 값으로 자름 · NaN · 무한은 ArgumentOutOfRangeException.</summary>
         public void SetVolume(SoundChannel channel, float value)
         {
             if (float.IsNaN(value) || float.IsInfinity(value))
@@ -107,9 +107,9 @@ namespace Overclock.Core
         }
 
         /// <summary>
-        /// 파일에서 읽은 값으로 설정을 만든다. 게임이 만들 수 없는 값이면 ArgumentException.
+        /// 파일에서 읽은 값으로 설정을 만듦. 게임이 만들 수 없는 값이면 ArgumentException.
         /// 버전 1 파일(효과음 설정이 생기기 전) = 볼륨 모두 100% · 버전 2 (효과음 켬/끔) = 켬이면 모두 100% · 끔이면 전체 0% (나머지 100%).
-        /// 버전 3 볼륨은 0~1 이어야 한다 (자르지 않고 거부 — 게임은 범위 밖 값을 쓰지 않는다).
+        /// 버전 3 볼륨은 0~1 이어야 함 (자르지 않고 거부 — 게임은 범위 밖 값을 쓰지 않음).
         /// </summary>
         public static GameSettings FromData(GameSettingsData data)
         {
@@ -125,7 +125,7 @@ namespace Overclock.Core
                 throw new ArgumentException("지원하지 않는 설정 버전입니다: " + data.version, nameof(data));
             }
 
-            // 없는 속도 값은 RevealSpeed 대입에서 ArgumentOutOfRangeException (ArgumentException) 으로 거부된다
+            // 없는 속도 값은 RevealSpeed 대입에서 ArgumentOutOfRangeException (ArgumentException) 으로 거부됨
             var settings = new GameSettings
             {
                 ShakeEnabled = data.shakeEnabled,

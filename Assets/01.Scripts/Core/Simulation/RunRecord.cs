@@ -14,7 +14,7 @@ namespace Overclock.Core
 
         public uint Seed { get; }
 
-        // 도달 라운드 = 런이 끝난 라운드. 클리어도 마지막 라운드로 센다
+        // 도달 라운드 = 런이 끝난 라운드. 클리어도 마지막 라운드로 셈
         public int FinalRound { get; }
         public bool Cleared { get; }
         public IReadOnlyList<ModuleData> EquippedModules { get; }
