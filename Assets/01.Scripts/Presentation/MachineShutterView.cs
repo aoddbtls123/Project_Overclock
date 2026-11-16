@@ -10,6 +10,8 @@ namespace Overclock.Presentation
     // 언제 닫고 열지는 DrawRevealView 가 정한다 (뜸들이기 시간 안에서만 움직이고 시간을 늘리지 않는다). 게임 상태는 바꾸지 않는다.
     // 판(plate)은 창 크기이고, 부모의 마스크(RectMask2D)가 창 밖을 가린다 — 열림 = 판이 창 높이만큼 위로 · 닫힘 = 창 자리.
     // 시간은 scaled time (일시정지면 멈춤). 떨림 · 틈새 증기 자리는 값으로만 정한다 (난수 없음)
+    // 철판 (11/16): 판 안의 철판들은 떨어지는 동안 사이가 벌어져 있다가 닿는 순간부터 아래부터 차례로 포개지고, 열 때는 위부터 벌어진다.
+    // 철판이 없으면 판 한 장으로 움직인다 (이전과 같음)
     public sealed class MachineShutterView : MonoBehaviour
     {
         [SerializeField] private ShutterSettings settings;
@@ -17,6 +19,8 @@ namespace Overclock.Presentation
         [SerializeField] private RectTransform plate;
         [Tooltip("셔터 아래 틈에서 새는 증기 이미지 풀 (마스크 밖 · 이 오브젝트의 자식). 차례로 돌려 쓴다")]
         [SerializeField] private Image[] gapPuffs = Array.Empty<Image>();
+        [Tooltip("판 안의 철판 (위 → 아래 순). 판 크기로 늘린 이미지 · 위치는 코드가 정한다")]
+        [SerializeField] private RectTransform[] slats = Array.Empty<RectTransform>();
 
         /// <summary>셔터가 끝까지 내려와 닫힌 순간 (닫힘 소리 · 덜컹).</summary>
         public event Action Closed;
@@ -25,6 +29,11 @@ namespace Overclock.Presentation
         private float jitter;
         private float plateHeight;
         private Tween moveTween;
+        private Tween settleTween;
+        private Vector2[] slatRestPositions = Array.Empty<Vector2>();
+        // 철판 사이 벌어짐 진행: opening = 열 때 (0 → 1 위부터 벌어짐) · 아니면 포개짐 (0 = 다 벌어짐 → 1 = 다 포개짐)
+        private bool slatsOpening;
+        private float slatProgress = 1f;
         private Tween[] puffTweens = Array.Empty<Tween>();
         private int nextPuff;
 
@@ -41,6 +50,11 @@ namespace Overclock.Presentation
         private void Awake()
         {
             plateHeight = plate != null ? plate.sizeDelta.y : 0f;
+            slatRestPositions = new Vector2[slats.Length];
+            for (int i = 0; i < slats.Length; i++)
+            {
+                slatRestPositions[i] = slats[i] != null ? slats[i].anchoredPosition : Vector2.zero;
+            }
             puffTweens = new Tween[gapPuffs.Length];
             for (int i = 0; i < gapPuffs.Length; i++)
             {
@@ -74,11 +88,15 @@ namespace Overclock.Presentation
             float start = closedAmount;
             if (seconds <= 0f && delay <= 0f)
             {
+                SetSlats(false, 1f);
                 SetClosed(1f);
                 Closed?.Invoke();
                 return;
             }
 
+            // 떨어지는 동안은 철판 사이가 벌어진 채 (닿은 뒤 포개지는 시간은 닫히는 시간과 같은 배율)
+            SetSlats(false, 0f);
+            float settle = settings.SlatSettleSeconds * Mathf.Max(seconds, 0.0001f) / Mathf.Max(settings.CloseSeconds, 0.0001f);
             moveTween = DOTween.To(t => SetClosed(start + (1f - start) * InCubic(t)), 0f, 1f, Mathf.Max(seconds, 0.0001f))
                 .SetDelay(delay)
                 .SetEase(Ease.Linear)
@@ -87,6 +105,13 @@ namespace Overclock.Presentation
                     moveTween = null;
                     SetClosed(1f);
                     Closed?.Invoke();
+                    settleTween = DOTween.To(p =>
+                        {
+                            SetSlats(false, p);
+                            Apply();
+                        }, 0f, 1f, settle)
+                        .SetEase(Ease.Linear)
+                        .OnComplete(() => settleTween = null);
                 });
         }
 
@@ -101,9 +126,14 @@ namespace Overclock.Presentation
             jitter = 0f;
             Apply();
             float start = closedAmount;
+            float lead = settings.SlatOpenLead;
             if (grade != Grade.SR)
             {
-                moveTween = DOTween.To(t => SetClosed(start * (1f - OutQuad(t))), 0f, 1f, settings.OpenSeconds * scale)
+                moveTween = DOTween.To(t =>
+                    {
+                        SetSlats(true, Mathf.Clamp01(t / lead));
+                        SetClosed(start * (1f - OutQuad(t)));
+                    }, 0f, 1f, settings.OpenSeconds * scale)
                     .SetEase(Ease.Linear)
                     .OnComplete(FinishOpen);
                 return;
@@ -116,6 +146,7 @@ namespace Overclock.Presentation
             moveTween = DOTween.To(t =>
                 {
                     float elapsed = t * total;
+                    SetSlats(true, Mathf.Clamp01(elapsed / (up * lead)));
                     SetClosed(elapsed < up
                         ? start * (1f - OutQuad(elapsed / up))
                         : amount * Mathf.Sin(Mathf.PI * Mathf.Clamp01((elapsed - up) / bounce)));
@@ -130,6 +161,7 @@ namespace Overclock.Presentation
             KillMove();
             KillPuffs();
             jitter = 0f;
+            SetSlats(false, 1f);
             SetClosed(0f);
         }
 
@@ -170,7 +202,26 @@ namespace Overclock.Presentation
         private void FinishOpen()
         {
             moveTween = null;
+            SetSlats(false, 1f);
             SetClosed(0f);
+        }
+
+        private void SetSlats(bool opening, float progress)
+        {
+            slatsOpening = opening;
+            slatProgress = progress;
+        }
+
+        // 철판 b (아래부터 0) 는 그 아래 사이 b 개가 벌어진 만큼 위로 간다.
+        // 사이 k (k 번째 철판과 그 아래 사이 · 1 부터) 는 포갤 때 아래부터 (k 가 작은 것부터) 닫히고, 열 때는 위부터 (k 가 큰 것부터) 벌어진다
+        private float GetGapOpen(int gap, int gapCount)
+        {
+            if (slatsOpening)
+            {
+                return Mathf.Clamp01(slatProgress * gapCount - (gapCount - gap));
+            }
+
+            return 1f - Mathf.Clamp01(slatProgress * gapCount - (gap - 1));
         }
 
         private void SetClosed(float value)
@@ -184,6 +235,24 @@ namespace Overclock.Presentation
             if (plate != null)
             {
                 plate.anchoredPosition = new Vector2(jitter, (1f - closedAmount) * plateHeight);
+            }
+
+            int count = slats.Length;
+            int gapCount = count - 1;
+            float lift = 0f;
+            // 아래 철판부터 올라가며 벌어진 사이를 누적한다
+            for (int b = 0; b < count; b++)
+            {
+                if (b > 0)
+                {
+                    lift += settings.SlatGap * GetGapOpen(b, gapCount);
+                }
+
+                RectTransform slat = slats[count - 1 - b];
+                if (slat != null)
+                {
+                    slat.anchoredPosition = slatRestPositions[count - 1 - b] + new Vector2(0f, lift);
+                }
             }
         }
 
@@ -225,6 +294,12 @@ namespace Overclock.Presentation
             }
 
             moveTween = null;
+            if (settleTween != null && settleTween.IsActive())
+            {
+                settleTween.Kill();
+            }
+
+            settleTween = null;
         }
 
         private void KillPuffs()

@@ -1,4 +1,5 @@
-﻿using Overclock.Core;
+﻿using System;
+using Overclock.Core;
 using UnityEngine;
 
 namespace Overclock.Presentation
@@ -82,6 +83,50 @@ namespace Overclock.Presentation
         [SerializeField, Min(0f)] private float frameWidthR = 3f;
         [SerializeField, Min(0f)] private float frameWidthSR = 4f;
 
+        [Header("증기 그림 (11/16) — 그림은 오른쪽 배관에서 나오는 모양. 피벗 = 배관 입구 자리 (그림 밖이어도 된다) · 비어 있으면 증기 이미지의 원래 그림")]
+        [Tooltip("그림 1 픽셀을 몇 단위로 그릴지 (기계 그림과 같은 배율)")]
+        [SerializeField, Min(0.01f)] private float steamPixelScale = 4f;
+        [Tooltip("R 공개 · SR 기다림의 작은 증기")]
+        [SerializeField] private SteamShape smallSteamShape = new SteamShape();
+        [Tooltip("SR 공개 · 돌파의 큰 증기")]
+        [SerializeField] private SteamShape bigSteamShape = new SteamShape();
+        [Tooltip("돌파 뒤 배관 근처에 잠깐 남는 증기 · 런 실패 잔압. 구멍마다 차례로 모두 낸다")]
+        [SerializeField] private SteamShape[] residualSteamShapes = Array.Empty<SteamShape>();
+        [SerializeField, Min(0.01f)] private float residualSteamSeconds = 1.4f;
+        [SerializeField] private float residualSteamRise = 16f;
+        [Tooltip("잔류 증기 덩어리 사이 시간차")]
+        [SerializeField, Min(0f)] private float residualSteamStagger = 0.12f;
+
+        [Header("경고등 (11/16) — 눈부시지 않게 천천히. 값 = 빛 이미지 불투명도 (0~1)")]
+        [SerializeField, Range(0f, 1f)] private float idleLampMin = 0.08f;
+        [SerializeField, Range(0f, 1f)] private float idleLampMax = 0.28f;
+        [Tooltip("평소 아래 등이 한 번 숨 쉬는 시간")]
+        [SerializeField, Min(0.1f)] private float idleLampPeriod = 2.6f;
+        [SerializeField, Range(0f, 1f)] private float overclockLampMin = 0.5f;
+        [SerializeField, Range(0f, 1f)] private float overclockLampMax = 0.9f;
+        [Tooltip("오버클럭 가동 중 아래 등이 한 번 숨 쉬는 시간")]
+        [SerializeField, Min(0.1f)] private float overclockLampPeriod = 1.2f;
+        [Tooltip("레버가 바닥에 닿을 때 왼쪽 아래 등")]
+        [SerializeField, Range(0f, 1f)] private float leverLampFlash = 0.8f;
+        [SerializeField, Min(0.01f)] private float leverLampSeconds = 0.4f;
+        [Tooltip("공개 순간 오른쪽 아래 등 (N · R · SR)")]
+        [SerializeField, Range(0f, 1f)] private float revealLampFlashN = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float revealLampFlashR = 0.65f;
+        [SerializeField, Range(0f, 1f)] private float revealLampFlashSR = 1f;
+        [SerializeField, Min(0.01f)] private float revealLampSeconds = 0.6f;
+        [Tooltip("SR 기다림이 가장 뜨거울 때 위 등 밝기 (진행률에 비례해 오른다)")]
+        [SerializeField, Range(0f, 1f)] private float heatLampMax = 0.8f;
+        [Tooltip("SR 기다림 위 등의 일렁임 폭 (밝기에 곱함)")]
+        [SerializeField, Range(0f, 1f)] private float heatLampPulse = 0.2f;
+        [Tooltip("일렁임 빠르기 — 처음 · 공개 직전 (회/초). 눈부시지 않게 3 이하")]
+        [SerializeField, Min(0f)] private float heatLampPulseStart = 1f;
+        [SerializeField, Min(0f)] private float heatLampPulseEnd = 2.5f;
+        [Tooltip("SR 공개 때 위 등이 켜졌다 잦아드는 시간")]
+        [SerializeField, Min(0.01f)] private float superRareLampSeconds = 0.9f;
+        [Tooltip("돌파 때 세 등")]
+        [SerializeField, Range(0f, 1f)] private float breakthroughLampFlash = 0.75f;
+        [SerializeField, Min(0.01f)] private float breakthroughLampSeconds = 0.8f;
+
         public float IdleGearSpeed => idleGearSpeed;
         public float HeatGearSpeed => heatGearSpeed;
         public float RatchetAngle => ratchetAngle;
@@ -113,11 +158,52 @@ namespace Overclock.Presentation
         public float LeverThudPixels => leverThudPixels;
         public float RatchetThudPixels => ratchetThudPixels;
         public float LandingThudPixels => landingThudPixels;
+        public float SteamPixelScale => steamPixelScale;
+        public SteamShape SmallSteamShape => smallSteamShape;
+        public SteamShape BigSteamShape => bigSteamShape;
+        public int ResidualSteamShapeCount => residualSteamShapes == null ? 0 : residualSteamShapes.Length;
+        public float ResidualSteamSeconds => residualSteamSeconds;
+        public float ResidualSteamRise => residualSteamRise;
+        public float ResidualSteamStagger => residualSteamStagger;
+        public float IdleLampMin => idleLampMin;
+        public float IdleLampMax => idleLampMax;
+        public float IdleLampPeriod => idleLampPeriod;
+        public float OverclockLampMin => overclockLampMin;
+        public float OverclockLampMax => overclockLampMax;
+        public float OverclockLampPeriod => overclockLampPeriod;
+        public float LeverLampFlash => leverLampFlash;
+        public float LeverLampSeconds => leverLampSeconds;
+        public float RevealLampSeconds => revealLampSeconds;
+        public float HeatLampMax => heatLampMax;
+        public float HeatLampPulse => heatLampPulse;
+        public float HeatLampPulseStart => heatLampPulseStart;
+        public float HeatLampPulseEnd => heatLampPulseEnd;
+        public float SuperRareLampSeconds => superRareLampSeconds;
+        public float BreakthroughLampFlash => breakthroughLampFlash;
+        public float BreakthroughLampSeconds => breakthroughLampSeconds;
         public int HeatSteamPointCount => heatSteamPoints == null ? 0 : heatSteamPoints.Length;
 
         public float GetHeatSteamPoint(int index)
         {
             return heatSteamPoints[index];
+        }
+
+        public SteamShape GetResidualSteamShape(int index)
+        {
+            return residualSteamShapes[index];
+        }
+
+        public float GetRevealLampFlash(Grade grade)
+        {
+            switch (grade)
+            {
+                case Grade.R:
+                    return revealLampFlashR;
+                case Grade.SR:
+                    return revealLampFlashSR;
+                default:
+                    return revealLampFlashN;
+            }
         }
 
         public float GetFrameWidth(Grade grade)
@@ -132,5 +218,22 @@ namespace Overclock.Presentation
                     return frameWidthN;
             }
         }
+    }
+
+    /// <summary>증기 그림 한 종류. 크기 = 그림 픽셀 × 배율 × 배수 (시작 → 끝).</summary>
+    [Serializable]
+    public sealed class SteamShape
+    {
+        [SerializeField] private Sprite sprite;
+        [Tooltip("오른쪽 배관 입구 자리 (그림 기준 0~1 · 그림 밖이면 범위를 넘는다)")]
+        [SerializeField] private Vector2 pivot = new Vector2(0.5f, 0.5f);
+        [SerializeField, Min(0f)] private float startScale = 0.5f;
+        [SerializeField, Min(0f)] private float endScale = 1f;
+
+        public Sprite Sprite => sprite;
+        public Vector2 Pivot => pivot;
+        public float StartScale => startScale;
+        public float EndScale => endScale;
+        public bool IsValid => sprite != null;
     }
 }

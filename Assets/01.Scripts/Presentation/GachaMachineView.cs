@@ -27,6 +27,58 @@ namespace Overclock.Presentation
             public float SpeedRatio => speedRatio;
         }
 
+        private enum SteamKind
+        {
+            Small,
+            Big,
+            Residual,
+        }
+
+        // 경고등 한 번 켜졌다 잦아드는 빛 (11/16). 시간은 Update 의 scaled time 으로만 흐른다 (일시정지면 멈춤)
+        private sealed class LampFlash
+        {
+            private float peak;
+            private float seconds;
+            private float elapsed;
+
+            public float Value
+            {
+                get
+                {
+                    if (seconds <= 0f || elapsed >= seconds)
+                    {
+                        return 0f;
+                    }
+
+                    float rest = 1f - elapsed / seconds;
+                    return peak * rest * rest;
+                }
+            }
+
+            public void Start(float value, float duration)
+            {
+                // 아직 밝을 때 다시 켜지면 어두워지지 않게 지금 밝기에서 이어 간다
+                peak = Mathf.Max(Value, value);
+                seconds = duration;
+                elapsed = 0f;
+            }
+
+            public void Advance(float deltaTime)
+            {
+                if (seconds > 0f)
+                {
+                    elapsed += deltaTime;
+                }
+            }
+
+            public void Clear()
+            {
+                peak = 0f;
+                seconds = 0f;
+                elapsed = 0f;
+            }
+        }
+
         [SerializeField] private GachaMachineSettings settings;
         [SerializeField] private GearSlot[] gears = Array.Empty<GearSlot>();
         [SerializeField] private RectTransform piston;
@@ -39,6 +91,10 @@ namespace Overclock.Presentation
         [SerializeField] private RectTransform[] steamVents = Array.Empty<RectTransform>();
         [Tooltip("출력 창 이미지의 Outline. 공개된 등급 색 테두리 (11/05). 비어 있으면 테두리 없음")]
         [SerializeField] private Outline outputFrame;
+        [Tooltip("경고등 빛 이미지 (11/16 · 켜진 그림 + 번짐). 불투명도로만 밝기를 바꾼다. 비어 있으면 그 등은 없음")]
+        [SerializeField] private Image topLampGlow;
+        [SerializeField] private Image leftLampGlow;
+        [SerializeField] private Image rightLampGlow;
 
         /// <summary>레버가 바닥에 닿은 순간 (받아들여진 뽑기마다 한 번).</summary>
         public event Action LeverBottomed;
@@ -86,6 +142,17 @@ namespace Overclock.Presentation
         private Vector2[] puffStartPositions;
         // 증기 그림은 오른쪽 배관에서 나오는 모양으로 그려져 있다. 왼쪽 구멍에서 낼 때는 좌우를 뒤집는다
         private bool[] puffFlipped;
+        private float[] puffStartScales;
+        private float[] puffEndScales;
+        private float[] puffRises;
+        private float idleLampPhase;
+        private float overclockLampPhase;
+        private float heatLampPhase;
+        private bool overclockLampOn;
+        private bool failPoseActive;
+        private readonly LampFlash topFlash = new LampFlash();
+        private readonly LampFlash leftFlash = new LampFlash();
+        private readonly LampFlash rightFlash = new LampFlash();
         private int nextPuff;
         private int nextHeatSteam;
 
@@ -106,6 +173,9 @@ namespace Overclock.Presentation
             puffTweens = new Tween[steamPuffs.Length];
             puffStartPositions = new Vector2[steamPuffs.Length];
             puffFlipped = new bool[steamPuffs.Length];
+            puffStartScales = new float[steamPuffs.Length];
+            puffEndScales = new float[steamPuffs.Length];
+            puffRises = new float[steamPuffs.Length];
             for (int i = 0; i < steamPuffs.Length; i++)
             {
                 // 증기는 투명해도 클릭을 막는다. 씬 설정과 관계없이 클릭을 통과시킨다 (레버가 증기 뒤에 있을 수 있음)
@@ -128,6 +198,7 @@ namespace Overclock.Presentation
             // 값이 한없이 커지지 않게 되돌린다. 360 × 3600 이면 배율이 소수 둘째 자리까지일 때 되돌리는 순간에도 각도가 튀지 않는다
             gearAngle = Mathf.Repeat(gearAngle + speed * Time.deltaTime, 360f * 3600f);
             AdvanceThud();
+            AdvanceLamps(Time.deltaTime);
             ApplyPose();
         }
 
@@ -155,6 +226,12 @@ namespace Overclock.Presentation
                 thudOffset = 0f;
                 ApplyPose();
             }
+        }
+
+        /// <summary>오버클럭 가동 중이면 아래 두 등이 조금 더 밝고 빠르게 숨 쉰다 (11/16).</summary>
+        public void SetOverclockActive(bool active)
+        {
+            overclockLampOn = active;
         }
 
         /// <summary>수확물이 트레이에 앉은 순간 (작은 덜컹).</summary>
@@ -245,6 +322,7 @@ namespace Overclock.Presentation
             leverBottomPending = false;
             SetLeverAngle(settings.LeverPulledAngle);
             Thud(settings.LeverThudPixels);
+            leftFlash.Start(settings.LeverLampFlash, settings.LeverLampSeconds);
             LeverBottomed?.Invoke();
         }
 
@@ -276,7 +354,7 @@ namespace Overclock.Presentation
             int count = settings.HeatSteamPointCount;
             if (nextHeatSteam < count && clamped >= settings.GetHeatSteamPoint(nextHeatSteam))
             {
-                Puff(steamVents.Length > 0 ? nextHeatSteam % steamVents.Length : 0, settings.SmallSteamScale, 0f, puffSeconds);
+                Puff(steamVents.Length > 0 ? nextHeatSteam % steamVents.Length : 0, SteamKind.Small, settings.SmallSteamScale, 0f, puffSeconds);
                 nextHeatSteam++;
                 while (nextHeatSteam < count && clamped >= settings.GetHeatSteamPoint(nextHeatSteam))
                 {
@@ -331,9 +409,15 @@ namespace Overclock.Presentation
                 PlayPistonKick();
             }
 
+            rightFlash.Start(settings.GetRevealLampFlash(grade), settings.RevealLampSeconds);
+            if (grade == Grade.SR)
+            {
+                topFlash.Start(1f, settings.SuperRareLampSeconds);
+            }
+
             if (grade == Grade.R)
             {
-                Puff(0, settings.SmallSteamScale, 0f);
+                Puff(0, SteamKind.Small, settings.SmallSteamScale, 0f, settings.SteamSeconds);
             }
             else if (grade == Grade.SR)
             {
@@ -342,7 +426,7 @@ namespace Overclock.Presentation
                 revealSequence.OnComplete(() => revealSequence = null);
                 for (int i = 0; i < settings.SuperRareSteamPuffs; i++)
                 {
-                    Puff(i, settings.BigSteamScale, 0f);
+                    Puff(i, SteamKind.Big, settings.BigSteamScale, 0f, settings.SteamSeconds);
                 }
             }
         }
@@ -368,8 +452,29 @@ namespace Overclock.Presentation
             float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
             for (int i = 0; i < settings.BreakthroughSteamPuffs; i++)
             {
-                Puff(i, settings.BigSteamScale * steamScale, i * settings.BreakthroughSteamInterval * multiplier, settings.SteamSeconds * multiplier);
+                Puff(i, SteamKind.Big, settings.BigSteamScale * steamScale, i * settings.BreakthroughSteamInterval * multiplier, settings.SteamSeconds * multiplier);
             }
+
+            // 큰 증기가 반쯤 흩어질 무렵 배관 근처에 잔류 증기가 잠깐 남는다 (구멍마다 덩어리를 차례로)
+            int pieces = settings.ResidualSteamShapeCount;
+            for (int vent = 0; vent < steamVents.Length && pieces > 0; vent++)
+            {
+                for (int piece = 0; piece < pieces; piece++)
+                {
+                    float delay = GetResidualSteamStart(multiplier) + (vent * pieces + piece) * settings.ResidualSteamStagger * multiplier;
+                    Puff(vent, SteamKind.Residual, settings.SmallSteamScale * steamScale, delay, settings.ResidualSteamSeconds * multiplier, piece);
+                }
+            }
+
+            topFlash.Start(settings.BreakthroughLampFlash, settings.BreakthroughLampSeconds * multiplier);
+            leftFlash.Start(settings.BreakthroughLampFlash, settings.BreakthroughLampSeconds * multiplier);
+            rightFlash.Start(settings.BreakthroughLampFlash, settings.BreakthroughLampSeconds * multiplier);
+        }
+
+        private float GetResidualSteamStart(float multiplier)
+        {
+            int puffs = settings.BreakthroughSteamPuffs > 1 ? settings.BreakthroughSteamPuffs : 1;
+            return ((puffs - 1) * settings.BreakthroughSteamInterval + settings.SteamSeconds * 0.5f) * multiplier;
         }
 
         /// <summary>
@@ -503,6 +608,7 @@ namespace Overclock.Presentation
             failNeedleLift = needleLiftDegrees;
             failPistonOffset = pistonSagPixels;
             failRootOffsetY = bodyOffsetY;
+            failPoseActive = gearSpeedScale != 1f || needleLiftDegrees != 0f || pistonSagPixels != 0f || bodyOffsetY != 0f;
             ApplyPose();
         }
 
@@ -515,7 +621,7 @@ namespace Overclock.Presentation
         /// <summary>약한 잔압 증기 한 번 (런 실패 · 동력 차단 뒤). scale = 작은 증기 대비 크기 배율 · seconds = 증기 시간.</summary>
         public void PlayLeak(float scale, float seconds)
         {
-            Puff(0, settings.SmallSteamScale * scale, 0f, Mathf.Max(0.01f, seconds));
+            Puff(0, SteamKind.Residual, settings.SmallSteamScale * scale, 0f, Mathf.Max(0.01f, seconds));
         }
 
         /// <summary>마지막 돌파 증기가 끝나는 시각 (호출 시점부터 · 초). 클리어 연출이 증기보다 먼저 끝나지 않게 쓴다.</summary>
@@ -523,7 +629,16 @@ namespace Overclock.Presentation
         {
             float multiplier = timeMultiplier > 0f ? timeMultiplier : 1f;
             int puffs = settings.BreakthroughSteamPuffs > 1 ? settings.BreakthroughSteamPuffs : 1;
-            return ((puffs - 1) * settings.BreakthroughSteamInterval + settings.SteamSeconds) * multiplier;
+            float bigEnd = ((puffs - 1) * settings.BreakthroughSteamInterval + settings.SteamSeconds) * multiplier;
+            int pieces = settings.ResidualSteamShapeCount;
+            if (pieces == 0 || steamVents.Length == 0)
+            {
+                return bigEnd;
+            }
+
+            float residualEnd = GetResidualSteamStart(multiplier)
+                + ((steamVents.Length * pieces - 1) * settings.ResidualSteamStagger + settings.ResidualSteamSeconds) * multiplier;
+            return Mathf.Max(bigEnd, residualEnd);
         }
 
         /// <summary>
@@ -564,6 +679,11 @@ namespace Overclock.Presentation
             failNeedleLift = 0f;
             failPistonOffset = 0f;
             failRootOffsetY = 0f;
+            failPoseActive = false;
+            overclockLampOn = false;
+            topFlash.Clear();
+            leftFlash.Clear();
+            rightFlash.Clear();
             ClearGradeFrame();
             StopReactions();
         }
@@ -681,12 +801,7 @@ namespace Overclock.Presentation
             return 1f - rest * rest;
         }
 
-        private void Puff(int index, float endScale, float delay)
-        {
-            Puff(index, endScale, delay, settings.SteamSeconds);
-        }
-
-        private void Puff(int index, float endScale, float delay, float seconds)
+        private void Puff(int index, SteamKind kind, float endScale, float delay, float seconds, int residualPiece = 0)
         {
             if (steamPuffs.Length == 0 || steamVents.Length == 0)
             {
@@ -702,15 +817,35 @@ namespace Overclock.Presentation
                 return;
             }
 
-            // 구멍을 돌아가며 쓰고, 같은 구멍을 두 번째 이상 쓰면 옆으로 벌린다 (안 벌리면 같은 시각에 완전히 겹쳐 한 덩어리로 보임).
-            // 위치는 차례로만 정한다 — 난수 없음
-            RectTransform puffRect = steamPuffs[slot].rectTransform;
+            Image puff = steamPuffs[slot];
+            RectTransform puffRect = puff.rectTransform;
+            float startScale = settings.SteamStartScale;
+            SteamShape shape = GetSteamShape(kind, residualPiece);
+            if (shape != null && shape.IsValid)
+            {
+                // 그림 원본 크기 × 배율로 그리고, 넘겨받은 크기는 기존 기준(작은 · 큰 증기 배수) 대비 비율로만 쓴다
+                // (클리어의 잦아드는 증기 · 실패 잔압처럼 부르는 쪽이 크기를 줄이는 약속을 그대로 지킨다)
+                float baseScale = kind == SteamKind.Big ? settings.BigSteamScale : settings.SmallSteamScale;
+                float ratio = baseScale > 0f ? endScale / baseScale : 1f;
+                puff.sprite = shape.Sprite;
+                puffRect.pivot = shape.Pivot;
+                puffRect.sizeDelta = shape.Sprite.rect.size * settings.SteamPixelScale;
+                startScale = shape.StartScale * ratio;
+                endScale = shape.EndScale * ratio;
+            }
+
+            // 피벗 = 배관 입구 자리이므로 피벗을 구멍에 맞춘다. 구멍을 돌아가며 쓰고, 같은 구멍을 두 번째 이상 쓰면 옆으로 벌린다
+            // (안 벌리면 같은 시각에 완전히 겹쳐 한 덩어리로 보임). 잔류 증기는 그림에 자리가 있으므로 벌리지 않는다. 난수 없음
             puffRect.position = vent.position;
+            float spread = kind == SteamKind.Residual ? 0f : SpreadOffset(index / steamVents.Length);
+            puffStartPositions[slot] = puffRect.anchoredPosition + new Vector2(spread, 0f);
             puffFlipped[slot] = vent.anchoredPosition.x < 0f;
-            puffStartPositions[slot] = puffRect.anchoredPosition + new Vector2(SpreadOffset(index / steamVents.Length), 0f);
+            puffStartScales[slot] = startScale;
+            puffEndScales[slot] = endScale;
+            puffRises[slot] = kind == SteamKind.Residual ? settings.ResidualSteamRise : settings.SteamRise;
             HidePuff(slot);
 
-            puffTweens[slot] = DOTween.To(t => ApplyPuff(slot, endScale, t), 0f, 1f, seconds)
+            puffTweens[slot] = DOTween.To(t => ApplyPuff(slot, t), 0f, 1f, seconds)
                 .SetDelay(delay)
                 .SetEase(Ease.OutQuad)
                 .OnComplete(() =>
@@ -718,6 +853,20 @@ namespace Overclock.Presentation
                     puffTweens[slot] = null;
                     HidePuff(slot);
                 });
+        }
+
+        private SteamShape GetSteamShape(SteamKind kind, int residualPiece)
+        {
+            switch (kind)
+            {
+                case SteamKind.Small:
+                    return settings.SmallSteamShape;
+                case SteamKind.Big:
+                    return settings.BigSteamShape;
+                default:
+                    int count = settings.ResidualSteamShapeCount;
+                    return count > 0 ? settings.GetResidualSteamShape(residualPiece % count) : null;
+            }
         }
 
         private float SpreadOffset(int round)
@@ -728,13 +877,13 @@ namespace Overclock.Presentation
             return settings.SteamSpread * step * sign;
         }
 
-        private void ApplyPuff(int slot, float endScale, float t)
+        private void ApplyPuff(int slot, float t)
         {
             Image puff = steamPuffs[slot];
-            float scale = Mathf.Lerp(settings.SteamStartScale, endScale, t);
+            float scale = Mathf.Lerp(puffStartScales[slot], puffEndScales[slot], t);
             float sideScale = puffFlipped[slot] ? -scale : scale;
             puff.rectTransform.localScale = new Vector3(sideScale, scale, 1f);
-            puff.rectTransform.anchoredPosition = puffStartPositions[slot] + new Vector2(0f, settings.SteamRise * t);
+            puff.rectTransform.anchoredPosition = puffStartPositions[slot] + new Vector2(0f, puffRises[slot] * t);
             Color color = settings.SteamColor;
             color.a *= 1f - t;
             puff.color = color;
@@ -747,8 +896,52 @@ namespace Overclock.Presentation
             steamPuffs[slot].color = color;
         }
 
+        private void AdvanceLamps(float deltaTime)
+        {
+            idleLampPhase = Mathf.Repeat(idleLampPhase + deltaTime / settings.IdleLampPeriod, 1f);
+            overclockLampPhase = Mathf.Repeat(overclockLampPhase + deltaTime / settings.OverclockLampPeriod, 1f);
+            heatLampPhase = Mathf.Repeat(heatLampPhase + deltaTime * Mathf.Lerp(settings.HeatLampPulseStart, settings.HeatLampPulseEnd, heat), 1f);
+            topFlash.Advance(deltaTime);
+            leftFlash.Advance(deltaTime);
+            rightFlash.Advance(deltaTime);
+        }
+
+        private void ApplyLamps()
+        {
+            // 아래 두 등: 평소 천천히 숨 쉼 · 오버클럭 가동 중 더 밝고 빠르게 · 레버 / 공개 순간 켜졌다 잦아듦.
+            // 위 등: SR 기다림 · 클리어 기 모으기 열에 따라 오르며 일렁임 · SR 공개 때 켜졌다 잦아듦.
+            // 런 실패 중에는 기어 동력(속도 배율)만큼 빛도 줄어 멈추면 꺼진다. 깜빡임은 모두 사인 곡선 (눈부시지 않게)
+            float bottom = overclockLampOn
+                ? Mathf.Lerp(settings.OverclockLampMin, settings.OverclockLampMax, Wave(overclockLampPhase))
+                : Mathf.Lerp(settings.IdleLampMin, settings.IdleLampMax, Wave(idleLampPhase));
+            float heatGlow = heat > 0f ? heat * settings.HeatLampMax * (1f - settings.HeatLampPulse * Wave(heatLampPhase)) : 0f;
+            float power = failPoseActive ? Mathf.Clamp01(failGearSpeedScale) : 1f;
+            SetLampAlpha(topLampGlow, Mathf.Max(heatGlow, topFlash.Value) * power);
+            SetLampAlpha(leftLampGlow, Mathf.Max(bottom, leftFlash.Value) * power);
+            SetLampAlpha(rightLampGlow, Mathf.Max(bottom, rightFlash.Value) * power);
+        }
+
+        private static void SetLampAlpha(Image lamp, float alpha)
+        {
+            if (lamp == null)
+            {
+                return;
+            }
+
+            Color color = lamp.color;
+            color.a = Mathf.Clamp01(alpha);
+            lamp.color = color;
+        }
+
+        private static float Wave(float phase)
+        {
+            return 0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * phase);
+        }
+
         private void ApplyPose()
         {
+            ApplyLamps();
+
             // 씬을 내릴 때는 다른 오브젝트가 먼저 파괴될 수 있다. 파괴된 대상은 건드리지 않는다
             float angle = gearAngle + ratchetOffset;
             for (int i = 0; i < gears.Length; i++)

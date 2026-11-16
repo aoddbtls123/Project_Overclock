@@ -53,3 +53,49 @@ MonoBehaviour:
   frameWidthN: 2
   frameWidthR: 3
   frameWidthSR: 4
+  steamPixelScale: 4
+  smallSteamShape:
+    sprite: {fileID: 21300000, guid: b629f2a751bbf8042bb4e7cd514b2079, type: 3}
+    pivot: {x: 0.41935, y: -0.41667}
+    startScale: 0.6
+    endScale: 1
+  bigSteamShape:
+    sprite: {fileID: 21300000, guid: d4c9f6faed83bc8439fb9b570b79d621, type: 3}
+    pivot: {x: -0.21212, y: 0.05085}
+    startScale: 0.5
+    endScale: 1
+  residualSteamShapes:
+  - sprite: {fileID: 21300000, guid: d51ee810b926c7442823b35405e2604e, type: 3}
+    pivot: {x: -2.45833, y: 0.33333}
+    startScale: 0.9
+    endScale: 1
+  - sprite: {fileID: 21300000, guid: 4a57ce6e38166184d8e00a0bfc2eb40b, type: 3}
+    pivot: {x: -4.18182, y: 1.15385}
+    startScale: 0.9
+    endScale: 1
+  - sprite: {fileID: 21300000, guid: 5736a5bcc48af6a4cb053451483847ec, type: 3}
+    pivot: {x: -3.93333, y: 2.22222}
+    startScale: 0.9
+    endScale: 1
+  residualSteamSeconds: 1.4
+  residualSteamRise: 16
+  residualSteamStagger: 0.12
+  idleLampMin: 0.08
+  idleLampMax: 0.28
+  idleLampPeriod: 2.6
+  overclockLampMin: 0.5
+  overclockLampMax: 0.9
+  overclockLampPeriod: 1.2
+  leverLampFlash: 0.8
+  leverLampSeconds: 0.4
+  revealLampFlashN: 0.35
+  revealLampFlashR: 0.65
+  revealLampFlashSR: 1
+  revealLampSeconds: 0.6
+  heatLampMax: 0.8
+  heatLampPulse: 0.2
+  heatLampPulseStart: 1
+  heatLampPulseEnd: 2.5
+  superRareLampSeconds: 0.9
+  breakthroughLampFlash: 0.75
+  breakthroughLampSeconds: 0.8

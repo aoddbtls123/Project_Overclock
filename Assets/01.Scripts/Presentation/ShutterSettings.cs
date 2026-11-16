@@ -24,6 +24,14 @@ namespace Overclock.Presentation
         [Tooltip("SR 튕김 때 다시 내려오는 정도 (창 높이 대비)")]
         [SerializeField, Range(0f, 0.5f)] private float superRareBounceAmount = 0.15f;
 
+        [Header("철판 (11/16) — 떨어지는 동안 철판 사이가 벌어져 있다가 닿으면 아래부터 차례로 포개진다 · 열 때는 위부터 벌어진다")]
+        [Tooltip("철판 사이가 벌어지는 거리 (px · 기계 그림 1 픽셀 = 4)")]
+        [SerializeField, Min(0f)] private float slatGap = 4f;
+        [Tooltip("닫힌 뒤 철판이 아래부터 차례로 포개지는 시간 (닫히는 시간과 같은 배율을 받는다)")]
+        [SerializeField, Min(0.01f)] private float slatSettleSeconds = 0.12f;
+        [Tooltip("열 때 철판 사이가 다 벌어지는 시점 (여는 시간 대비)")]
+        [SerializeField, Range(0.05f, 1f)] private float slatOpenLead = 0.5f;
+
         [Header("기다리는 동안 (R · SR)")]
         [Tooltip("R 래칫 틱 간격")]
         [SerializeField, Min(0.01f)] private float rareTickInterval = 0.2f;
@@ -56,6 +64,9 @@ namespace Overclock.Presentation
         public float SuperRareOpenSeconds => superRareOpenSeconds;
         public float SuperRareBounceSeconds => superRareBounceSeconds;
         public float SuperRareBounceAmount => superRareBounceAmount;
+        public float SlatGap => slatGap;
+        public float SlatSettleSeconds => slatSettleSeconds;
+        public float SlatOpenLead => slatOpenLead;
         public float TickAngle => tickAngle;
         public float TickSeconds => tickSeconds;
         public float SuperRareJitterPixels => superRareJitterPixels;

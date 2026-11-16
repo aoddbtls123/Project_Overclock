@@ -19,6 +19,9 @@ MonoBehaviour:
   superRareOpenSeconds: 0.06
   superRareBounceSeconds: 0.16
   superRareBounceAmount: 0.15
+  slatGap: 4
+  slatSettleSeconds: 0.12
+  slatOpenLead: 0.5
   rareTickInterval: 0.2
   superRareTickIntervalStart: 0.2
   superRareTickIntervalEnd: 0.05

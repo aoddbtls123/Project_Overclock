@@ -1105,6 +1105,11 @@ namespace Overclock.Presentation
         private void RefreshOverclock()
         {
             overclockButton.interactable = runManager.CanActivateOverclock && !drawReveal.IsPlaying && !IsIntroPlaying;
+            if (gachaMachine != null)
+            {
+                gachaMachine.SetOverclockActive(runManager.OverclockDrawsLeft > 0);
+            }
+
             if (runManager.OverclockDrawsLeft > 0)
             {
                 overclockLabel.text = "오버클럭 가동 중\n" + runManager.OverclockDrawsLeft + "회 남음";
