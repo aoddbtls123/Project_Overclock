@@ -26,6 +26,85 @@ namespace Overclock.Presentation
             return string.Join("\n", lines);
         }
 
+        /// <summary>
+        /// 카드 간단히 보기 (11/16): 예상 생산량 변화 한 줄 + 할당량 + 핵심 변화 몇 줄 (뽑기 · 가장 희귀한 등급 확률 · 생산량 첫 묶음 외 n건).
+        /// 자세한 수치는 Format 이 낸다. 같은 미리보기로 계산하므로 두 문구의 숫자는 늘 같다
+        /// </summary>
+        public static string FormatSummary(ModulePreview preview, IReadOnlyList<PartData> parts, int nextQuota)
+        {
+            var lines = new List<string>();
+            double before = preview.ExpectedRoundOutputBefore(parts);
+            double after = preview.ExpectedRoundOutputAfter(parts);
+            string beforeText = before.ToString("0.0");
+            string afterText = after.ToString("0.0");
+            if (beforeText == afterText)
+            {
+                lines.Add("예상 생산량 " + afterText);
+            }
+            else
+            {
+                // 표시한 두 값의 차를 쓴다 (내부 값끼리 빼면 반올림 때문에 0.1 어긋나 보일 수 있다)
+                double delta = double.Parse(afterText) - double.Parse(beforeText);
+                lines.Add("예상 생산량 " + beforeText + " → " + afterText + " (" + (delta >= 0 ? "+" : "") + delta.ToString("0.0") + ")");
+            }
+
+            lines.Add("다음 할당량 " + nextQuota);
+
+            int keyStart = lines.Count;
+            if (preview.DrawsPerRoundBefore != preview.DrawsPerRoundAfter)
+            {
+                lines.Add("- 뽑기 " + preview.DrawsPerRoundBefore + " → " + preview.DrawsPerRoundAfter + "회");
+            }
+
+            string probabilityLine = GetRarestProbabilityChange(preview);
+            if (probabilityLine != null)
+            {
+                lines.Add("- " + probabilityLine);
+            }
+
+            var outputLines = new List<string>();
+            AddOutputLines(preview, parts, outputLines);
+            if (outputLines.Count > 0)
+            {
+                // 3연속 괄호는 자세히 보기에서만 (간단히 보기는 한 줄에 들어가게)
+                string first = outputLines[0];
+                int bracket = first.IndexOf(" (", System.StringComparison.Ordinal);
+                if (bracket > 0)
+                {
+                    first = first.Substring(0, bracket);
+                }
+
+                lines.Add("- " + first + (outputLines.Count > 1 ? " 외 " + (outputLines.Count - 1) + "건" : ""));
+            }
+
+            if (lines.Count == keyStart)
+            {
+                lines.Add("- 변화 없음");
+            }
+
+            return string.Join("\n", lines);
+        }
+
+        // 가장 희귀한 등급부터 보고 처음 바뀐 등급 한 줄 (자세히 보기와 같은 표기)
+        private static string GetRarestProbabilityChange(ModulePreview preview)
+        {
+            preview.GetProbabilitiesBefore(out double beforeN, out double beforeR, out double beforeSR);
+            preview.GetProbabilitiesAfter(out double afterN, out double afterR, out double afterSR);
+            double[] before = { beforeN, beforeR, beforeSR };
+            double[] after = { afterN, afterR, afterSR };
+            for (int i = Grades.Length - 1; i >= 0; i--)
+            {
+                string beforeText = FormatPercent(before[i]);
+                string afterText = FormatPercent(after[i]);
+                if (beforeText != afterText)
+                {
+                    return Grades[i] + " 확률 " + beforeText + " → " + afterText;
+                }
+            }
+
+            return null;
+        }
+
         private static void AddExpectedOutputLines(ModulePreview preview, IReadOnlyList<PartData> parts, int nextQuota, List<string> lines)
         {
             string beforeText = preview.ExpectedRoundOutputBefore(parts).ToString("0.0");

@@ -25,6 +25,9 @@ namespace Overclock.Presentation
 
         private ModuleData module;
         private Action<ModuleData> selected;
+        private string summaryText = "";
+        private string detailText = "";
+        private bool detailed;
 
         public bool CanFlip => flipRoot != null && frontFace != null && backFace != null;
 
@@ -35,16 +38,36 @@ namespace Overclock.Presentation
 
         public void Show(ModuleData module, string preview, Action<ModuleData> selected)
         {
+            Show(module, preview, preview, selected);
+        }
+
+        /// <summary>카드 내용. 효과 글자는 지금 보기 방식 (SetDetailed) 에 따라 간단히 / 자세히 중 하나를 쓴다.</summary>
+        public void Show(ModuleData module, string summary, string detail, Action<ModuleData> selected)
+        {
             this.module = module;
             this.selected = selected;
             nameText.text = module.DisplayName;
             descriptionText.text = module.Description;
             familyText.text = FamilyStyle.GetLabel(module.Family);
             familyText.color = FamilyStyle.GetColor(module.Family);
-            previewText.text = preview;
+            summaryText = summary ?? "";
+            detailText = detail ?? "";
+            ApplyPreviewText();
             iconImage.sprite = module.Icon;
             iconImage.enabled = module.Icon != null;
             gameObject.SetActive(true);
+        }
+
+        /// <summary>효과 글자를 간단히 (false) / 자세히 (true) 로 바꾼다. 다음 Show 에도 그대로 이어진다.</summary>
+        public void SetDetailed(bool value)
+        {
+            detailed = value;
+            ApplyPreviewText();
+        }
+
+        private void ApplyPreviewText()
+        {
+            previewText.text = detailed ? detailText : summaryText;
         }
 
         public void Hide()

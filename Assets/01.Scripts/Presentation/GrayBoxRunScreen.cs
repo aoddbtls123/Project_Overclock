@@ -30,6 +30,9 @@ namespace Overclock.Presentation
         [SerializeField] private ModuleCardView[] moduleCards;
         [Tooltip("카드 3장 다시 받기 (돌파마다 1번 · 11/06). 비어 있으면 다시 받기 없이 진행한다")]
         [SerializeField] private Button rerollButton;
+        [Tooltip("카드 효과 간단히 / 자세히 전환 (11/16). 비어 있으면 카드는 늘 자세히")]
+        [SerializeField] private Button cardDetailToggle;
+        [SerializeField] private TMP_Text cardDetailLabel;
         [SerializeField] private TMP_Text rerollLabel;
         [Tooltip("다시 받기 글자색 — 쓸 수 있을 때 / 쓴 뒤 (버튼은 꺼진 색으로 어두워지고, 글자는 읽히게 조금만 낮춘다)")]
         [SerializeField] private Color rerollReadyLabelColor = new Color(0.9098039f, 0.91764706f, 0.92941177f, 1f);
@@ -93,6 +96,7 @@ namespace Overclock.Presentation
         private int resultShownFrame = -1;
         private int resumeFrame;
         private readonly PlaytestLog playtestLog = new PlaytestLog();
+        private bool showCardDetails;
 
         private void Awake()
         {
@@ -117,6 +121,13 @@ namespace Overclock.Presentation
                 // 새 카드가 나오면 카드 출현 소리를 낸다 (받아들여졌을 때만). 클릭 소리는 따로 내지 않는다
                 rerollButton.onClick.AddListener(OnRerollClicked);
             }
+
+            if (cardDetailToggle != null)
+            {
+                cardDetailToggle.onClick.AddListener(WithClickSound(ToggleCardDetails).Invoke);
+            }
+
+            ApplyCardDetails();
 
             startButton.onClick.AddListener(WithOpenSound(ShowModeSelect).Invoke);
             titleSettingsButton.onClick.AddListener(WithOpenSound(ShowSettings).Invoke);
@@ -905,8 +916,34 @@ namespace Overclock.Presentation
 
             // 미리보기 문구는 지금 만든다 (회전이 끝날 때 계산하지 않는다). PreviewModule 은 복제본으로만 계산해 상태 · 난수가 그대로다
             ModuleData module = offer[index];
-            string preview = ModulePreviewFormatter.Format(runManager.PreviewModule(module), parts, nextQuota);
-            return () => card.Show(module, preview, OnModuleSelected);
+            ModulePreview modulePreview = runManager.PreviewModule(module);
+            string detail = ModulePreviewFormatter.Format(modulePreview, parts, nextQuota);
+            string summary = ModulePreviewFormatter.FormatSummary(modulePreview, parts, nextQuota);
+            return () => card.Show(module, summary, detail, OnModuleSelected);
+        }
+
+        // 간단히 / 자세히는 카드마다 기억한다 — 회전 중에 눌러도 회전이 끝나 새 내용을 쓸 때 지금 방식을 따른다. 앱을 켜 둔 동안만 유지
+        private void ToggleCardDetails()
+        {
+            showCardDetails = !showCardDetails;
+            ApplyCardDetails();
+        }
+
+        private void ApplyCardDetails()
+        {
+            bool detailed = showCardDetails || cardDetailToggle == null;
+            for (int i = 0; i < moduleCards.Length; i++)
+            {
+                if (moduleCards[i] != null)
+                {
+                    moduleCards[i].SetDetailed(detailed);
+                }
+            }
+
+            if (cardDetailLabel != null)
+            {
+                cardDetailLabel.text = showCardDetails ? "간단히 보기" : "자세히 보기";
+            }
         }
 
         private void RefreshRerollButton()
